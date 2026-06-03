@@ -1,0 +1,294 @@
+"use strict";
+
+function _catch(body, recover) {
+  try {
+    var result = body();
+  } catch (e) {
+    return recover(e);
+  }
+  if (result && result.then) {
+    return result.then(void 0, recover);
+  }
+  return result;
+}
+/*
+* NexPlay — Main App Controller
+* Handles routing, sidebar, genre cache, and back navigation.
+*/
+var App = function () {
+  // ── Init ────────────────────────────────────────────────
+  var init = function init() {
+    try {
+      function _temp2() {
+        // Back navigation
+        document.addEventListener('nav:back', handleBack);
+
+        // Collapse sidebar when main content gets focus
+        var _mc = document.getElementById('main-content');
+        if (_mc) _mc.addEventListener('nav:focus', function () {
+          expandSidebar(false);
+        }, true);
+
+        // Start on Home
+        navigateFull('home');
+      }
+      scaleApp();
+      window.addEventListener('resize', scaleApp);
+      buildSidebar();
+      Nav.init();
+
+      // Pre-load genres into the map for HomePage hero
+      var _temp = _catch(function () {
+        return Promise.resolve(TMDB.genres()).then(function (gData) {
+          gData.genres.forEach(function (g) {
+            genreMap[g.id] = g.name;
+          });
+        });
+      }, function () {});
+      return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  };
+  var _currentPage = '';
+  var _pageParams = {};
+  var _sidebarExpanded = false;
+  var _genres = [];
+  var PAGES = {
+    home: {
+      module: function module() {
+        return HomePage;
+      },
+      label: 'Home',
+      nav: 'home'
+    },
+    movies: {
+      module: function module() {
+        return MoviesPage;
+      },
+      label: 'Movies',
+      nav: 'movies'
+    },
+    series: {
+      module: function module() {
+        return SeriesPage;
+      },
+      label: 'Series',
+      nav: 'series'
+    },
+    iptv: {
+      module: function module() {
+        return IPTVPage;
+      },
+      label: 'Live TV',
+      nav: 'iptv'
+    },
+    detail: {
+      module: function module() {
+        return DetailPage;
+      },
+      label: 'Detail',
+      nav: 'detail'
+    }
+  };
+
+  // ── Genre map (id → name) used by HomePage hero ────────
+  var genreMap = {};
+
+  // ── Theme management ────────────────────────────────────
+  var THEMES = ['theme-default', 'theme-bright', 'theme-calm'];
+  var THEME_LABELS = {
+    'theme-default': 'Default',
+    'theme-bright': 'Bright',
+    'theme-calm': 'Calm'
+  };
+  var _currentTheme = localStorage.getItem('nexplay-theme') || 'theme-default';
+  function applyTheme(theme) {
+    THEMES.forEach(function (t) {
+      return document.body.classList.remove(t);
+    });
+    if (theme !== 'theme-default') document.body.classList.add(theme);
+    _currentTheme = theme;
+    try {
+      localStorage.setItem('nexplay-theme', theme);
+    } catch (e) {}
+    // Also set inline styles for old Chromium (no CSS variable support)
+    var colors = {
+      'theme-default': {
+        bg: '#09090f',
+        text: '#f0f0f8'
+      },
+      'theme-bright': {
+        bg: '#f0f0fa',
+        text: '#0a0a20'
+      },
+      'theme-calm': {
+        bg: '#0d1117',
+        text: '#c9d1d9'
+      }
+    };
+    var c = colors[theme] || colors['theme-default'];
+    document.documentElement.style.background = c.bg;
+    document.body.style.background = c.bg;
+    document.body.style.color = c.text;
+  }
+  function cycleTheme() {
+    var idx = THEMES.indexOf(_currentTheme);
+    var next = THEMES[(idx + 1) % THEMES.length];
+    applyTheme(next);
+    // Show brief toast
+    var toast = document.getElementById('toast');
+    if (toast) {
+      toast.textContent = 'Theme: ' + THEME_LABELS[next];
+      toast.classList.add('visible');
+      setTimeout(function () {
+        return toast.classList.remove('visible');
+      }, 2000);
+    }
+  }
+
+  // Apply saved theme on init
+  applyTheme(_currentTheme);
+
+  // ── Navigation icons (SVG inline) ──────────────────────
+  var ICONS = {
+    home: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/>\n      <polyline points=\"9 22 9 12 15 12 15 22\"/>\n    </svg>",
+    movies: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"2\" width=\"20\" height=\"20\" rx=\"2.18\"/>\n      <line x1=\"7\" y1=\"2\" x2=\"7\" y2=\"22\"/><line x1=\"17\" y1=\"2\" x2=\"17\" y2=\"22\"/>\n      <line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><line x1=\"2\" y1=\"7\" x2=\"7\" y2=\"7\"/>\n      <line x1=\"2\" y1=\"17\" x2=\"7\" y2=\"17\"/><line x1=\"17\" y1=\"7\" x2=\"22\" y2=\"7\"/>\n      <line x1=\"17\" y1=\"17\" x2=\"22\" y2=\"17\"/>\n    </svg>",
+    collections: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z\"/>\n      <polyline points=\"3 9 21 9\"/><polyline points=\"3 15 21 15\"/>\n      <line x1=\"9\" y1=\"9\" x2=\"9\" y2=\"21\"/><line x1=\"15\" y1=\"9\" x2=\"15\" y2=\"21\"/>\n    </svg>",
+    series: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n      <circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M2 10h4M18 10h4M2 14h4M18 14h4\"/>\n    </svg>",
+    iptv: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n      <path d=\"M8 19v2M16 19v2M2 10h20\"/>\n    </svg>",
+    search: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <circle cx=\"11\" cy=\"11\" r=\"8\"/>\n      <line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n    </svg>"
+  };
+
+  // ── Sidebar ─────────────────────────────────────────────
+  function buildSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">NexPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
+    sidebar.querySelectorAll('[data-nav-page]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        return navigate(el.dataset.navPage);
+      });
+      el.addEventListener('nav:focus', function () {
+        return expandSidebar(true);
+      });
+    });
+  }
+  function expandSidebar(on) {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    _sidebarExpanded = on;
+    sidebar.classList.toggle('expanded', on);
+  }
+  function updateSidebarActive(page) {
+    document.querySelectorAll('[data-nav-page]').forEach(function (el) {
+      el.classList.toggle('active', el.dataset.navPage === page);
+    });
+  }
+
+  // ── Navigation ──────────────────────────────────────────
+  function navigate(page) {
+    var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var def = PAGES[page];
+    if (!def) return;
+
+    // Close player if open
+    var modal = document.getElementById('player-modal');
+    if (page !== 'player' && modal && !modal.classList.contains('hidden')) {
+      PlayerPage.closePlayer();
+    }
+
+    // Leave current page
+    if (_currentPage && PAGES[_currentPage]) {
+      var _leaveMod = PAGES[_currentPage].module();
+      if (_leaveMod.onLeave) _leaveMod.onLeave();
+    }
+    _currentPage = page;
+    _pageParams = params;
+    updateSidebarActive(page);
+    expandSidebar(false);
+    var content = document.getElementById('main-content');
+    if (content) {
+      content.scrollTop = 0;
+      def.module().render(content, params);
+    }
+    document.title = "NexPlay \u2014 ".concat(def.label);
+  }
+
+  // Special case: player opens as a modal overlay
+  function navigatePlayer(params) {
+    PlayerPage.render(document.getElementById('main-content'), params);
+  }
+
+  // Override navigate to handle player specially
+  var _origNavigate = navigate;
+  function navigateFull(page) {
+    var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    if (page === 'player') {
+      navigatePlayer(params);
+    } else {
+      _origNavigate(page, params);
+    }
+  }
+
+  // ── Back handler ────────────────────────────────────────
+  function handleBack() {
+    // Close any open dropdown first (prevents Escape navigating away mid-dropdown)
+    var openDD = document.querySelector('.tdd-wrapper.open');
+    if (openDD) {
+      var ddId = openDD.id.replace('tdd-wrap-', '');
+      var ddList = document.getElementById('tdd-list-' + ddId);
+      var ddTrigger = openDD.querySelector('[data-tdd-trigger]');
+      if (ddList) ddList.classList.add('hidden');
+      openDD.classList.remove('open');
+      if (ddTrigger) Nav.focusEl(ddTrigger);
+      return;
+    }
+    var modal = document.getElementById('player-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      PlayerPage.closePlayer();
+      return;
+    }
+    if (_sidebarExpanded) {
+      expandSidebar(false);
+      Nav.reset(document.getElementById('main-content'));
+      return;
+    }
+    if (_currentPage !== 'home') {
+      navigateFull('home');
+    }
+  }
+
+  // ── Viewport scaling — keeps 1920×1080 layout on any screen ──
+  function scaleApp() {
+    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var app = document.getElementById('app');
+    if (!app) return;
+    app.style.transform = "scale(".concat(scale, ")");
+    // Centre the scaled canvas when letterboxing occurs
+    app.style.left = Math.max(0, (window.innerWidth - 1920 * scale) / 2) + 'px';
+    app.style.top = Math.max(0, (window.innerHeight - 1080 * scale) / 2) + 'px';
+  }
+  function showToast(msg, duration) {
+    var toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+      toast.classList.remove('visible');
+    }, duration || 2500);
+  }
+  return {
+    init: init,
+    navigate: navigateFull,
+    genreMap: genreMap,
+    cycleTheme: cycleTheme,
+    showToast: showToast
+  };
+}();
+
+// Boot when DOM is ready
+document.addEventListener('DOMContentLoaded', function () {
+  return App.init();
+});

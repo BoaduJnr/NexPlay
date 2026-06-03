@@ -1,0 +1,78 @@
+# Project type [web_app, test_runner]
+project_type: web_app
+
+# Default profile, Tizen API version
+profile: tv-samsung
+api_version: "3.0"
+
+# Build type [Debug/ Release/ Test]
+build_type: Debug
+
+# Output name for application
+output_name: NexPlay
+
+# Output path for build
+output_path: ""
+
+# Enable size optimization of wgt for web workspace
+opt: false
+
+# Signing profile to be used for Tizen package signing
+signing_profile: "MyTVApp"
+
+# list of certs in web project (.trust-anchor)
+trust_anchor: []
+
+# list of files in web project (.html,.css etc) and resources
+files:
+  - config.xml
+  - css/style-dist.css
+  - icon.png
+  - index.html
+  - hls.min.js
+  - polyfills.js
+  - main-dist.js
+  - js-dist/config.js
+  - js-dist/nav.js
+  - js-dist/dropdown.js
+  - js-dist/app.js
+  - js-dist/api/db.js
+  - js-dist/api/tmdb.js
+  - js-dist/api/iptv.js
+  - js-dist/api/stream.js
+  - js-dist/pages/home.js
+  - js-dist/pages/movies.js
+  - js-dist/pages/collections.js
+  - js-dist/pages/player.js
+  - js-dist/pages/series.js
+  - js-dist/pages/iptv.js
+  - js-dist/pages/detail.js
+
+# list of files to exclude based on the matched patterns
+excludes:
+  - .claude/*
+  - Build/*
+  - Debug/*
+  - Directory.Build.targets
+  - Release/*
+  - Test/*
+  - \.Build/.*
+  - \.buildResult/.*
+  - \.csproj
+  - \.externalToolBuilders/.*
+  - \.gn
+  - \.obj/.*
+  - \.package/.*
+  - \.project
+  - \.rds_delta
+  - \.sdk_delta.info
+  - \.settings/.*
+  - \.sign/.*
+  - \.tizen-ui-builder-tool.xml
+  - \.tproject
+  - \.wgt
+  - tizen_web_project.yaml
+  - webUnitTest/*
+
+# project dependencies
+deps: []

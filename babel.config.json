@@ -1,0 +1,16 @@
+{
+  "presets": [
+    ["@babel/preset-env", {
+      "targets": { "ie": "11" },
+      "exclude": [
+        "proposal-async-generator-functions",
+        "transform-async-to-generator",
+        "transform-regenerator"
+      ],
+      "useBuiltIns": false
+    }]
+  ],
+  "plugins": [
+    ["babel-plugin-transform-async-to-promises", { "inlineHelpers": true }]
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "tizen": {
+    "cli_path": "C:\\tizen-studio\\tools\\ide\\bin\\tizen.bat",
+    "sdb_path": "C:\\tizen-studio\\tools\\sdb.exe",
+    "package_name": "NexPlay",
+    "app_id": "ahtRoLP5zQ.NexPlay",
+    "wgt_file": "Debug/NexPlay.wgt",
+    "tv": {
+      "ip": "192.168.100.83",
+      "port": 26101,
+      "model": "UE50MU6100"
+    }
+  }
+}

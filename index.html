@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexPlay</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%237c3aed'/><text y='.9em' font-size='72' x='50%' text-anchor='middle' fill='white' font-family='Arial Black,sans-serif' font-weight='900'>N</text></svg>">
+  <meta name="theme-color" content="#7c3aed">
+  <link rel="stylesheet" href="css/style-dist.css">
+
+  <!-- CSP: allow streaming APIs and CDNs -->
+  <meta http-equiv="Content-Security-Policy"
+    content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' https: data: blob:;
+      media-src 'self' https: blob:;
+      frame-src https:;
+      connect-src 'self' https:;
+    ">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Sidebar ──────────────────────────────────────── -->
+  <nav id="sidebar" class="sidebar"></nav>
+
+  <!-- ── Main Content (pages render here) ─────────────── -->
+  <main id="main-content" class="main-content"></main>
+
+  <!-- ── Player Modal (overlays everything) ───────────── -->
+  <div id="player-modal" class="player-modal hidden"></div>
+
+  <!-- ── Loading Overlay ──────────────────────────────── -->
+  <div id="loading" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ── Toast ────────────────────────────────────────── -->
+  <div id="toast" class="toast"></div>
+
+</div>
+
+<!-- ── Scripts (order matters — dependencies first) ── -->
+<script src="polyfills.js"></script>
+<script src="hls.min.js"></script>
+<script src="js-dist/config.js"></script>
+<script src="js-dist/api/db.js"></script>
+<script src="js-dist/api/tmdb.js"></script>
+<script src="js-dist/api/iptv.js"></script>
+<script src="js-dist/api/stream.js"></script>
+<script src="js-dist/nav.js"></script>
+<script src="js-dist/dropdown.js"></script>
+<script src="js-dist/pages/home.js"></script>
+<script src="js-dist/pages/movies.js"></script>
+<script src="js-dist/pages/player.js"></script>
+<script src="js-dist/pages/series.js"></script>
+<script src="js-dist/pages/iptv.js"></script>
+<script src="js-dist/pages/detail.js"></script>
+<script src="js-dist/app.js"></script>
+<script src="main-dist.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+# ── Node ──────────────────────────────────────────────────
+node_modules/
+
+# ── Tizen build artifacts ──────────────────────────────────
+.buildResult/
+Debug/
+Release/
+*.wgt
+.manifest.tmp
+.sdk_delta.info
+.rds_delta
+.sign/
+.package/
+
+# ── IDE / Tizen Studio scratch ─────────────────────────────
+.settings/
+.externalToolBuilders/
+
+# ── Claude AI local settings ───────────────────────────────
+.claude/
+
+# ── OS junk ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

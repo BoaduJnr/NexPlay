@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://yourdomain/NexPlay"
+        version="1.0.0"
+        viewmodes="maximized">
+
+  <name>NexPlay</name>
+  <icon src="icon.png"></icon>
+  <content src="index.html"></content>
+
+  <!-- Open access required for streaming sources and their CDN subdomains -->
+  <access origin="*" subdomains="true"></access>
+
+<feature name="http://tizen.org/feature/screen.size.all"></feature>
+  <!-- Change to 3.0 -->
+<tizen:application
+    id="ahtRoLP5zQ.NexPlay"
+    package="ahtRoLP5zQ"
+    required_version="3.0">
+</tizen:application>
+  <tizen:privilege name="http://tizen.org/privilege/application.launch"></tizen:privilege>
+  <tizen:privilege name="http://tizen.org/privilege/internet"></tizen:privilege>
+
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.avplay"/>
+
+  <tizen:setting
+    screen-orientation="landscape"
+    context-menu="disable"
+    background-support="disable"
+    encryption="disable"
+    install-location="auto"
+    hwkey-event="enable">
+  </tizen:setting>
+
+  <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="true"></tizen:metadata>
+  <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"></tizen:metadata>
+  <tizen:profile name="tv-samsung"></tizen:profile>
+
+</widget>

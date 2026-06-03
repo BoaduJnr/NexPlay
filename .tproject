@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tproject xmlns="http://www.tizen.org/tproject">
+    <platforms>
+        <platform>
+            <name>tv-samsung-10.0</name>
+        </platform>
+    </platforms>
+    <package>
+        <blacklist>
+            <item>node_modules</item>
+            <item>js</item>
+            <item>css/style.css</item>
+            <item>main.js</item>
+            <item>package.json</item>
+            <item>package-lock.json</item>
+            <item>babel.config.json</item>
+            <item>postcss.config.js</item>
+            <item>deploy-config.json</item>
+            <item>tizen_web_project.yaml</item>
+        </blacklist>
+    </package>
+</tproject>
