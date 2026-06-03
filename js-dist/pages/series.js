@@ -58,7 +58,10 @@ var SeriesPage = function () {
             }
           });
         }
-        return Promise.resolve(loadShows(true)).then(function () {});
+        return Promise.resolve(loadShows(true)).then(function () {
+          setupScrollPaging();
+          bindRemoteKeys();
+        });
       }
       container.innerHTML = "\n      <div id=\"series-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">TV Series</h1>\n          <p class=\"page-subtitle\">Discover popular shows, trending series, and more</p>\n        </div>\n\n        <div style=\"padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;\">\n          <input type=\"text\" id=\"series-search-input\" placeholder=\"Search series...\" data-nav tabindex=\"0\"\n            style=\"background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);\n                   color:#f0f0f8;font-size:18px;padding:10px 18px;border-radius:8px;\n                   width:360px;outline:none;\">\n        </div>\n\n        <div style=\"padding:0 72px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px;\">\n          <span style=\"font-size:16px;font-weight:700;color:rgba(240,240,248,0.45);letter-spacing:1px;text-transform:uppercase;\">Sort</span>\n          ".concat(TVDropdown.html('series-sort', SORT_OPTIONS, _activeSort), "\n        </div>\n\n        <div style=\"padding:12px 0 4px;\">\n          <div class=\"filter-bar\" data-scroll id=\"series-tabs\">").concat(tabsHTML(), "</div>\n        </div>\n\n        <div style=\"padding:0 0 4px;\">\n          <div class=\"filter-bar\" data-scroll id=\"series-genres\">\n            ").concat(_genres.length ? genrePills() : '<div class="pill skeleton" style="width:60px;"></div>'.repeat(8), "\n          </div>\n        </div>\n\n        <div class=\"movie-grid\" id=\"series-grid\"></div>\n      </div>");
 
@@ -116,7 +119,6 @@ var SeriesPage = function () {
           }
           bindCardClicks(grid);
           fillProgressBars(grid);
-          setupAutoPaging(grid);
           if (replace) Nav.reset(document.getElementById('series-page'));
         });
       }, function (err) {
@@ -164,6 +166,8 @@ var SeriesPage = function () {
   var _activeSearch = '';
   var _page = 1;
   var _loading = false;
+  var _scrollHandler = null;
+  var _keyHandler = null;
   var TABS = [{
     id: 'popular',
     label: 'Popular'
@@ -202,18 +206,60 @@ var SeriesPage = function () {
     var poster = show.poster_path ? TMDB.img(show.poster_path, Config.IMG.POSTER_MD) : '';
     var year = (show.first_air_date || '').slice(0, 4);
     var rating = show.vote_average ? show.vote_average.toFixed(1) : '';
-    return "\n      <div class=\"card\" data-nav data-show-id=\"".concat(show.id, "\" tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(show.name, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83D\uDCFA</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div style=\"position:absolute;top:10px;left:10px;background:#22d3ee;\n            color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;\n            letter-spacing:0.5px;\">SERIES</div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(show.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(show.name || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
+    var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(show.id, 'tv');
+    var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(show.id, 'tv');
+    return "\n      <div class=\"card\" data-nav data-show-id=\"".concat(show.id, "\"\n           data-show-title=\"").concat((show.name || '').replace(/"/g, '&quot;'), "\"\n           data-show-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(show.name, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83D\uDCFA</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div style=\"position:absolute;top:10px;left:10px;background:#22d3ee;\n            color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;\n            letter-spacing:0.5px;\">SERIES</div>\n          <div class=\"card-badges\" id=\"badges-").concat(show.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(show.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(show.name || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
   }
-  function setupAutoPaging(grid) {
-    var cards = grid.querySelectorAll('.card');
-    if (!cards.length) return;
-    var lastCard = cards[cards.length - 1];
-    lastCard.addEventListener('nav:focus', function () {
-      if (!_loading) {
+  function updateCardBadge(showId) {
+    var el = document.getElementById('badges-' + showId);
+    if (!el || typeof NexPlayDB === 'undefined') return;
+    var isFav = NexPlayDB.isFavourite(showId, 'tv');
+    var isWL = NexPlayDB.isInWatchlist(showId, 'tv');
+    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+  }
+  function bindRemoteKeys() {
+    _keyHandler = function _keyHandler(e) {
+      if (typeof NexPlayDB === 'undefined') return;
+      var focused = Nav.current();
+      if (!focused || !focused.dataset.showId) return;
+      var showId = focused.dataset.showId;
+      var title = focused.dataset.showTitle || '';
+      var poster = focused.dataset.showPoster || '';
+      if (e.keyCode === Config.KEYS.RED) {
+        e.preventDefault();
+        var added = NexPlayDB.toggleFavourite(showId, 'tv', title, poster);
+        App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
+        updateCardBadge(showId);
+      } else if (e.keyCode === Config.KEYS.BLUE) {
+        e.preventDefault();
+        var _added = NexPlayDB.toggleWatchlist(showId, 'tv', title, poster);
+        App.showToast(_added ? '+ Added to Watchlist' : 'Removed from Watchlist');
+        updateCardBadge(showId);
+      }
+    };
+    document.addEventListener('keydown', _keyHandler);
+  }
+  function unbindRemoteKeys() {
+    if (_keyHandler) document.removeEventListener('keydown', _keyHandler);
+    _keyHandler = null;
+  }
+  function setupScrollPaging() {
+    var content = document.getElementById('main-content');
+    if (!content) return;
+    if (_scrollHandler) content.removeEventListener('scroll', _scrollHandler);
+    _scrollHandler = function _scrollHandler() {
+      if (_loading) return;
+      if (content.scrollHeight - content.scrollTop - content.clientHeight < 500) {
         _page++;
         loadShows(false);
       }
-    });
+    };
+    content.addEventListener('scroll', _scrollHandler);
+  }
+  function teardownScrollPaging() {
+    var content = document.getElementById('main-content');
+    if (content && _scrollHandler) content.removeEventListener('scroll', _scrollHandler);
+    _scrollHandler = null;
   }
   function bindCardClicks(container) {
     container.querySelectorAll('[data-show-id]').forEach(function (el) {
@@ -271,7 +317,10 @@ var SeriesPage = function () {
       });
     });
   }
-  function onLeave() {}
+  function onLeave() {
+    teardownScrollPaging();
+    unbindRemoteKeys();
+  }
   return {
     render: render,
     onLeave: onLeave

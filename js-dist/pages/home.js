@@ -21,6 +21,9 @@ var HomePage = function () {
   // ── Public API ──────────────────────────────────────────
   var render = function render(container) {
     try {
+      function _temp2() {
+        bindRemoteKeys();
+      }
       container.innerHTML = "\n      <div id=\"home-page\">\n        <div id=\"hero-wrapper\">\n          <div class=\"hero\">\n            <div class=\"hero-backdrop skeleton\" style=\"height:100%\"></div>\n          </div>\n        </div>\n        ".concat(renderRow('trending', 'Trending', 'This Week'), "\n        ").concat(renderRow('popular', 'Popular', 'Movies'), "\n        ").concat(renderRow('top-rated', 'Top Rated'), "\n        ").concat(renderRow('now-playing', 'Now Playing', 'In Theaters'), "\n      </div>");
       Nav.reset(container);
 
@@ -69,7 +72,7 @@ var HomePage = function () {
       }, function (err) {
         console.error('Home load error:', err);
       });
-      return Promise.resolve(_temp && _temp.then ? _temp.then(function () {}) : void 0);
+      return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -93,6 +96,7 @@ var HomePage = function () {
   var _heroMovies = [];
   var _heroIdx = 0;
   var _heroTimer = null;
+  var _keyHandler = null;
 
   // ── Helpers ────────────────────────────────────────────
   function movieCard(movie) {
@@ -100,7 +104,9 @@ var HomePage = function () {
     var poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
     var year = (movie.release_date || '').slice(0, 4);
     var rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
-    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\" tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(movie.title || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
+    var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
+    var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
+    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(movie.title || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
   }
   function skeletonRow() {
     var count = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 6;
@@ -190,8 +196,42 @@ var HomePage = function () {
       }
     });
   }
+  function updateCardBadge(movieId) {
+    var el = document.getElementById('badges-' + movieId);
+    if (!el || typeof NexPlayDB === 'undefined') return;
+    var isFav = NexPlayDB.isFavourite(movieId, 'movie');
+    var isWL = NexPlayDB.isInWatchlist(movieId, 'movie');
+    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+  }
+  function bindRemoteKeys() {
+    _keyHandler = function _keyHandler(e) {
+      if (typeof NexPlayDB === 'undefined') return;
+      var focused = Nav.current();
+      if (!focused || !focused.classList.contains('card') || !focused.dataset.movieId) return;
+      var movieId = focused.dataset.movieId;
+      var title = focused.dataset.movieTitle || '';
+      var poster = focused.dataset.moviePoster || '';
+      if (e.keyCode === Config.KEYS.RED) {
+        e.preventDefault();
+        var added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
+        App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
+        updateCardBadge(movieId);
+      } else if (e.keyCode === Config.KEYS.BLUE) {
+        e.preventDefault();
+        var _added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
+        App.showToast(_added ? '+ Added to Watchlist' : 'Removed from Watchlist');
+        updateCardBadge(movieId);
+      }
+    };
+    document.addEventListener('keydown', _keyHandler);
+  }
+  function unbindRemoteKeys() {
+    if (_keyHandler) document.removeEventListener('keydown', _keyHandler);
+    _keyHandler = null;
+  }
   function onLeave() {
     clearInterval(_heroTimer);
+    unbindRemoteKeys();
   }
   return {
     render: render,

@@ -51,6 +51,7 @@ NexPlay/
 ## Setup & Installation
 
 ### Prerequisites
+
 - Node.js and npm
 - Samsung Tizen SDK (for deployment)
 - Modern web browser or Tizen emulator for testing
@@ -58,6 +59,7 @@ NexPlay/
 ### Installation
 
 1. **Clone or download the project**
+
    ```bash
    cd NexPlay
    ```
@@ -95,12 +97,12 @@ Deploy to Samsung Tizen device using the deployment script:
 ## Technologies
 
 - **Frontend**: Vanilla JavaScript (no framework dependencies)
-- **Build Tools**: 
+- **Build Tools**:
   - Babel (ES6+ transpilation)
   - PostCSS (CSS processing)
   - Playwright (testing)
 - **Streaming**: HLS.js for media playback
-- **APIs**: 
+- **APIs**:
   - TMDB (Movie & TV metadata)
   - IPTV streams
   - Local database for cache/preferences

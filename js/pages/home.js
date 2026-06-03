@@ -2,21 +2,31 @@
   let _heroMovies = [];
   let _heroIdx = 0;
   let _heroTimer = null;
+  let _keyHandler = null;
 
   // ── Helpers ────────────────────────────────────────────
   function movieCard(movie, extraClass = '') {
     const poster = movie.poster_path
       ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD)
       : '';
-    const year = (movie.release_date || '').slice(0, 4);
+    const year   = (movie.release_date || '').slice(0, 4);
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
+    const isFav  = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
+    const isWL   = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
     return `
-      <div class="card ${extraClass}" data-nav data-movie-id="${movie.id}" tabindex="0">
+      <div class="card ${extraClass}" data-nav data-movie-id="${movie.id}"
+           data-movie-title="${(movie.title || '').replace(/"/g, '&quot;')}"
+           data-movie-poster="${poster}"
+           tabindex="0">
         <div class="card-poster">
           ${poster
             ? `<img src="${poster}" alt="${movie.title}" loading="lazy">`
             : `<div class="no-img">🎬</div>`}
           ${rating ? `<div class="card-rating">★ ${rating}</div>` : ''}
+          <div class="card-badges" id="badges-${movie.id}">
+            ${isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : ''}
+            ${isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : ''}
+          </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
@@ -170,6 +180,44 @@
     });
   }
 
+  function updateCardBadge(movieId) {
+    const el = document.getElementById('badges-' + movieId);
+    if (!el || typeof NexPlayDB === 'undefined') return;
+    const isFav = NexPlayDB.isFavourite(movieId, 'movie');
+    const isWL  = NexPlayDB.isInWatchlist(movieId, 'movie');
+    el.innerHTML =
+      (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') +
+      (isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+  }
+
+  function bindRemoteKeys() {
+    _keyHandler = function(e) {
+      if (typeof NexPlayDB === 'undefined') return;
+      const focused = Nav.current();
+      if (!focused || !focused.classList.contains('card') || !focused.dataset.movieId) return;
+      const movieId = focused.dataset.movieId;
+      const title   = focused.dataset.movieTitle || '';
+      const poster  = focused.dataset.moviePoster || '';
+      if (e.keyCode === Config.KEYS.RED) {
+        e.preventDefault();
+        const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
+        App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
+        updateCardBadge(movieId);
+      } else if (e.keyCode === Config.KEYS.BLUE) {
+        e.preventDefault();
+        const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
+        App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
+        updateCardBadge(movieId);
+      }
+    };
+    document.addEventListener('keydown', _keyHandler);
+  }
+
+  function unbindRemoteKeys() {
+    if (_keyHandler) document.removeEventListener('keydown', _keyHandler);
+    _keyHandler = null;
+  }
+
   // ── Public API ──────────────────────────────────────────
   async function render(container) {
     container.innerHTML = `
@@ -229,10 +277,13 @@
     } catch (err) {
       console.error('Home load error:', err);
     }
+
+    bindRemoteKeys();
   }
 
   function onLeave() {
     clearInterval(_heroTimer);
+    unbindRemoteKeys();
   }
 
   return { render, onLeave };
