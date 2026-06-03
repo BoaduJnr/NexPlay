@@ -147,6 +147,7 @@
 
   function startAutoHide() {
     if (_keyListener) return;
+    stopMediaKeys(); // hand off from buffering listener to full player listener
     _keyListener = function(e) {
       var k = e.keyCode;
 
@@ -166,6 +167,10 @@
       if (k === Config.KEYS.RW || k === 412) {
         seekRelative(-10000); e.stopPropagation(); e.preventDefault();
         showPlayerUI(); return;
+      }
+      if (k === Config.KEYS.STOP || k === 413) {
+        e.stopPropagation(); e.preventDefault();
+        closePlayer(); return;
       }
 
       // ── Seek via LEFT/RIGHT when progress track is focused ──────
@@ -238,6 +243,9 @@
         seekRelative(30000); showPlayerUI(); e.stopPropagation(); e.preventDefault();
       } else if (k === 412 || k === Config.KEYS.RW) {
         seekRelative(-10000); showPlayerUI(); e.stopPropagation(); e.preventDefault();
+      } else if (k === 413 || k === Config.KEYS.STOP) {
+        e.stopPropagation(); e.preventDefault();
+        closePlayer();
       }
     };
     document.addEventListener('keydown', _mediaKeyListener, true);

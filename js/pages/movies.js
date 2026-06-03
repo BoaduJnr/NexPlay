@@ -170,15 +170,15 @@ const MoviesPage = (() => {
       const title   = focused.dataset.movieTitle || '';
       const poster  = focused.dataset.moviePoster || '';
 
-      if (e.keyCode === Config.KEYS.GREEN) {
+      if (e.keyCode === Config.KEYS.RED) {
         e.preventDefault();
         const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(movieId);
-      } else if (e.keyCode === Config.KEYS.INFO) {
+      } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
         const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
-        App.showToast(added ? '🔖 Added to Watchlist' : 'Removed from Watchlist');
+        App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
       }
     };
@@ -269,8 +269,8 @@ const MoviesPage = (() => {
             <button id="movie-search-close" class="search-close-btn" tabindex="-1">&#x2715;</button>
           </div>
           <div class="key-hint" style="margin-left:auto;">
-            <span class="key-hint-chip key-green">GREEN</span> Favourite &nbsp;
-            <span class="key-hint-chip key-info">INFO</span> Watchlist
+            <span class="key-hint-chip key-red">RED</span> Favourite &nbsp;
+            <span class="key-hint-chip key-blue">BLUE</span> Watchlist
           </div>
         </div>
 

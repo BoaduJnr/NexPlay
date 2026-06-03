@@ -409,6 +409,7 @@ var PlayerPage = function () {
   }
   function startAutoHide() {
     if (_keyListener) return;
+    stopMediaKeys(); // hand off from buffering listener to full player listener
     _keyListener = function _keyListener(e) {
       var k = e.keyCode;
 
@@ -439,6 +440,12 @@ var PlayerPage = function () {
         e.stopPropagation();
         e.preventDefault();
         showPlayerUI();
+        return;
+      }
+      if (k === Config.KEYS.STOP || k === 413) {
+        e.stopPropagation();
+        e.preventDefault();
+        closePlayer();
         return;
       }
 
@@ -536,6 +543,10 @@ var PlayerPage = function () {
         showPlayerUI();
         e.stopPropagation();
         e.preventDefault();
+      } else if (k === 413 || k === Config.KEYS.STOP) {
+        e.stopPropagation();
+        e.preventDefault();
+        closePlayer();
       }
     };
     document.addEventListener('keydown', _mediaKeyListener2, true);
