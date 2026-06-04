@@ -1,5 +1,4 @@
 ﻿const IPTVPage = (() => {
-  let _channels = [];
   let _filtered = [];
   let _activeChannel = null;
   let _countries = [];
@@ -7,10 +6,23 @@
   let _selCountry = '';
   let _selCategory = '';
   let _videoEl = null;
-  let _hlsInstance = null;
   let _hideTimer = null;
   let _uiHidden = false;
   let _keyListener = null;
+
+  const CHANNEL_BATCH = 80;
+  let _channelOffset     = 0;
+  let _chanScrollHandler = null;
+  let _showWorkingOnly   = false;
+  let _useGhana          = false;  // P1: gh.m3u source active
+
+  // P2: multi-stream state
+  let _streamUrls  = [];  // all candidate URLs for the current channel
+  let _streamIdx   = 0;   // which URL we're currently playing
+
+  // P3: stall detection
+  let _stallCount  = 0;
+  let _stallTimer  = null;
 
   // ── Player UI show/hide ────────────────────────────────
   function showUI() {
@@ -83,26 +95,110 @@
     xxx:           'Adult',
   };
 
-  // ── Channel list item ──────────────────────────────────
-  function channelItem(ch, isActive = false) {
-    const catLabel = (ch.categories || [])
-      .map(c => CATEGORY_LABELS[c] || c)
-      .slice(0, 2)
-      .join(', ');
+  // ── P3: stall helpers ─────────────────────────────────────
+  function resetStall() {
+    _stallCount = 0;
+    if (_stallTimer) { clearTimeout(_stallTimer); _stallTimer = null; }
+  }
+
+  // Try the next stream URL for the current channel (P2+P3 shared)
+  function tryNextStream() {
+    resetStall();
+    _streamIdx++;
+    var playerArea = document.getElementById('iptv-player-area');
+    if (_streamIdx >= _streamUrls.length) {
+      if (_activeChannel) { setChStatus(_activeChannel.id, 'fail'); updateChannelCard(_activeChannel.id, 'fail'); }
+      if (playerArea) playerArea.innerHTML = '<div class="iptv-placeholder"><p>All streams exhausted</p></div>';
+      return;
+    }
+    var nextUrl = _streamUrls[_streamIdx];
+    App.showToast('Trying stream ' + (_streamIdx + 1) + ' of ' + _streamUrls.length + '...');
+    stopAvPlay();
+    if (_videoEl) { try { _videoEl.pause(); _videoEl.src = ''; } catch(e) {} _videoEl = null; }
+    if (playerArea) playerArea.innerHTML = '<div class="iptv-placeholder"><div class="spinner"></div><p>Switching stream...</p></div>';
+    if (!playWithAvPlay(nextUrl, playerArea)) {
+      playWithHTML5(nextUrl, playerArea);
+    }
+  }
+
+  // ── P2: race top-3 stream URLs, return fastest responding ─
+  function raceStreams(urls) {
+    if (!urls || !urls.length) return Promise.resolve(null);
+    if (urls.length === 1) return Promise.resolve(urls[0]);
+    return new Promise(function(resolve) {
+      var settled = false;
+      var count = 0;
+      var top = urls.slice(0, 3);
+      function done(winner) {
+        count++;
+        if (!settled && winner) { settled = true; resolve(winner); return; }
+        if (count === top.length && !settled) resolve(top[0]); // all HEAD failed → try first anyway
+      }
+      top.forEach(function(url) {
+        var xhr = new XMLHttpRequest();
+        xhr.timeout = 4000;
+        xhr.open('HEAD', url);
+        xhr.onload    = function() { done(xhr.status < 400 ? url : null); };
+        xhr.onerror   = function() { done(null); };
+        xhr.ontimeout = function() { done(null); };
+        xhr.send();
+      });
+    });
+  }
+
+  // ── Channel status — persisted in localStorage ───────────
+  var CH_STATUS_KEY = 'np_iptv_ch';
+
+  function getChStatus(id) {
+    try {
+      var d = JSON.parse(localStorage.getItem(CH_STATUS_KEY) || '{}');
+      return d[id] || 'unknown'; // 'ok' | 'fail' | 'unknown'
+    } catch(e) { return 'unknown'; }
+  }
+
+  function setChStatus(id, status) {
+    try {
+      var d = JSON.parse(localStorage.getItem(CH_STATUS_KEY) || '{}');
+      d[id] = status;
+      localStorage.setItem(CH_STATUS_KEY, JSON.stringify(d));
+    } catch(e) {}
+  }
+
+  function updateChannelCard(id, status) {
+    var card = document.querySelector('[data-channel-id="' + id + '"]');
+    if (!card) return;
+    var dot = card.querySelector('.ch-status');
+    if (dot) dot.className = 'ch-status ch-status-' + status;
+  }
+
+  // ── Resolve best logo URL for a channel ───────────────
+  function channelLogoUrl(ch) {
+    if (ch.logo) return ch.logo;
+    // Extract hostname from website for Google favicon service
+    if (ch.website) {
+      var m = ch.website.match(/https?:\/\/([^\/]+)/);
+      if (m) return 'https://www.google.com/s2/favicons?domain=' + m[1] + '&sz=128';
+    }
+    return null;
+  }
+
+  // ── Channel card (logo-first grid tile) ───────────────
+  function channelItem(ch, isActive) {
+    var initial = (ch.name || '?').trim()[0].toUpperCase();
+    var logoSrc = channelLogoUrl(ch);
+    // Status comes only from actual play attempts — no pre-marking from stream-set
+    // (79% of channels have ID mismatches vs streams.json so pre-marking causes false reds)
+    var status = getChStatus(ch.id);
+
     return `
       <div class="channel-item ${isActive ? 'active' : ''}"
         data-nav data-channel-id="${ch.id}" tabindex="0">
         <div class="channel-logo">
-          ${ch.logo
-            ? `<img src="${ch.logo}" alt="${ch.name}" loading="lazy" onerror="this.style.display='none'">`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22">
-                <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M8 19v2M16 19v2M2 10h20"/>
-               </svg>`}
+          <span class="channel-initial">${initial}</span>
+          ${logoSrc ? `<img src="${logoSrc}" alt="${ch.name}" loading="eager" onerror="this.style.display='none'">` : ''}
+          <span class="ch-status ch-status-${status}"></span>
         </div>
-        <div style="overflow:hidden;flex:1;">
-          <div class="channel-name">${ch.name || ''}</div>
-          ${catLabel ? `<div class="channel-category">${catLabel}</div>` : ''}
-        </div>
+        <div class="channel-name">${ch.name || ''}</div>
       </div>`;
   }
 
@@ -119,19 +215,46 @@
   function playWithHTML5(streamUrl, playerArea) {
     if (!playerArea) return;
     playerArea.style.background = '';
-    playerArea.innerHTML = `
-      <video id="iptv-video" class="iptv-video" autoplay playsinline
-        style="width:100%;height:100%;background:#000;">
-        <source src="${streamUrl}" type="application/x-mpegURL">
-        <source src="${streamUrl}">
-      </video>`;
+    playerArea.innerHTML = '<video id="iptv-video" class="iptv-video" autoplay playsinline style="width:100%;height:100%;background:#000;"></video>';
     _videoEl = document.getElementById('iptv-video');
-    if (_videoEl) {
-      _videoEl.addEventListener('error', () => {
-        if (playerArea) {
-          playerArea.innerHTML = `<div class="iptv-placeholder"><p>Stream unavailable on this device</p></div>`;
+    if (!_videoEl) return;
+
+    function onOk() {
+      if (_activeChannel) { setChStatus(_activeChannel.id, 'ok'); updateChannelCard(_activeChannel.id, 'ok'); }
+    }
+    function onFail() {
+      if (_activeChannel) { setChStatus(_activeChannel.id, 'fail'); updateChannelCard(_activeChannel.id, 'fail'); }
+      if (playerArea) playerArea.innerHTML = '<div class="iptv-placeholder"><p>Stream unavailable on this device</p></div>';
+    }
+
+    // Use HLS.js when available (Chrome/Firefox) — same approach as the movie player
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      var hls = new Hls({ enableWorker: false, debug: false, manifestLoadingTimeOut: 10000, manifestLoadingMaxRetry: 2 });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(_videoEl);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        _videoEl.play().catch(function() {});
+        onOk();
+      });
+      hls.on(Hls.Events.ERROR, function(ev, data) {
+        if (data.fatal) {
+          hls.destroy();
+          // P3: try next stream URL before giving up
+          if (_streamIdx + 1 < _streamUrls.length) {
+            tryNextStream();
+          } else {
+            onFail();
+          }
         }
       });
+    } else if (_videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari / Tizen native HLS fallback
+      _videoEl.src = streamUrl;
+      _videoEl.play().catch(function() {});
+      _videoEl.addEventListener('playing', onOk, { once: true });
+      _videoEl.addEventListener('error', onFail);
+    } else {
+      onFail();
     }
   }
 
@@ -139,15 +262,36 @@
     if (typeof webapis === 'undefined' || !webapis.avplay) return false;
     try {
       stopAvPlay();
+      resetStall();
       webapis.avplay.open(streamUrl);
 
       // Set listener BEFORE prepareAsync (Samsung requirement)
       webapis.avplay.setListener({
-        onbufferingstart:    function () {},
-        onbufferingcomplete: function () {},
-        onerror: function () {
+        onbufferingstart: function() {
+          // P3: start a stall timer — if buffering doesn't complete in 8s, try next stream
+          if (_stallTimer) clearTimeout(_stallTimer);
+          _stallTimer = setTimeout(function() {
+            _stallTimer = null;
+            _stallCount++;
+            if (_stallCount >= 2) tryNextStream(); // 2 consecutive stalls → switch
+          }, 8000);
+        },
+        onbufferingcomplete: function() {
+          // Buffering resolved — cancel stall timer, reset count
+          if (_stallTimer) { clearTimeout(_stallTimer); _stallTimer = null; }
+          _stallCount = 0;
+          if (_activeChannel) { setChStatus(_activeChannel.id, 'ok'); updateChannelCard(_activeChannel.id, 'ok'); }
+        },
+        onerror: function() {
+          resetStall();
+          if (_activeChannel) { setChStatus(_activeChannel.id, 'fail'); updateChannelCard(_activeChannel.id, 'fail'); }
           stopAvPlay();
-          playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
+          // Try next stream URL before falling back to HTML5
+          if (_streamIdx + 1 < _streamUrls.length) {
+            tryNextStream();
+          } else {
+            playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
+          }
         },
       });
 
@@ -162,15 +306,22 @@
           try {
             webapis.avplay.setDisplayRect(0, 0, 1920, 1080);
             webapis.avplay.play();
-            // Start listening for remote presses and begin auto-hide countdown
             startKeyListener();
             resetHideTimer();
           } catch (e) {
+            if (_activeChannel) {
+              setChStatus(_activeChannel.id, 'fail');
+              updateChannelCard(_activeChannel.id, 'fail');
+            }
             stopAvPlay();
             playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
           }
         },
         function () {
+          if (_activeChannel) {
+            setChStatus(_activeChannel.id, 'fail');
+            updateChannelCard(_activeChannel.id, 'fail');
+          }
           stopAvPlay();
           playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
         }
@@ -185,6 +336,10 @@
   // ── Play a channel ─────────────────────────────────────
   async function playChannel(channel) {
     _activeChannel = channel;
+
+    // Reset status to unknown immediately so user sees it's being retried
+    setChStatus(channel.id, 'unknown');
+    updateChannelCard(channel.id, 'unknown');
 
     // Always show UI when switching channels
     showUI();
@@ -208,8 +363,8 @@
           ${channel.logo ? `<img src="${channel.logo}" style="width:100%;height:100%;object-fit:contain;padding:2px;">` : ''}
         </div>
         <div>
-          <div style="font-size:16px;font-weight:700;color:#f0f0f8;">${channel.name}</div>
-          <div style="font-size:12px;color:rgba(240,240,248,0.45);">${(channel.categories || []).map(c => CATEGORY_LABELS[c] || c).join(' · ')}</div>
+          <div class="iptv-bar-name">${channel.name}</div>
+          <div class="iptv-bar-meta">${(channel.categories || []).map(c => CATEGORY_LABELS[c] || c).join(' · ')}</div>
         </div>`;
     }
 
@@ -218,22 +373,105 @@
       playerArea.innerHTML = `<div class="iptv-placeholder"><div class="spinner"></div><p>Connecting...</p></div>`;
     }
 
-    let streamUrl = null;
-    try {
-      streamUrl = await IPTV.getStreamUrl(channel.id);
-    } catch (err) {}
+    // P2: collect ALL stream URLs for this channel
+    _streamUrls = [];
+    _streamIdx  = 0;
+    resetStall();
 
-    if (!streamUrl) {
-      if (playerArea) {
-        playerArea.innerHTML = `<div class="iptv-placeholder"><p>Stream unavailable</p></div>`;
-      }
+    // All channels now have urls[] from index.m3u — no streams.json lookup needed
+    _streamUrls = channel.urls && channel.urls.length ? channel.urls : (channel.url ? [channel.url] : []);
+
+    if (!_streamUrls.length) {
+      setChStatus(channel.id, 'fail');
+      updateChannelCard(channel.id, 'fail');
+      if (playerArea) playerArea.innerHTML = `<div class="iptv-placeholder"><p>Stream unavailable</p></div>`;
       return;
     }
 
-    // Try AVPlay first (Samsung native), fall back to HTML5
-    if (!playWithAvPlay(streamUrl, playerArea)) {
-      playWithHTML5(streamUrl, playerArea);
+    // P2: race top-3 to find fastest responding URL
+    var bestUrl = await raceStreams(_streamUrls);
+    _streamIdx = Math.max(0, _streamUrls.indexOf(bestUrl));
+
+    // Play (AVPlay on TV, HLS.js on web)
+    if (!playWithAvPlay(bestUrl, playerArea)) {
+      playWithHTML5(bestUrl, playerArea);
     }
+  }
+
+  // ── Working-only filter ────────────────────────────────────
+  function getDisplayList() {
+    if (_showWorkingOnly) {
+      return _filtered.filter(function(ch) { return getChStatus(ch.id) === 'ok'; });
+    }
+    return _filtered;
+  }
+
+  function applyWorkingFilter(show) {
+    _showWorkingOnly = show;
+    var btn = document.getElementById('iptv-working-toggle');
+    if (btn) btn.classList.toggle('active', show);
+
+    var list = document.getElementById('iptv-channel-list');
+    if (!list) return;
+
+    if (_chanScrollHandler) {
+      list.removeEventListener('scroll', _chanScrollHandler);
+      _chanScrollHandler = null;
+    }
+    _channelOffset = 0;
+    list.innerHTML = '';
+
+    var display = getDisplayList();
+    if (!display.length) {
+      list.innerHTML = show
+        ? '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">No working channels yet — try some channels first to discover what plays.</div>'
+        : '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">No channels found.</div>';
+      return;
+    }
+
+    appendChannelBatch();
+
+    if (display.length > CHANNEL_BATCH) {
+      _chanScrollHandler = function() {
+        var nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 300;
+        if (nearBottom) appendChannelBatch();
+      };
+      list.addEventListener('scroll', _chanScrollHandler);
+    }
+  }
+
+  // ── Bind click + vertical scroll-into-view on channel cards ─
+  function bindChannelItems(els) {
+    els.forEach(function(el) {
+      el.addEventListener('click', function() {
+        var ch = _filtered.find(function(c) { return c.id === el.dataset.channelId; });
+        if (ch) playChannel(ch);
+      });
+      // Keep card visible in the sidebar when D-pad focuses it
+      el.addEventListener('nav:focus', function() {
+        var list = document.getElementById('iptv-channel-list');
+        if (!list) return;
+        var er = el.getBoundingClientRect();
+        var sr = list.getBoundingClientRect();
+        if (er.bottom > sr.bottom - 40) list.scrollTop += er.bottom - sr.bottom + 60;
+        else if (er.top < sr.top + 40)  list.scrollTop -= sr.top  - er.top   + 60;
+      });
+    });
+  }
+
+  // ── Append one batch of channels to the list ──────────────
+  function appendChannelBatch() {
+    var list = document.getElementById('iptv-channel-list');
+    var display = getDisplayList();
+    if (!list || _channelOffset >= display.length) return;
+    var batch = display.slice(_channelOffset, _channelOffset + CHANNEL_BATCH);
+    _channelOffset += CHANNEL_BATCH;
+    batch.forEach(function(ch) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = channelItem(ch, _activeChannel && _activeChannel.id === ch.id);
+      var item = tmp.firstElementChild;
+      if (item) { list.appendChild(item); bindChannelItems([item]); }
+    });
   }
 
   // ── Refresh filtered channel list ──────────────────────
@@ -241,14 +479,21 @@
     const list = document.getElementById('iptv-channel-list');
     if (!list) return;
 
+    // Clear any previous scroll handler
+    if (_chanScrollHandler) {
+      list.removeEventListener('scroll', _chanScrollHandler);
+      _chanScrollHandler = null;
+    }
+    _channelOffset = 0;
+
     list.innerHTML = `<div style="padding:20px;text-align:center;">
-      <div class="spinner" style="margin:0 auto;"></div></div>`;
+      <div class="spinner" style="margin:0 auto 14px;"></div>
+      <div style="font-size:12px;color:rgba(240,240,248,0.40);line-height:1.5;">
+        Loading channels&hellip;<br>First load may take a minute.
+      </div></div>`;
 
     try {
-      _filtered = await IPTV.filterChannels({
-        country: _selCountry,
-        category: _selCategory,
-      });
+      _filtered = await IPTV.filterChannels({ country: _selCountry, category: _selCategory });
 
       if (!_filtered.length) {
         list.innerHTML = `<div style="padding:20px;text-align:center;color:rgba(240,240,248,0.45);font-size:14px;">
@@ -256,18 +501,18 @@
         return;
       }
 
-      // Limit to 60 — D-pad nav struggles with large focusable lists
-      const toShow = _filtered.slice(0, 60);
-      list.innerHTML = toShow.map(ch =>
-        channelItem(ch, _activeChannel && _activeChannel.id === ch.id)
-      ).join('');
+      // Render first batch
+      list.innerHTML = '';
+      appendChannelBatch();
 
-      list.querySelectorAll('[data-channel-id]').forEach(el => {
-        el.addEventListener('click', () => {
-          const ch = _filtered.find(c => c.id === el.dataset.channelId);
-          if (ch) playChannel(ch);
-        });
-      });
+      // Scroll-based loading for remaining batches
+      if (getDisplayList().length > CHANNEL_BATCH) {
+        _chanScrollHandler = function() {
+          var nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 300;
+          if (nearBottom) appendChannelBatch();
+        };
+        list.addEventListener('scroll', _chanScrollHandler);
+      }
     } catch (err) {
       list.innerHTML = `<div class="error-msg">Failed to load channels</div>`;
       console.error('IPTV channel load error:', err);
@@ -323,7 +568,7 @@
                 <rect x="2" y="5" width="20" height="14" rx="2"/>
                 <path d="M8 19v2M16 19v2M2 10h20"/>
               </svg>
-              <span style="font-size:18px;font-weight:800;color:#f0f0f8;">Live TV</span>
+              <span class="iptv-sidebar-title">Live TV</span>
             </div>
 
             <div class="iptv-filter-label">Country</div>
@@ -331,6 +576,16 @@
 
             <div class="iptv-filter-label" style="margin-top:12px;">Category</div>
             ${TVDropdown.html('iptv-category', [{ value: '', label: 'All Categories' }], '')}
+
+            <button id="iptv-ghana-toggle" data-nav tabindex="0"
+              class="iptv-working-btn${_useGhana ? ' active' : ''}" style="margin-top:8px;">
+              🇬🇭 Ghana Direct
+            </button>
+            <button id="iptv-working-toggle" data-nav tabindex="0"
+              class="iptv-working-btn${_showWorkingOnly ? ' active' : ''}">
+              <span class="ch-status ch-status-ok" style="position:static;width:9px;height:9px;display:inline-block;flex-shrink:0;"></span>
+              Working channels only
+            </button>
           </div>
 
           <div class="channel-list" id="iptv-channel-list" data-scroll>
@@ -357,7 +612,7 @@
             </div>
           </div>
           <div class="iptv-channel-bar" id="iptv-channel-bar">
-            <span style="font-size:14px;color:rgba(240,240,248,0.45);">No channel selected</span>
+            <span class="iptv-idle-text">No channel selected</span>
           </div>
         </div>
 
@@ -368,6 +623,24 @@
     // Wire initial empty dropdowns then rebuild with real data
     TVDropdown.mount('iptv-country', v => { _selCountry = v; refreshChannels(); });
     TVDropdown.mount('iptv-category', v => { _selCategory = v; refreshChannels(); });
+
+    // Ghana Direct — just set country filter to GH (index.m3u covers all countries)
+    var ghanaBtn = document.getElementById('iptv-ghana-toggle');
+    if (ghanaBtn) {
+      ghanaBtn.addEventListener('click', function() {
+        _selCountry = _selCountry === 'GH' ? '' : 'GH';
+        ghanaBtn.classList.toggle('active', _selCountry === 'GH');
+        refreshChannels();
+      });
+    }
+
+    // Working-only toggle
+    var workingBtn = document.getElementById('iptv-working-toggle');
+    if (workingBtn) {
+      workingBtn.addEventListener('click', function() {
+        applyWorkingFilter(!_showWorkingOnly);
+      });
+    }
 
     // Load meta + channels in parallel
     await Promise.all([
@@ -389,6 +662,16 @@
       _videoEl = null;
     }
     _activeChannel = null;
+    // Remove channel scroll handler to prevent memory leak
+    var list = document.getElementById('iptv-channel-list');
+    if (list && _chanScrollHandler) list.removeEventListener('scroll', _chanScrollHandler);
+    _chanScrollHandler  = null;
+    _channelOffset      = 0;
+    _showWorkingOnly    = false;
+    _useGhana           = false;
+    _streamUrls         = [];
+    _streamIdx          = 0;
+    resetStall();
   }
 
   return { render, onLeave };

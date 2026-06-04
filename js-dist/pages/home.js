@@ -24,7 +24,7 @@ var HomePage = function () {
       function _temp2() {
         bindRemoteKeys();
       }
-      container.innerHTML = "\n      <div id=\"home-page\">\n        <div id=\"hero-wrapper\">\n          <div class=\"hero\">\n            <div class=\"hero-backdrop skeleton\" style=\"height:100%\"></div>\n          </div>\n        </div>\n        ".concat(renderRow('trending', 'Trending', 'This Week'), "\n        ").concat(renderRow('popular', 'Popular', 'Movies'), "\n        ").concat(renderRow('top-rated', 'Top Rated'), "\n        ").concat(renderRow('now-playing', 'Now Playing', 'In Theaters'), "\n      </div>");
+      container.innerHTML = "\n      <div id=\"home-page\">\n        <div id=\"hero-wrapper\">\n          <div class=\"hero\">\n            <div class=\"hero-backdrop skeleton\" style=\"height:100%\"></div>\n          </div>\n        </div>\n\n        <div class=\"home-key-hints\">\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-green\"></span>\n            <span class=\"home-hint-label\">Change Theme</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-red\"></span>\n            <span class=\"home-hint-label\">Add to Favourite</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-blue\"></span>\n            <span class=\"home-hint-label\">Add to Watchlist</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-yellow\"></span>\n            <span class=\"home-hint-label\">More Info</span>\n          </span>\n        </div>\n\n        ".concat(renderRow('trending', 'Trending', 'This Week'), "\n        ").concat(renderRow('popular', 'Popular', 'Movies'), "\n        ").concat(renderRow('top-rated', 'Top Rated'), "\n        ").concat(renderRow('now-playing', 'Now Playing', 'In Theaters'), "\n      </div>");
       Nav.reset(container);
 
       // Load all data in parallel
@@ -102,11 +102,10 @@ var HomePage = function () {
   function movieCard(movie) {
     var extraClass = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
     var poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
-    var year = (movie.release_date || '').slice(0, 4);
     var rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
     var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
     var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
-    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(movie.title || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
+    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n      </div>");
   }
   function skeletonRow() {
     var count = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 6;
@@ -201,12 +200,12 @@ var HomePage = function () {
     if (!el || typeof NexPlayDB === 'undefined') return;
     var isFav = NexPlayDB.isFavourite(movieId, 'movie');
     var isWL = NexPlayDB.isInWatchlist(movieId, 'movie');
-    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
   }
   function bindRemoteKeys() {
     _keyHandler = function _keyHandler(e) {
       if (typeof NexPlayDB === 'undefined') return;
-      var focused = Nav.current();
+      var focused = Nav.current() || document.querySelector('[data-nav].nav-focused.card[data-movie-id]');
       if (!focused || !focused.classList.contains('card') || !focused.dataset.movieId) return;
       var movieId = focused.dataset.movieId;
       var title = focused.dataset.movieTitle || '';
@@ -221,6 +220,12 @@ var HomePage = function () {
         var _added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
         App.showToast(_added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
+      } else if (e.keyCode === Config.KEYS.YELLOW) {
+        e.preventDefault();
+        App.navigate('detail', {
+          id: movieId,
+          type: 'movie'
+        });
       }
     };
     document.addEventListener('keydown', _keyHandler);

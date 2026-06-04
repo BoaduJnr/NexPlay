@@ -47,6 +47,8 @@ files:
   - js-dist/pages/series.js
   - js-dist/pages/iptv.js
   - js-dist/pages/detail.js
+  - js-dist/pages/favourites.js
+  - js-dist/pages/watchlist.js
 
 # list of files to exclude based on the matched patterns
 excludes:

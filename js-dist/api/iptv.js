@@ -16,11 +16,14 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 var IPTVClient = /*#__PURE__*/function () {
   function IPTVClient() {
     _classCallCheck(this, IPTVClient);
-    this._channels = null;
-    this._streams = null;
+    this._allChannels = null; // index.m3u parsed + grouped
+    this._streams = null; // kept for legacy getStreamUrl() compatibility
+    this._streamSet = null;
     this._countries = null;
     this._categories = null;
   }
+
+  // ── localStorage cache helpers ────────────────────────────
   return _createClass(IPTVClient, [{
     key: "_fetchJSON",
     value: function _fetchJSON(path) {
@@ -78,17 +81,18 @@ var IPTVClient = /*#__PURE__*/function () {
     value: function getChannels() {
       try {
         var _this3 = this;
-        function _temp6() {
-          return _this3._channels;
+        if (_this3._channels) return Promise.resolve(_this3._channels);
+        // Try 24-hour localStorage cache first (avoids 54s download on repeat visits)
+        var cached = IPTVClient._readCache('np_iptv_ch_v1', 24 * 60 * 60 * 1000);
+        if (cached) {
+          _this3._channels = cached;
+          return Promise.resolve(_this3._channels);
         }
-        var _temp5 = function () {
-          if (!_this3._channels) {
-            return Promise.resolve(_this3._fetchJSON('/channels.json')).then(function (_this3$_fetchJSON) {
-              _this3._channels = _this3$_fetchJSON;
-            });
-          }
-        }();
-        return Promise.resolve(_temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5));
+        return Promise.resolve(_this3._fetchJSON('/channels.json')).then(function (_this3$_fetchJSON) {
+          _this3._channels = _this3$_fetchJSON;
+          IPTVClient._writeCache('np_iptv_ch_v1', _this3._channels);
+          return _this3._channels;
+        });
       } catch (e) {
         return Promise.reject(e);
       }
@@ -98,70 +102,17 @@ var IPTVClient = /*#__PURE__*/function () {
     value: function getStreams() {
       try {
         var _this4 = this;
-        function _temp8() {
+        function _temp6() {
           return _this4._streams;
         }
-        var _temp7 = function () {
+        var _temp5 = function () {
           if (!_this4._streams) {
             return Promise.resolve(_this4._fetchJSON('/streams.json')).then(function (_this4$_fetchJSON) {
               _this4._streams = _this4$_fetchJSON;
             });
           }
         }();
-        return Promise.resolve(_temp7 && _temp7.then ? _temp7.then(_temp8) : _temp8(_temp7));
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    } // Return channels filtered by country code and/or category id
-  }, {
-    key: "filterChannels",
-    value: function filterChannels() {
-      var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
-        _ref$country = _ref.country,
-        country = _ref$country === void 0 ? '' : _ref$country,
-        _ref$category = _ref.category,
-        category = _ref$category === void 0 ? '' : _ref$category;
-      try {
-        var _this5 = this;
-        return Promise.resolve(_this5.getChannels()).then(function (all) {
-          return all.filter(function (ch) {
-            if (ch.is_nsfw) return false;
-            if (country && ch.country !== country.toUpperCase()) return false;
-            if (category && !ch.categories.includes(category)) return false;
-            return true;
-          });
-        });
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    } // Find streams for a given channel id
-  }, {
-    key: "getStreamUrl",
-    value: function getStreamUrl(channelId) {
-      try {
-        var _this6 = this;
-        return Promise.resolve(_this6.getStreams()).then(function (streams) {
-          var match = streams.find(function (s) {
-            return s.channel === channelId;
-          });
-          return match ? match.url : null;
-        });
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    } // Return all streams for a channel id (some channels have multiple)
-  }, {
-    key: "getStreamUrls",
-    value: function getStreamUrls(channelId) {
-      try {
-        var _this7 = this;
-        return Promise.resolve(_this7.getStreams()).then(function (streams) {
-          return streams.filter(function (s) {
-            return s.channel === channelId;
-          }).map(function (s) {
-            return s.url;
-          });
-        });
+        return Promise.resolve(_temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5));
       } catch (e) {
         return Promise.reject(e);
       }
@@ -170,11 +121,11 @@ var IPTVClient = /*#__PURE__*/function () {
     key: "channelsByCountry",
     value: function channelsByCountry() {
       try {
-        var _this8 = this;
-        return Promise.resolve(Promise.all([_this8.getChannels(), _this8.getCountries()])).then(function (_ref2) {
-          var _ref3 = _slicedToArray(_ref2, 2),
-            channels = _ref3[0],
-            countries = _ref3[1];
+        var _this5 = this;
+        return Promise.resolve(Promise.all([_this5.getChannels(), _this5.getCountries()])).then(function (_ref) {
+          var _ref2 = _slicedToArray(_ref, 2),
+            channels = _ref2[0],
+            countries = _ref2[1];
           var countryMap = {};
           var _iterator = _createForOfIteratorHelper(countries),
             _step;
@@ -220,8 +171,8 @@ var IPTVClient = /*#__PURE__*/function () {
     key: "countryName",
     value: function countryName(code) {
       try {
-        var _this9 = this;
-        return Promise.resolve(_this9.getCountries()).then(function (countries) {
+        var _this6 = this;
+        return Promise.resolve(_this6.getCountries()).then(function (countries) {
           var found = countries.find(function (c) {
             return c.code === code;
           });
@@ -230,6 +181,145 @@ var IPTVClient = /*#__PURE__*/function () {
       } catch (e) {
         return Promise.reject(e);
       }
+    } // ── M3U parser ──────────────────────────────────────────
+    // index.m3u format: tvg-id="ChannelName.countrycode@quality"
+    // Country is the 2-letter code before @quality, not a tvg-country attr.
+    // group-title may contain multiple categories separated by ";".
+  }, {
+    key: "getAllChannels",
+    value: // ── Primary source: index.m3u — 2.1 MB, single file, no ID mismatch ──
+    function getAllChannels() {
+      try {
+        var _this7 = this;
+        if (_this7._allChannels) return Promise.resolve(_this7._allChannels);
+        var cached = IPTVClient._readCache('np_iptv_m3u_v2', 12 * 60 * 60 * 1000); // 12h; v2 = country+category fix
+        if (cached) {
+          _this7._allChannels = cached;
+          return Promise.resolve(cached);
+        }
+        return Promise.resolve(fetch('https://iptv-org.github.io/iptv/index.m3u')).then(function (res) {
+          if (!res.ok) throw new Error('index.m3u fetch failed');
+          return Promise.resolve(res.text()).then(function (text) {
+            var entries = IPTVClient.parseM3U(text);
+            var channels = IPTVClient.groupM3UChannels(entries);
+            IPTVClient._writeCache('np_iptv_m3u_v2', channels);
+            _this7._allChannels = channels;
+            return channels;
+          });
+        });
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    } // ── filterChannels now uses index.m3u (replaces channels.json + streams.json) ──
+  }, {
+    key: "filterChannels",
+    value: function filterChannels() {
+      var _ref3 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+        _ref3$country = _ref3.country,
+        country = _ref3$country === void 0 ? '' : _ref3$country,
+        _ref3$category = _ref3.category,
+        category = _ref3$category === void 0 ? '' : _ref3$category;
+      try {
+        var _this8 = this;
+        return Promise.resolve(_this8.getAllChannels()).then(function (all) {
+          return all.filter(function (ch) {
+            if (ch.is_nsfw) return false;
+            if (country && ch.country !== country.toUpperCase()) return false;
+            if (category && !ch.categories.includes(category)) return false;
+            return true;
+          });
+        });
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    }
+  }], [{
+    key: "_readCache",
+    value: function _readCache(key, maxAgeMs) {
+      try {
+        var raw = localStorage.getItem(key);
+        if (!raw) return null;
+        var obj = JSON.parse(raw);
+        if (Date.now() - obj.ts > maxAgeMs) return null;
+        return obj.data;
+      } catch (e) {
+        return null;
+      }
+    }
+  }, {
+    key: "_writeCache",
+    value: function _writeCache(key, data) {
+      try {
+        localStorage.setItem(key, JSON.stringify({
+          ts: Date.now(),
+          data: data
+        }));
+      } catch (e) {/* quota exceeded — skip cache */}
+    }
+  }, {
+    key: "parseM3U",
+    value: function parseM3U(text) {
+      var entries = [];
+      var lines = text.split('\n');
+      var meta = null;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (line.startsWith('#EXTINF:')) {
+          meta = {};
+          var attrs = line.match(/[\w-]+=(?:"[^"]*"|[^\s,]+)/g) || [];
+          attrs.forEach(function (a) {
+            var p = a.match(/([\w-]+)="?([^"]*)"?/);
+            if (p) meta[p[1]] = p[2];
+          });
+          var nameM = line.match(/,([^,]+)$/);
+          if (nameM) meta._name = nameM[1].trim();
+        } else if (line && !line.startsWith('#') && meta) {
+          var tvgId = meta['tvg-id'] || '';
+          // Extract country from tvg-id suffix ".xx@quality" or ".xx"
+          var cc = tvgId.match(/\.([a-zA-Z]{2})(?:@|$)/);
+          var country = cc ? cc[1].toUpperCase() : '';
+          // Base ID for grouping: strip @quality suffix so HD+SD share one card
+          var baseId = tvgId.replace(/@[^@]*$/, '') || '';
+          // Split semicolon-separated group-titles into individual categories
+          var cats = meta['group-title'] ? meta['group-title'].split(';').map(function (c) {
+            return c.trim().toLowerCase().replace(/\s+/g, '-');
+          }).filter(Boolean) : [];
+          entries.push({
+            id: baseId,
+            name: meta['tvg-name'] || meta._name || baseId,
+            logo: meta['tvg-logo'] || '',
+            country: country,
+            categories: cats,
+            is_nsfw: false,
+            url: line
+          });
+          meta = null;
+        }
+        // skip #EXTVLCOPT and other comment lines — they only affect VLC, not our player
+      }
+      return entries;
+    }
+
+    // ── Group M3U entries by base tvg-id → one card, all stream URLs ──
+  }, {
+    key: "groupM3UChannels",
+    value: function groupM3UChannels(entries) {
+      var map = {};
+      var ordered = [];
+      var fallback = 0;
+      entries.forEach(function (e) {
+        var key = e.id || '_' + fallback++;
+        if (e.id && map[key]) {
+          map[key].urls.push(e.url); // add quality variant to existing card
+        } else {
+          var ch = Object.assign({}, e, {
+            urls: [e.url]
+          });
+          if (e.id) map[key] = ch;
+          ordered.push(ch);
+        }
+      });
+      return ordered;
     }
   }]);
 }();

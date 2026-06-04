@@ -28,10 +28,6 @@ const DetailPage = (() => {
                 style="padding:16px 28px;font-size:20px;">
                 + Watchlist
               </button>
-              <button class="btn btn-secondary" id="detail-back" data-nav tabindex="0"
-                style="padding:16px 28px;font-size:20px;">
-                Back
-              </button>
             </div>
             <div id="detail-cast" style="margin-bottom:40px;"></div>
           </div>
@@ -40,9 +36,6 @@ const DetailPage = (() => {
 
     Nav.reset(container);
 
-    document.getElementById('detail-back').addEventListener('click', function() {
-      App.navigate('home');
-    });
     document.getElementById('detail-play').addEventListener('click', function() {
       App.navigate('player', { id: id, type: type, season: 1, episode: 1 });
     });
@@ -63,12 +56,12 @@ const DetailPage = (() => {
 
       favBtn.onclick = function() {
         const added = NexPlayDB.toggleFavourite(id, type, title, poster);
-        App.showToast(added ? '&#9829; Added to Favourites' : 'Removed from Favourites');
+        App.showToast(added ? 'Added to Favourites' : 'Removed from Favourites');
         refreshListBtns(title, poster);
       };
       wlBtn.onclick = function() {
         const added = NexPlayDB.toggleWatchlist(id, type, title, poster);
-        App.showToast(added ? '&#128278; Added to Watchlist' : 'Removed from Watchlist');
+        App.showToast(added ? 'Added to Watchlist' : 'Removed from Watchlist');
         refreshListBtns(title, poster);
       };
     }

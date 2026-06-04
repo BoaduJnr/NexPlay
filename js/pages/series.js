@@ -28,7 +28,6 @@
   // ── Card ────────────────────────────────────────────────
   function showCard(show) {
     const poster = show.poster_path ? TMDB.img(show.poster_path, Config.IMG.POSTER_MD) : '';
-    const year   = (show.first_air_date || '').slice(0, 4);
     const rating = show.vote_average ? show.vote_average.toFixed(1) : '';
     const isFav  = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(show.id, 'tv');
     const isWL   = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(show.id, 'tv');
@@ -45,19 +44,15 @@
           <div style="position:absolute;top:10px;left:10px;background:#22d3ee;
             color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;
             letter-spacing:0.5px;">SERIES</div>
-          <div class="card-badges" id="badges-${show.id}">
+          <div class="card-badges card-badges--below" id="badges-${show.id}">
             ${isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : ''}
-            ${isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : ''}
+            ${isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : ''}
           </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
           </div>
           <div class="card-prog" id="cprog-${show.id}"></div>
-        </div>
-        <div class="card-info">
-          <div class="card-title">${show.name || ''}</div>
-          <div class="card-year">${year}</div>
         </div>
       </div>`;
   }
@@ -69,13 +64,14 @@
     const isWL  = NexPlayDB.isInWatchlist(showId, 'tv');
     el.innerHTML =
       (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') +
-      (isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+      (isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
   }
 
   function bindRemoteKeys() {
     _keyHandler = function(e) {
       if (typeof NexPlayDB === 'undefined') return;
-      const focused = Nav.current();
+      const focused = Nav.current() ||
+        document.querySelector('[data-nav].nav-focused[data-show-id]');
       if (!focused || !focused.dataset.showId) return;
       const showId = focused.dataset.showId;
       const title  = focused.dataset.showTitle  || '';
@@ -90,6 +86,9 @@
         const added = NexPlayDB.toggleWatchlist(showId, 'tv', title, poster);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(showId);
+      } else if (e.keyCode === Config.KEYS.YELLOW) {
+        e.preventDefault();
+        App.navigate('detail', { id: showId, type: 'tv' });
       }
     };
     document.addEventListener('keydown', _keyHandler);
@@ -219,11 +218,19 @@
           <p class="page-subtitle">Discover popular shows, trending series, and more</p>
         </div>
 
-        <div style="padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;">
-          <input type="text" id="series-search-input" placeholder="Search series..." data-nav tabindex="0"
-            style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
-                   color:#f0f0f8;font-size:18px;padding:10px 18px;border-radius:8px;
-                   width:360px;outline:none;">
+        <div style="padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;gap:16px;">
+          <button id="series-search-btn" class="search-pill-btn" data-nav tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span>Search series...</span>
+          </button>
+          <div id="series-search-wrap" style="display:none;-webkit-align-items:center;align-items:center;gap:8px;">
+            <input type="text" id="series-search-input" class="search-active-input"
+                   placeholder="Type to search..." autocomplete="off">
+            <button id="series-search-close" class="search-close-btn" tabindex="-1">&#x2715;</button>
+          </div>
         </div>
 
         <div style="padding:0 72px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
@@ -273,9 +280,41 @@
 
     TVDropdown.mount('series-sort', v => { _activeSort = v; loadShows(true); });
 
-    var seriesSearchInput = document.getElementById('series-search-input');
+    const searchBtn = document.getElementById('series-search-btn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function() {
+        searchBtn.style.display = 'none';
+        document.getElementById('series-search-wrap').style.display = 'flex';
+        document.getElementById('series-search-input').focus();
+      });
+    }
+
+    const seriesSearchInput = document.getElementById('series-search-input');
     var _searchTimer = null;
     if (seriesSearchInput) {
+      seriesSearchInput.addEventListener('keydown', function(e) {
+        e.stopPropagation();
+        if (e.keyCode === 13) {
+          clearTimeout(_searchTimer);
+          _activeSearch = seriesSearchInput.value.trim();
+          _page = 1;
+          loadShows(true);
+          if (!_activeSearch) {
+            seriesSearchInput.value = '';
+            document.getElementById('series-search-wrap').style.display = 'none';
+            searchBtn.style.display = '';
+            Nav.focusEl(searchBtn);
+          }
+        } else if (e.keyCode === 27 || e.keyCode === Config.KEYS.BACK) {
+          seriesSearchInput.value = '';
+          _activeSearch = '';
+          document.getElementById('series-search-wrap').style.display = 'none';
+          searchBtn.style.display = '';
+          Nav.focusEl(searchBtn);
+          _page = 1;
+          loadShows(true);
+        }
+      });
       seriesSearchInput.addEventListener('input', function() {
         clearTimeout(_searchTimer);
         _searchTimer = setTimeout(function() {
@@ -284,14 +323,18 @@
           loadShows(true);
         }, 500);
       });
-      seriesSearchInput.addEventListener('keydown', function(e) {
-        if (e.keyCode === 13) {
-          e.stopPropagation();
-          clearTimeout(_searchTimer);
-          _activeSearch = seriesSearchInput.value.trim();
-          _page = 1;
-          loadShows(true);
-        }
+    }
+
+    const seriesClose = document.getElementById('series-search-close');
+    if (seriesClose) {
+      seriesClose.addEventListener('click', function() {
+        seriesSearchInput.value = '';
+        _activeSearch = '';
+        document.getElementById('series-search-wrap').style.display = 'none';
+        searchBtn.style.display = '';
+        Nav.focusEl(searchBtn);
+        _page = 1;
+        loadShows(true);
       });
     }
 

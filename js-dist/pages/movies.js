@@ -68,7 +68,7 @@ var MoviesPage = function () {
         });
       }
       _activeGenre = params.genre ? parseInt(params.genre) : null;
-      container.innerHTML = "\n      <div id=\"movies-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">Movies</h1>\n          <p class=\"page-subtitle\">Explore thousands of movies by genre, year, and more</p>\n        </div>\n\n        <div style=\"padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;gap:16px;\">\n          <!-- Search trigger button \u2014 sits in the nav flow -->\n          <button id=\"movie-search-btn\" class=\"search-pill-btn\" data-nav tabindex=\"0\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"\n                 stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"20\" height=\"20\">\n              <circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n            </svg>\n            <span>Search movies...</span>\n          </button>\n          <!-- Active search input \u2014 hidden until button is pressed -->\n          <div id=\"movie-search-wrap\" style=\"display:none;-webkit-align-items:center;align-items:center;gap:8px;\">\n            <input type=\"text\" id=\"movie-search-input\" class=\"search-active-input\"\n                   placeholder=\"Type to search...\" autocomplete=\"off\">\n            <button id=\"movie-search-close\" class=\"search-close-btn\" tabindex=\"-1\">&#x2715;</button>\n          </div>\n          <div class=\"key-hint\" style=\"margin-left:auto;\">\n            <span class=\"key-hint-chip key-red\">RED</span> Favourite &nbsp;\n            <span class=\"key-hint-chip key-blue\">BLUE</span> Watchlist\n          </div>\n        </div>\n\n        <div style=\"padding:0 72px 0;display:-webkit-flex;display:flex;align-items:center;gap:16px;flex-wrap:wrap;\">\n          <span class=\"filter-label\">Sort by</span>\n          ".concat(sortSelect(), "\n          <span class=\"filter-label\" style=\"margin-left:8px;\">Year</span>\n          ").concat(yearSelect(), "\n        </div>\n\n        <div style=\"padding:16px 0 8px;\">\n          <div class=\"filter-bar\" data-scroll id=\"genre-bar\">\n            ").concat(_genres.length ? genrePills() : '<div class="pill skeleton" style="width:60px;"></div>'.repeat(8), "\n          </div>\n        </div>\n\n        <div class=\"movie-grid\" id=\"movies-grid\"></div>\n      </div>");
+      container.innerHTML = "\n      <div id=\"movies-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">Movies</h1>\n          <p class=\"page-subtitle\">Explore thousands of movies by genre, year, and more</p>\n        </div>\n\n        <div style=\"padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;gap:16px;\">\n          <!-- Search trigger button \u2014 sits in the nav flow -->\n          <button id=\"movie-search-btn\" class=\"search-pill-btn\" data-nav tabindex=\"0\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"\n                 stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"20\" height=\"20\">\n              <circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n            </svg>\n            <span>Search movies...</span>\n          </button>\n          <!-- Active search input \u2014 hidden until button is pressed -->\n          <div id=\"movie-search-wrap\" style=\"display:none;-webkit-align-items:center;align-items:center;gap:8px;\">\n            <input type=\"text\" id=\"movie-search-input\" class=\"search-active-input\"\n                   placeholder=\"Type to search...\" autocomplete=\"off\">\n            <button id=\"movie-search-close\" class=\"search-close-btn\" tabindex=\"-1\">&#x2715;</button>\n          </div>\n        </div>\n\n        <div style=\"padding:0 72px 0;display:-webkit-flex;display:flex;align-items:center;gap:16px;flex-wrap:wrap;\">\n          <span class=\"filter-label\">Sort by</span>\n          ".concat(sortSelect(), "\n          <span class=\"filter-label\" style=\"margin-left:8px;\">Year</span>\n          ").concat(yearSelect(), "\n        </div>\n\n        <div style=\"padding:16px 0 8px;\">\n          <div class=\"filter-bar\" data-scroll id=\"genre-bar\">\n            ").concat(_genres.length ? genrePills() : '<div class="pill skeleton" style="width:60px;"></div>'.repeat(8), "\n          </div>\n        </div>\n\n        <div class=\"movie-grid\" id=\"movies-grid\"></div>\n      </div>");
 
       // Genres
       var _temp6 = function () {
@@ -223,18 +223,17 @@ var MoviesPage = function () {
   // ── Card rendering ──────────────────────────────────────
   function movieCard(movie) {
     var poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
-    var year = (movie.release_date || '').slice(0, 4);
     var rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
     var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
     var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
-    return "\n      <div class=\"card\" data-nav data-movie-id=\"".concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\" style=\"width:220px\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n        <div class=\"card-info\">\n          <div class=\"card-title\">").concat(movie.title || '', "</div>\n          <div class=\"card-year\">").concat(year, "</div>\n        </div>\n      </div>");
+    return "\n      <div class=\"card\" data-nav data-movie-id=\"".concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\" style=\"width:220px\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\"></div>\n        </div>\n      </div>");
   }
   function updateCardBadge(movieId) {
     var el = document.getElementById('badges-' + movieId);
     if (!el || typeof NexPlayDB === 'undefined') return;
     var isFav = NexPlayDB.isFavourite(movieId, 'movie');
     var isWL = NexPlayDB.isInWatchlist(movieId, 'movie');
-    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
   }
 
   // ── Genre pills ─────────────────────────────────────────
@@ -276,7 +275,8 @@ var MoviesPage = function () {
   function bindRemoteKeys() {
     _keyHandler = function _keyHandler(e) {
       if (typeof NexPlayDB === 'undefined') return;
-      var focused = Nav.current();
+      // Fallback to CSS-class in case Samsung INFO key briefly clears Nav focus
+      var focused = Nav.current() || document.querySelector('[data-nav].nav-focused[data-movie-id]');
       if (!focused || !focused.dataset.movieId) return;
       var movieId = focused.dataset.movieId;
       var title = focused.dataset.movieTitle || '';
@@ -291,6 +291,12 @@ var MoviesPage = function () {
         var _added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
         App.showToast(_added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
+      } else if (e.keyCode === Config.KEYS.YELLOW) {
+        e.preventDefault();
+        App.navigate('detail', {
+          id: movieId,
+          type: 'movie'
+        });
       }
     };
     document.addEventListener('keydown', _keyHandler);

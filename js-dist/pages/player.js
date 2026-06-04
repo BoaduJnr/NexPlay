@@ -32,21 +32,22 @@ var PlayerPage = function () {
       if (!modal) return Promise.resolve();
       stopAvPlay();
       modal.classList.remove('hidden');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"".concat(isTV ? 'margin-right:300px;' : '', "\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\"\n            style=\"position:absolute;top:50%;left:50%;\n                   -webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);\n                   color:#fff;font-size:24px;background:rgba(0,0,0,0.75);\n                   padding:20px 40px;border-radius:12px;text-align:center;\">\n            Loading...\n          </div>\n        </div>\n        ").concat(isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>", "\n      </div>\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"").concat(isTV ? 'right:300px;' : '', "\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"".concat(isTV ? 'margin-right:300px;' : 'margin-right:240px;', "\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>", "\n      </div>\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"").concat(isTV ? 'right:300px;' : 'right:240px;', "\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"").concat(isTV ? 'margin-right:300px;' : '', "\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"").concat(isTV ? 'margin-right:300px;' : 'margin-right:240px;', "\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
         var q = _availableQualities && _availableQualities[qi];
         if (!q) return;
-        var hdrs = {
+        _resumePos = capturePos();
+        var hdrs = _qualityHeaders || {
           'Referer': 'https://player.videasy.net/',
           'Origin': 'https://player.videasy.net'
         };
         stopAvPlay();
-        setPlayerStatus('Loading...');
+        setPlayerStatus('Switching quality...');
         playWithUrl(q.url, hdrs);
       });
       startMediaKeys(); // active immediately on modal open
@@ -137,16 +138,35 @@ var PlayerPage = function () {
                     metaEl.textContent = [year, runtime, rating, genres].filter(Boolean).join('  |  ');
                   }
                   var similarSlot = document.getElementById('similar-slot');
-                  if (similarSlot && details.similar && details.similar.results && details.similar.results.length) {
-                    similarSlot.outerHTML = buildSimilarPanel(details.similar.results, 'movie');
-                    document.querySelectorAll('.similar-item').forEach(function (el) {
-                      el.addEventListener('click', function () {
-                        return _render(container, {
-                          id: el.dataset.id,
-                          type: 'movie'
+                  if (similarSlot) {
+                    if (_params.playlist === 'watchlist' && typeof NexPlayDB !== 'undefined') {
+                      // Show watchlist as playlist sidebar
+                      var wlItems = NexPlayDB.getWatchlist();
+                      if (wlItems.length) {
+                        similarSlot.outerHTML = buildWatchlistPanel(wlItems, _params.id, _params.type || 'movie');
+                        document.querySelectorAll('.similar-item').forEach(function (el) {
+                          el.addEventListener('click', function () {
+                            _render(container, {
+                              id: el.dataset.id,
+                              type: el.dataset.type || 'movie',
+                              season: 1,
+                              episode: 1,
+                              playlist: 'watchlist'
+                            });
+                          });
+                        });
+                      }
+                    } else if (details.similar && details.similar.results && details.similar.results.length) {
+                      similarSlot.outerHTML = buildSimilarPanel(details.similar.results, 'movie');
+                      document.querySelectorAll('.similar-item').forEach(function (el) {
+                        el.addEventListener('click', function () {
+                          _render(container, {
+                            id: el.dataset.id,
+                            type: 'movie'
+                          });
                         });
                       });
-                    });
+                    }
                   }
                 });
               }
@@ -194,7 +214,7 @@ var PlayerPage = function () {
     } catch (e) {
       return Promise.reject(e);
     }
-  }; // â"€â"€ Similar panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+  }; // ── Go to next item in watchlist playlist ──────────────
   // â"€â"€ TV Episode panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   var buildEpisodePanel = function buildEpisodePanel(seriesId) {
     try {
@@ -286,11 +306,16 @@ var PlayerPage = function () {
   // ── Player UI auto-hide + progress tracking ───────────
   var _hideTimer = null,
     _uiHidden = false,
-    _keyListener = null;
+    _keyListener2 = null;
   var _progressInterval = null,
     _titleCache = '',
     _posterCache = '',
     _durationMs = 0;
+
+  // ── Quality switching state ────────────────────────────
+  var _resumePos = 0; // ms to seek to after a quality switch
+  var _qualityHeaders = null; // headers from the resolved stream — reused on quality change
+
   function showPlayerUI() {
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.remove('player-ui-hidden');
@@ -310,11 +335,13 @@ var PlayerPage = function () {
     if (modal) modal.classList.add('player-ui-hidden');
     _uiHidden = true;
   }
-  var PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M8 5v14l11-7z"/></svg>';
-  var PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+  var PLAY_PATH = 'M8 5v14l11-7z';
+  var PAUSE_PATH = 'M6 19h4V5H6v14zm8-14v14h4V5h-4z';
   function updatePlayIcon(playing) {
     var icon = document.getElementById('ctrl-play-icon');
-    if (icon) icon.parentNode.innerHTML = playing ? PAUSE_ICON : PLAY_ICON;
+    if (!icon) return;
+    var path = icon.querySelector('path');
+    if (path) path.setAttribute('d', playing ? PAUSE_PATH : PLAY_PATH);
   }
   function formatTime(ms) {
     var s = Math.floor(ms / 1000);
@@ -408,9 +435,16 @@ var PlayerPage = function () {
     }
   }
   function startAutoHide() {
-    if (_keyListener) return;
+    if (_keyListener2) return;
     stopMediaKeys(); // hand off from buffering listener to full player listener
-    _keyListener = function _keyListener(e) {
+    _keyListener2 = function _keyListener(e) {
+      // Self-clean if player modal is no longer visible
+      var _modal = document.getElementById('player-modal');
+      if (!_modal || _modal.classList.contains('hidden')) {
+        document.removeEventListener('keydown', _keyListener2, true);
+        _keyListener2 = null;
+        return;
+      }
       var k = e.keyCode;
 
       // ── Media keys work regardless of UI visibility ─────
@@ -465,12 +499,14 @@ var PlayerPage = function () {
         return;
       }
 
-      // ── Enter: allow on Back + control buttons, absorb elsewhere ─
+      // ── Enter: allow on Back, control buttons and dropdown elements ─
       if (k === Config.KEYS.ENTER || k === 13) {
         var focused = document.querySelector('.nav-focused');
         var isBack = focused && focused.classList.contains('player-back');
         var isCtrl = focused && focused.classList.contains('ctrl-btn');
-        if (!isBack && !isCtrl) {
+        var isTrigger = focused && focused.hasAttribute('data-tdd-trigger');
+        var isDDOpt = focused && focused.hasAttribute('data-tdd-opt');
+        if (!isBack && !isCtrl && !isTrigger && !isDDOpt) {
           if (_uiHidden) showPlayerUI();
           e.stopPropagation();
           e.preventDefault();
@@ -478,7 +514,7 @@ var PlayerPage = function () {
           _hideTimer = setTimeout(hidePlayerUI, 4000);
           return;
         }
-        // Back or ctrl-btn — let Enter propagate so click fires
+        // let Enter propagate so the click fires
       }
 
       // ── All other keys: show UI if hidden ────────────────
@@ -492,14 +528,14 @@ var PlayerPage = function () {
       if (_hideTimer) clearTimeout(_hideTimer);
       _hideTimer = setTimeout(hidePlayerUI, 4000);
     };
-    document.addEventListener('keydown', _keyListener, true);
+    document.addEventListener('keydown', _keyListener2, true);
     if (_hideTimer) clearTimeout(_hideTimer);
     _hideTimer = setTimeout(hidePlayerUI, 4000);
   }
   function stopAutoHide() {
-    if (_keyListener) {
-      document.removeEventListener('keydown', _keyListener, true);
-      _keyListener = null;
+    if (_keyListener2) {
+      document.removeEventListener('keydown', _keyListener2, true);
+      _keyListener2 = null;
     }
     if (_hideTimer) {
       clearTimeout(_hideTimer);
@@ -712,6 +748,21 @@ var PlayerPage = function () {
         setPlayerStatus('');
         updatePlayIcon(true);
         startAutoHide();
+
+        // Restore position after quality switch or for continue-watching
+        var hlsSeek = _resumePos;
+        _resumePos = 0;
+        if (!hlsSeek && typeof NexPlayDB !== 'undefined') {
+          var hlsSaved = NexPlayDB.getProgress(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode);
+          if (hlsSaved && hlsSaved.position > 10000) hlsSeek = hlsSaved.position;
+        }
+        if (hlsSeek > 10000) {
+          video.currentTime = hlsSeek / 1000;
+          console.log('[Player] HLS seeking to', Math.round(hlsSeek / 1000) + 's');
+        }
+        video.addEventListener('ended', function () {
+          if (_params.playlist === 'watchlist') goNextInPlaylist();
+        });
         if (_progressInterval) clearInterval(_progressInterval);
         _progressInterval = setInterval(function () {
           if (!video || video.paused) return;
@@ -774,6 +825,9 @@ var PlayerPage = function () {
           setPlayerStatus('');
           updatePlayIcon(true);
         },
+        oncompletion: function oncompletion() {
+          if (_params.playlist === 'watchlist') goNextInPlaylist();
+        },
         onerror: function onerror(e) {
           console.error('[Player] AVPlay error:', e);
           document.body.classList.remove('movie-avplay-on');
@@ -796,16 +850,18 @@ var PlayerPage = function () {
         if (typeof NexPlayDB !== 'undefined') {
           NexPlayDB.addToHistory(_params.id, _params.type || 'movie', _titleCache, _posterCache, _currentSeason, _currentEpisode);
         }
-        // Restore saved position (continue watching)
-        if (typeof NexPlayDB !== 'undefined') {
+        // Restore position: quality-switch capture takes priority over DB
+        var seekTarget = _resumePos;
+        _resumePos = 0; // consume immediately
+        if (!seekTarget && typeof NexPlayDB !== 'undefined') {
           var saved = NexPlayDB.getProgress(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode);
-          if (saved && saved.position > 10000) {
-            // only restore if > 10s
-            try {
-              webapis.avplay.seekTo(saved.position);
-              console.log('[Player] Resuming from', Math.round(saved.position / 1000) + 's');
-            } catch (e) {}
-          }
+          if (saved && saved.position > 10000) seekTarget = saved.position;
+        }
+        if (seekTarget > 10000) {
+          try {
+            webapis.avplay.seekTo(seekTarget);
+            console.log('[Player] Seeking to', Math.round(seekTarget / 1000) + 's');
+          } catch (e) {}
         }
         // Update progress bar + auto-save every 3s
         if (_progressInterval) clearInterval(_progressInterval);
@@ -862,6 +918,7 @@ var PlayerPage = function () {
     }).then(function (result) {
       if (result && result.url) {
         _availableQualities = result.qualities || [];
+        _qualityHeaders = result.headers || null; // keep for quality switching
         console.log('[Player] stream resolved:', result.url.slice(0, 60));
         setPlayerStatus('Starting playback...');
         playWithUrl(result.url, result.headers);
@@ -882,6 +939,45 @@ var PlayerPage = function () {
       type = _params2.type;
     return type === 'tv' ? src.tvUrl(id, _currentSeason, _currentEpisode) : src.movieUrl(id);
   }
+  function goNextInPlaylist() {
+    if (typeof NexPlayDB === 'undefined') return;
+    var list = NexPlayDB.getWatchlist();
+    if (!list.length) return;
+    var currentId = String(_params.id);
+    var currentType = _params.type || 'movie';
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === currentId && list[i].type === currentType) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx >= 0 && idx < list.length - 1) {
+      var next = list[idx + 1];
+      var content = document.getElementById('main-content');
+      _render(content, {
+        id: next.id,
+        type: next.type || 'movie',
+        season: 1,
+        episode: 1,
+        playlist: 'watchlist'
+      });
+    } else {
+      App.showToast('End of Watchlist');
+    }
+  }
+
+  // ── Watchlist playlist panel ────────────────────────────
+  function buildWatchlistPanel(items, currentId, currentType) {
+    if (!items || !items.length) return '';
+    var curId = String(currentId);
+    return "\n      <div id=\"similar-panel\" class=\"similar-panel\">\n        <div class=\"similar-header\">Watchlist</div>\n        <div class=\"similar-list\" data-scroll>\n          ".concat(items.map(function (item) {
+      var isCurrent = item.id === curId && item.type === currentType;
+      return "\n              <div class=\"similar-item".concat(isCurrent ? ' playlist-current' : '', "\" data-nav\n                data-id=\"").concat(item.id, "\" data-type=\"").concat(item.type || 'movie', "\" tabindex=\"0\">\n                <div class=\"similar-thumb\">\n                  ").concat(item.poster ? "<img src=\"".concat(item.poster, "\" loading=\"lazy\">") : '<div class="ep-thumb-placeholder">🎬</div>', "\n                </div>\n                <div class=\"ep-info\">\n                  <div class=\"ep-title\">").concat(item.title || '', "</div>\n                  <div class=\"ep-meta\" style=\"").concat(isCurrent ? 'color:var(--accent);' : '', "\">\n                    ").concat(isCurrent ? 'Now Playing' : 'Up next', "\n                  </div>\n                </div>\n              </div>");
+    }).join(''), "\n        </div>\n      </div>");
+  }
+
+  // â"€â"€ Similar panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   function buildSimilarPanel(items, type) {
     if (!items || !items.length) return '';
     return "\n      <div id=\"similar-panel\" class=\"similar-panel\">\n        <div class=\"similar-header\">You Might Also Like</div>\n        <div class=\"similar-list\" data-scroll>\n          ".concat(items.slice(0, 15).map(function (item) {
@@ -891,6 +987,21 @@ var PlayerPage = function () {
       var rating = item.vote_average ? item.vote_average.toFixed(1) : '';
       return "\n              <div class=\"similar-item\" data-nav\n                data-id=\"".concat(item.id, "\" data-type=\"").concat(type, "\" tabindex=\"0\">\n                <div class=\"similar-thumb\">\n                  ").concat(poster ? "<img src=\"".concat(poster, "\" loading=\"lazy\">") : '<div class="ep-thumb-placeholder">[movie]</div>', "\n                </div>\n                <div class=\"ep-info\">\n                  <div class=\"ep-title\">").concat(title, "</div>\n                  <div class=\"ep-meta\">").concat(year).concat(rating ? '  * ' + rating : '', "</div>\n                </div>\n              </div>");
     }).join(''), "\n        </div>\n      </div>");
+  }
+
+  // Capture current playback position in ms before a quality switch
+  function capturePos() {
+    try {
+      if (typeof webapis !== 'undefined' && webapis.avplay) {
+        var p = webapis.avplay.getCurrentTime();
+        if (p > 0) return p;
+      }
+    } catch (e) {}
+    try {
+      var vid = document.getElementById('web-video');
+      if (vid && vid.currentTime > 0) return Math.floor(vid.currentTime * 1000);
+    } catch (e) {}
+    return 0;
   }
   function renderQualityDropdown() {
     var wrap = document.getElementById('quality-dd-wrap');
@@ -911,13 +1022,14 @@ var PlayerPage = function () {
       var qi = parseInt(val);
       var q = _availableQualities[qi];
       if (!q) return;
-      var headers = {
+      _resumePos = capturePos(); // save position before stopping
+      var hdrs = _qualityHeaders || {
         'Referer': 'https://player.videasy.net/',
         'Origin': 'https://player.videasy.net'
       };
       stopAvPlay();
-      setPlayerStatus('Loading...');
-      playWithUrl(q.url, headers);
+      setPlayerStatus('Switching quality...');
+      playWithUrl(q.url, hdrs);
     });
   }
   function closePlayer() {

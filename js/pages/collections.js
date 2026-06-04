@@ -31,7 +31,6 @@
   // ── Movie card inside a collection ─────────────────────
   function movieCard(movie, index) {
     const poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
-    const year = (movie.release_date || '').slice(0, 4);
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
     return `
       <div class="card" data-nav data-movie-id="${movie.id}" tabindex="0">
@@ -41,17 +40,13 @@
             : `<div class="no-img">🎬</div>`}
           ${rating ? `<div class="card-rating">★ ${rating}</div>` : ''}
           <div style="position:absolute;top:10px;left:10px;background:#7c3aed;
-            color:#fff;font-size:11px;font-weight:800;padding:4px 8px;border-radius:6px;">
+            color:#fff;font-size:11px;font-weight:800;padding:4px 8px;">
             #${index + 1}
           </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
           </div>
-        </div>
-        <div class="card-info">
-          <div class="card-title">${movie.title || ''}</div>
-          <div class="card-year">${year}</div>
         </div>
       </div>`;
   }

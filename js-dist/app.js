@@ -23,6 +23,19 @@ var App = function () {
         // Back navigation
         document.addEventListener('nav:back', handleBack);
 
+        // Button ripple — fires on any .btn click (including nav Enter → .click())
+        document.addEventListener('click', function (e) {
+          var btn = e.target && e.target.closest && e.target.closest('.btn');
+          if (!btn) return;
+          btn.classList.remove('btn-pressed');
+          // Force reflow so re-adding the class restarts the animation
+          void btn.offsetWidth;
+          btn.classList.add('btn-pressed');
+          setTimeout(function () {
+            btn.classList.remove('btn-pressed');
+          }, 420);
+        });
+
         // Collapse sidebar when main content gets focus
         var _mc = document.getElementById('main-content');
         if (_mc) _mc.addEventListener('nav:focus', function () {
@@ -83,6 +96,20 @@ var App = function () {
       label: 'Live TV',
       nav: 'iptv'
     },
+    favourites: {
+      module: function module() {
+        return FavouritesPage;
+      },
+      label: 'Favourites',
+      nav: 'favourites'
+    },
+    watchlist: {
+      module: function module() {
+        return WatchlistPage;
+      },
+      label: 'Watchlist',
+      nav: 'watchlist'
+    },
     detail: {
       module: function module() {
         return DetailPage;
@@ -96,13 +123,13 @@ var App = function () {
   var genreMap = {};
 
   // ── Theme management ────────────────────────────────────
-  var THEMES = ['theme-default', 'theme-bright', 'theme-calm'];
+  var THEMES = ['theme-calm', 'theme-bright', 'theme-night'];
   var THEME_LABELS = {
-    'theme-default': 'Default',
+    'theme-calm': 'Default',
     'theme-bright': 'Bright',
-    'theme-calm': 'Calm'
+    'theme-night': 'Night'
   };
-  var _currentTheme = localStorage.getItem('nexplay-theme') || 'theme-default';
+  var _currentTheme = localStorage.getItem('nexplay-theme') || 'theme-calm';
   function applyTheme(theme) {
     THEMES.forEach(function (t) {
       return document.body.classList.remove(t);
@@ -125,8 +152,71 @@ var App = function () {
       'theme-calm': {
         bg: '#0d1117',
         text: '#c9d1d9'
+      },
+      'theme-night': {
+        bg: '#0a0a0f',
+        text: '#e8e8f0'
       }
     };
+
+    // Complementary palette per theme — sets CSS variables for live theming
+    var palette = {
+      'theme-calm': {
+        '--accent': '#7c3aed',
+        '--accent-light': '#a78bfa',
+        '--accent-glow': 'rgba(124,58,237,0.45)',
+        '--accent-dim': 'rgba(124,58,237,0.15)',
+        '--cyan': '#06b6d4',
+        '--cyan-glow': 'rgba(6,182,212,0.35)',
+        '--green': '#4ade80',
+        '--yellow': '#facc15',
+        '--card-bg': 'linear-gradient(135deg,#131322 0%,#1a1a2e 100%)',
+        '--card-border': '1px solid rgba(167,139,250,0.15)',
+        '--surface': '#0f0f1c',
+        '--surface2': '#171728',
+        '--surface3': '#1f1f35'
+      },
+      'theme-bright': {
+        '--accent': '#6d28d9',
+        '--accent-light': '#7c3aed',
+        '--accent-glow': 'rgba(109,40,217,0.28)',
+        '--accent-dim': 'rgba(109,40,217,0.12)',
+        '--cyan': '#d97706',
+        // warm amber — complement to purple on light bg
+        '--cyan-glow': 'rgba(217,119,6,0.30)',
+        '--green': '#059669',
+        '--yellow': '#dc2626',
+        '--card-bg': '#ffffff',
+        '--card-border': '1px solid rgba(10,10,32,0.12)',
+        '--surface': '#eaeaf5',
+        '--surface2': '#f0f0fa',
+        '--surface3': '#e4e4f2'
+      },
+      'theme-night': {
+        '--accent': '#a78bfa',
+        // bright lavender — vivid on deep black
+        '--accent-light': '#c4b5fd',
+        '--accent-glow': 'rgba(167,139,250,0.55)',
+        '--accent-dim': 'rgba(167,139,250,0.18)',
+        '--cyan': '#38bdf8',
+        // sky blue — electric complement on black
+        '--cyan-glow': 'rgba(56,189,248,0.38)',
+        '--green': '#34d399',
+        '--yellow': '#fbbf24',
+        '--card-bg': 'linear-gradient(135deg,#0d0d18 0%,#111120 100%)',
+        '--card-border': '1px solid rgba(167,139,250,0.12)',
+        '--surface': '#0c0c16',
+        '--surface2': '#121220',
+        '--surface3': '#18182c'
+      }
+    };
+    var p = palette[theme] || palette['theme-calm'];
+    try {
+      // CSS custom property setProperty not supported on all Tizen firmware versions
+      Object.keys(p).forEach(function (k) {
+        document.documentElement.style.setProperty(k, p[k]);
+      });
+    } catch (e) {}
     var c = colors[theme] || colors['theme-default'];
     document.documentElement.style.background = c.bg;
     document.body.style.background = c.bg;
@@ -157,14 +247,16 @@ var App = function () {
     collections: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z\"/>\n      <polyline points=\"3 9 21 9\"/><polyline points=\"3 15 21 15\"/>\n      <line x1=\"9\" y1=\"9\" x2=\"9\" y2=\"21\"/><line x1=\"15\" y1=\"9\" x2=\"15\" y2=\"21\"/>\n    </svg>",
     series: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n      <circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M2 10h4M18 10h4M2 14h4M18 14h4\"/>\n    </svg>",
     iptv: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n      <path d=\"M8 19v2M16 19v2M2 10h20\"/>\n    </svg>",
-    search: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <circle cx=\"11\" cy=\"11\" r=\"8\"/>\n      <line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n    </svg>"
+    search: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <circle cx=\"11\" cy=\"11\" r=\"8\"/>\n      <line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n    </svg>",
+    favourites: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z\"/>\n    </svg>",
+    watchlist: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/>\n    </svg>"
   };
 
   // ── Sidebar ─────────────────────────────────────────────
   function buildSidebar() {
     var sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
-    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">NexPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
+    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">NexPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"favourites\" tabindex=\"0\">\n            ").concat(ICONS.favourites, "<span class=\"nav-label\">Favourites</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"watchlist\" tabindex=\"0\">\n            ").concat(ICONS.watchlist, "<span class=\"nav-label\">Watchlist</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
     sidebar.querySelectorAll('[data-nav-page]').forEach(function (el) {
       el.addEventListener('click', function () {
         return navigate(el.dataset.navPage);

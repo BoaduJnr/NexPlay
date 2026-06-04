@@ -34,8 +34,15 @@
   --safe-v:         32px;   /* overscan-safe vertical margin   */
   --card-w:        220px;   /* wider cards readable at 10 feet */
   --card-h:        330px;
-  --card-gap:       24px;
+  --card-gap:       28px;
   --hero-h:        540px;
+
+  --shadow-card:    0 4px 12px rgba(0,0,0,0.35);
+  --shadow-card-lg: 0 8px 40px rgba(0,0,0,0.5);
+  --glow-accent:    0 0 20px rgba(124,58,237,0.55);
+  --glow-accent-lg: 0 0 40px rgba(124,58,237,0.40);
+  --card-border:    1px solid rgba(167,139,250,0.15);
+  --card-bg:        linear-gradient(135deg,#131322 0%,#1a1a2e 100%);
   --radius:         12px;
   --radius-sm:       8px;
   --radius-lg:      18px;
@@ -53,6 +60,24 @@
   --fs-hero: 60px;
 }
 
+/* ── Night Mode — OLED-optimised deep blacks ────────────────────────── */
+body.theme-night,
+body.theme-night #app,
+body.theme-night .main-content { background: #0a0a0f !important; color: #e8e8f0 !important; }
+body.theme-night .sidebar { background: linear-gradient(180deg,#080810 0%,#050508 100%) !important; border-right-color: rgba(255,255,255,0.04) !important; }
+body.theme-night .nav-item { color: rgba(232,232,240,0.45) !important; }
+body.theme-night .nav-item.nav-focused,
+body.theme-night .nav-item.active { color: #a78bfa !important; }
+body.theme-night .card { background: linear-gradient(135deg,#0d0d18 0%,#111120 100%) !important; border-color: rgba(167,139,250,0.10) !important; }
+body.theme-night .card-title { color: #e8e8f0 !important; }
+body.theme-night .card-year,
+body.theme-night .section-title { color: rgba(232,232,240,0.45) !important; }
+body.theme-night .hero-gradient { background: linear-gradient(to right,#0a0a0f 0%,rgba(10,10,15,0.82) 38%,rgba(10,10,15,0.20) 65%,transparent 100%),linear-gradient(to top,#0a0a0f 0%,transparent 38%) !important; }
+body.theme-night .hero-title { color: #e8e8f0 !important; }
+body.theme-night .pill { background: #0d0d18 !important; border-color: rgba(167,139,250,0.12) !important; }
+body.theme-night .logo-mark { box-shadow: 0 0 28px rgba(124,58,237,0.60) !important; }
+body.theme-night .card.nav-focused { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 4px rgba(124,58,237,0.20), 0 8px 40px rgba(0,0,0,0.85), 0 0 20px rgba(124,58,237,0.55) !important; }
+
 /* ── Bright Theme — direct colors (no CSS vars, works on old Chromium) ── */
 body.theme-bright,
 body.theme-bright #app,
@@ -61,12 +86,77 @@ body.theme-bright .sidebar { background: linear-gradient(180deg,#e4e4f4 0%,#dcdc
 body.theme-bright .nav-item { color: rgba(10,10,32,0.60) !important; }
 body.theme-bright .nav-item.nav-focused,
 body.theme-bright .nav-item.active { color: #7c3aed !important; }
-body.theme-bright .card { background: #ffffff !important; }
+
+/* Cards */
+body.theme-bright .card { background: #ffffff !important; border-color: rgba(10,10,32,0.12) !important; box-shadow: 0 4px 12px rgba(10,10,32,0.10) !important; }
 body.theme-bright .card-title { color: #0a0a20 !important; }
-body.theme-bright .card-year,
-body.theme-bright .section-title { color: rgba(10,10,32,0.55) !important; }
-body.theme-bright .hero-gradient { background: linear-gradient(to right,#f0f0fa 0%,transparent 60%) !important; }
-body.theme-bright .hero-title { color: #0a0a20 !important; }
+body.theme-bright .card-year { color: rgba(10,10,32,0.50) !important; }
+
+/* Section headers & titles */
+body.theme-bright .section-title { color: #0a0a20 !important; -webkit-text-fill-color: #0a0a20 !important; }
+body.theme-bright .section-title span { -webkit-text-fill-color: transparent !important; }
+body.theme-bright .section-header { border-bottom-color: rgba(10,10,32,0.10) !important; }
+body.theme-bright .page-title { color: #0a0a20 !important; }
+body.theme-bright .page-subtitle { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .filter-label { color: rgba(10,10,32,0.45) !important; }
+
+/* Hero */
+body.theme-bright .hero-gradient { background: linear-gradient(to right,#f0f0fa 0%,rgba(240,240,250,0.85) 38%,rgba(240,240,250,0.20) 65%,transparent 100%),linear-gradient(to top,#f0f0fa 0%,transparent 40%) !important; }
+body.theme-bright .hero-title { color: #0a0a20 !important; -webkit-text-fill-color: #0a0a20 !important; text-shadow: none !important; }
+body.theme-bright .hero-overview { color: rgba(10,10,32,0.75) !important; }
+body.theme-bright .hero-meta { color: rgba(10,10,32,0.65) !important; }
+body.theme-bright .hero-meta .rating { color: #7c3aed !important; }
+
+/* Buttons */
+body.theme-bright .btn-secondary { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; border-color: rgba(10,10,32,0.22) !important; }
+body.theme-bright .btn-secondary.nav-focused { background: rgba(10,10,32,0.15) !important; box-shadow: 0 0 0 2px rgba(10,10,32,0.50) !important; }
+
+/* Filter pills */
+body.theme-bright .pill { background: rgba(10,10,32,0.07) !important; color: rgba(10,10,32,0.65) !important; border-color: rgba(10,10,32,0.15) !important; }
+body.theme-bright .pill:hover,
+body.theme-bright .pill.nav-focused { background: rgba(10,10,32,0.13) !important; color: #0a0a20 !important; border-color: rgba(10,10,32,0.30) !important; }
+body.theme-bright .pill.active { background: #7c3aed !important; color: #fff !important; border-color: #7c3aed !important; }
+
+/* Dropdowns */
+body.theme-bright .tdd-trigger { background: rgba(10,10,32,0.07) !important; color: rgba(10,10,32,0.80) !important; border-color: rgba(10,10,32,0.18) !important; }
+body.theme-bright .tdd-list { background: #f0f0fa !important; border-color: rgba(10,10,32,0.15) !important; }
+body.theme-bright .tdd-option { color: rgba(10,10,32,0.80) !important; }
+body.theme-bright .tdd-option:hover,
+body.theme-bright .tdd-option.nav-focused { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; }
+body.theme-bright .tdd-option.selected { background: rgba(124,58,237,0.10) !important; color: #7c3aed !important; }
+
+/* Search */
+body.theme-bright .search-pill-btn { background: rgba(10,10,32,0.07) !important; border-color: rgba(10,10,32,0.18) !important; color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .search-pill-btn.nav-focused { background: rgba(124,58,237,0.10) !important; border-color: #7c3aed !important; color: #0a0a20 !important; }
+body.theme-bright .search-active-input { background: #fff !important; color: #0a0a20 !important; border-color: #7c3aed !important; }
+
+/* Logo & accent */
+body.theme-bright .logo-mark { box-shadow: 0 0 20px rgba(124,58,237,0.30) !important; }
+
+/* Bright — IPTV */
+body.theme-bright .iptv-sidebar { background: #e8e8f5 !important; border-right-color: rgba(10,10,32,0.10) !important; }
+body.theme-bright .iptv-channel-bar { background: #e8e8f5 !important; border-top-color: rgba(10,10,32,0.10) !important; }
+body.theme-bright .iptv-filter-label { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .iptv-sidebar-title { color: #0a0a20 !important; }
+body.theme-bright .iptv-idle-text { color: rgba(10,10,32,0.45) !important; }
+body.theme-bright .iptv-bar-name { color: #0a0a20 !important; }
+body.theme-bright .iptv-bar-meta { color: rgba(10,10,32,0.50) !important; }
+body.theme-bright .channel-name { color: #0a0a20 !important; }
+body.theme-bright .channel-category { color: rgba(10,10,32,0.55) !important; }
+/* IPTV player area is always dark — placeholder must stay light regardless of theme */
+body.theme-bright .iptv-placeholder { color: rgba(255,255,255,0.65) !important; }
+/* Bright — channel cards & logo */
+body.theme-bright .channel-item { background: rgba(10,10,32,0.06) !important; border-color: rgba(10,10,32,0.08) !important; }
+body.theme-bright .channel-item:hover,
+body.theme-bright .channel-item.nav-focused { background: rgba(10,10,32,0.12) !important; border-color: #6d28d9 !important; box-shadow: inset 0 0 0 1px #6d28d9, 0 0 12px rgba(109,40,217,0.18) !important; }
+body.theme-bright .channel-item.active { background: rgba(109,40,217,0.10) !important; border-color: #6d28d9 !important; }
+body.theme-bright .channel-logo { background: rgba(10,10,32,0.08) !important; }
+body.theme-bright .channel-initial { color: rgba(10,10,32,0.45) !important; }
+/* Bright — working filter button */
+body.theme-bright .iptv-working-btn { background: rgba(10,10,32,0.06) !important; border-color: rgba(10,10,32,0.14) !important; color: rgba(10,10,32,0.70) !important; }
+body.theme-bright .iptv-working-btn:hover,
+body.theme-bright .iptv-working-btn.nav-focused { background: rgba(10,10,32,0.12) !important; border-color: rgba(74,222,128,0.50) !important; color: #0a0a20 !important; }
+body.theme-bright .iptv-working-btn.active { background: rgba(74,222,128,0.14) !important; border-color: #4ade80 !important; color: #166534 !important; }
 
 /* ── Calm Theme — direct colors ─────────────────────────── */
 body.theme-calm,
@@ -179,15 +269,16 @@ body.movie-avplay-on #avplay-area {
 .pcb-btn:last-child { margin-right: 0; }
 .pcb-btn.pcb-play {
   width: 64px; height: 64px;
-  background: rgba(124,58,237,0.88);
+  background:         linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
   border-color: #a78bfa;
   font-size: 0;
+  box-shadow:         0 4px 16px rgba(124,58,237,0.50);
 }
 .pcb-btn.nav-focused,
 .ctrl-btn.nav-focused {
-  background: rgba(124,58,237,0.92) !important;
+  background:         linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
   border-color: #fff !important;
-  box-shadow: 0 0 0 3px rgba(167,139,250,0.5);
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 20px rgba(124,58,237,0.55);
 }
 /* Legacy id */
 #progress-fill { height:100%; background:#7c3aed; border-radius:2px; width:0%; transition:width 1s linear; }
@@ -223,13 +314,30 @@ body.movie-avplay-on #avplay-area {
   width: 88px;
   height: 1080px;
   background: linear-gradient(180deg, #0c0c1e 0%, #080812 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: none;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   transition: width 380ms cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   z-index: 100;
+  position: relative;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(124,58,237,0.55) 30%,
+    rgba(167,139,250,0.85) 52%,
+    rgba(124,58,237,0.45) 72%,
+    transparent 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .sidebar.expanded { width: 260px; }
@@ -365,14 +473,14 @@ body.movie-avplay-on #avplay-area {
 .hero-gradient {
   position: absolute;
   top: 0; right: 0; bottom: 0; left: 0;
-  background: linear-gradient(
-    to right,
-    rgba(9, 9, 15, 0.98) 0%,
-    rgba(9, 9, 15, 0.80) 38%,
-    rgba(9, 9, 15, 0.20) 65%,
-    transparent 100%
-  ),
-  linear-gradient(to top, rgba(9, 9, 15, 1) 0%, transparent 35%);
+  background:
+    linear-gradient(to right,
+      rgba(9,9,15,0.98) 0%,
+      rgba(9,9,15,0.82) 38%,
+      rgba(9,9,15,0.20) 65%,
+      transparent 100%),
+    linear-gradient(to top, rgba(9,9,15,1) 0%, transparent 38%),
+    linear-gradient(135deg, rgba(124,58,237,0.08) 0%, transparent 60%);
 }
 
 .hero-content {
@@ -404,7 +512,7 @@ body.movie-avplay-on #avplay-area {
   letter-spacing: -1px;
   color: #fff;
   margin-bottom: 16px;
-  text-shadow: 0 2px 24px rgba(0,0,0,0.6);
+  text-shadow: 0 2px 24px rgba(0,0,0,0.7), 0 0 60px rgba(124,58,237,0.25);
 }
 
 .hero-meta {
@@ -460,26 +568,31 @@ body.movie-avplay-on #avplay-area {
 }
 
 .btn-primary {
-  background: #7c3aed;
+  background:         linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
   color: #fff;
+  border: 1px solid rgba(255,255,255,0.20);
+  box-shadow:         0 4px 14px rgba(124,58,237,0.40);
 }
 
 .btn-primary:hover, .btn-primary.nav-focused {
-  background: #a78bfa;
-  box-shadow: 0 0 28px rgba(124, 58, 237, 0.45);
-  transform: scale(1.03);
+  background:         linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 20px rgba(124,58,237,0.55);
+  transform: scale(1.04);
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.10);
+  background:         linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%);
   color: #f0f0f8;
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow:         0 2px 8px rgba(0,0,0,0.25);
   backdrop-filter: blur(8px);
 }
 
 .btn-secondary:hover, .btn-secondary.nav-focused {
-  background: rgba(255,255,255,0.18);
-  box-shadow: 0 0 16px rgba(255,255,255,0.08);
-  transform: scale(1.03);
+  background:         linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 100%);
+  border-color: rgba(255,255,255,0.35);
+  box-shadow:         0 0 0 2px rgba(255,255,255,0.55), 0 4px 20px rgba(0,0,0,0.3);
+  transform: scale(1.04);
 }
 
 .btn svg { width: 18px; height: 18px; }
@@ -493,8 +606,9 @@ body.movie-avplay-on #avplay-area {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 72px;
+  padding: 0 72px 16px;
   margin-bottom: 20px;
+  border-bottom: 1px solid rgba(167,139,250,0.12);
 }
 
 .section-title {
@@ -505,7 +619,10 @@ body.movie-avplay-on #avplay-area {
 }
 
 .section-title span {
-  color: #a78bfa;
+  background:         linear-gradient(135deg, #a78bfa, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .section-more {
@@ -526,7 +643,7 @@ body.movie-avplay-on #avplay-area {
 
 .card-row {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   padding: 8px 72px 20px;
   overflow-x: auto;
   overflow-y: visible;
@@ -542,9 +659,82 @@ body.movie-avplay-on #avplay-area {
   width: 220px;
   cursor: pointer;
   outline: none;
-  border-radius: 12px;
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  border-radius: 0;
+  background: linear-gradient(135deg,#131322 0%,#1a1a2e 100%);
+  border: 1px solid rgba(167,139,250,0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
   position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background:         linear-gradient(to right, #7c3aed, #22d3ee);
+  border-radius: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.card.nav-focused::before { opacity: 1; }
+
+/* Image-only cards — no text below poster */
+.card-info { display: none; }
+
+/* ── IPTV working-only filter button ──────────────────────────────────── */
+.iptv-working-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: #171728;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: rgba(240, 240, 248, 0.45);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
+.iptv-working-btn:hover,
+.iptv-working-btn.nav-focused {
+  background: #1f1f35;
+  border-color: rgba(74,222,128,0.45);
+  color: #f0f0f8;
+}
+
+.iptv-working-btn.active {
+  background: rgba(74,222,128,0.12);
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+/* ── IPTV channel status dot ──────────────────────────────────────────── */
+.ch-status {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+.ch-status-ok   {
+  background: #4ade80;
+  border-color: #4ade80;
+  box-shadow:         0 0 5px rgba(74,222,128,0.70);
+}
+.ch-status-fail {
+  background: #f87171;
+  border-color: #f87171;
 }
 
 .card:hover, .card.nav-focused {
@@ -553,13 +743,14 @@ body.movie-avplay-on #avplay-area {
 }
 
 .card.nav-focused {
-  box-shadow: 0 0 0 3px #7c3aed, 0 8px 40px rgba(124, 58, 237, 0.45);
+  border-color: #a78bfa;
+  box-shadow:         0 0 0 2px #7c3aed, 0 0 0 4px rgba(124,58,237,0.25), 0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(124,58,237,0.55);
 }
 
 .card-poster {
   width: 100%;
   height: 330px;
-  border-radius: 12px;
+  border-radius: 0;
   background: #1f1f35;
   overflow: hidden;
   position: relative;
@@ -685,7 +876,7 @@ body.movie-avplay-on #avplay-area {
   font-weight: 700;
   color: rgba(240, 240, 248, 0.45);
   background: #171728;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(167,139,250,0.18);
   cursor: pointer;
   outline: none;
   transition: all 200ms ease;
@@ -695,19 +886,19 @@ body.movie-avplay-on #avplay-area {
 .pill:hover, .pill.nav-focused {
   color: #f0f0f8;
   background: #1f1f35;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 12px rgba(124, 58, 237, 0.45);
+  border-color: rgba(167,139,250,0.45);
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.45);
 }
 
 .pill.active {
-  background: #7c3aed;
+  background:         linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
   color: #fff;
   border-color: #7c3aed;
-  box-shadow: 0 0 16px rgba(124, 58, 237, 0.45);
+  box-shadow:         0 0 18px rgba(124, 58, 237, 0.45), 0 4px 12px rgba(124,58,237,0.35);
 }
 
 .pill.nav-focused.active {
-  box-shadow: 0 0 0 2px #fff, 0 0 20px rgba(124, 58, 237, 0.45);
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 24px rgba(124, 58, 237, 0.45);
 }
 
 /* â”€â”€ Page Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -908,58 +1099,87 @@ body.movie-avplay-on #avplay-area {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
   scrollbar-width: thin;
   scrollbar-color: #1f1f35 transparent;
 }
 
 .channel-item {
+  width: calc(50% - 3px);
+  padding: 10px 6px 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 7px;
+  background: #171728;
   border-radius: 8px;
+  border: 1px solid transparent;
   cursor: pointer;
   outline: none;
-  transition: background 200ms ease;
-  margin-bottom: 2px;
+  text-align: center;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .channel-item:hover, .channel-item.nav-focused {
-  background: #171728;
+  background: #1f1f35;
+  border-color: rgba(167,139,250,0.30);
 }
 
 .channel-item.nav-focused {
-  box-shadow: inset 0 0 0 2px #7c3aed;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 1px #7c3aed, 0 0 14px rgba(124,58,237,0.28);
 }
 
 .channel-item.active {
   background: rgba(124, 58, 237, 0.15);
+  border-color: #7c3aed;
 }
 
 .channel-logo {
-  width: 44px; height: 44px;
-  border-radius: 8px;
+  width: 64px;
+  height: 52px;
+  border-radius: 6px;
   background: #1f1f35;
   overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: rgba(240, 240, 248, 0.25);
-  font-size: 18px;
+}
+
+/* initial letter — always rendered, logo overlays it when loaded */
+.channel-initial {
+  font-size: 20px;
+  font-weight: 900;
+  color: rgba(240, 240, 248, 0.45);
+  line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .channel-logo img {
-  width: 100%; height: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  padding: 4px;
+  padding: 6px;
+  background: #1f1f35;
 }
 
 .channel-name {
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 700;
-  color: #f0f0f8;
+  color: rgba(240, 240, 248, 0.70);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
 }
 
 .channel-category {
@@ -997,11 +1217,31 @@ body.movie-avplay-on #avplay-area {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: rgba(240, 240, 248, 0.45);
+  color: rgba(240,240,248,0.65); /* always light — player area is always dark */
 }
 
 .iptv-placeholder svg { width: 64px; height: 64px; opacity: 0.3; }
 .iptv-placeholder p { font-size: 18px; font-weight: 600; }
+
+/* ── Movie player status — same design as IPTV placeholder ─────────────── */
+/* Centred text, no pill, muted on dark background — matches .iptv-placeholder aesthetic */
+.player-status-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: rgba(200,200,220,0.65);  /* muted, not too white — same as iptv-placeholder feel */
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
 
 .iptv-channel-bar {
   padding: 14px 20px;
@@ -1011,6 +1251,12 @@ body.movie-avplay-on #avplay-area {
   align-items: center;
   gap: 14px;
 }
+
+/* IPTV theme-aware text classes */
+.iptv-sidebar-title { font-size: 18px; font-weight: 800; color: #f0f0f8; }
+.iptv-idle-text     { font-size: 14px; color: rgba(240, 240, 248, 0.45); }
+.iptv-bar-name      { font-size: 16px; font-weight: 700; color: #f0f0f8; }
+.iptv-bar-meta      { font-size: 12px; color: rgba(240, 240, 248, 0.45); margin-top: 2px; }
 
 .live-badge {
   display: inline-flex;
@@ -1121,21 +1367,20 @@ body.movie-avplay-on #avplay-area {
 
 /* â”€â”€ Loading / Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .skeleton {
-  background: linear-gradient(90deg, #171728 25%, #1f1f35 50%, #171728 75%);
-  background-size: 200% 100%;
-  -webkit-animation: shimmer 1.5s infinite;
-          animation: shimmer 1.5s infinite;
+  background:         linear-gradient(90deg, #171728 25%, #1f1f35 50%, rgba(167,139,250,0.08) 60%, #171728 75%);
+  background-size: 300% 100%;
+  -webkit-animation: shimmer 1.8s ease-in-out infinite;
+  animation: shimmer 1.8s ease-in-out infinite;
   border-radius: 12px;
 }
 
 @-webkit-keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
-
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .loading-overlay {
@@ -1248,6 +1493,14 @@ body.movie-avplay-on #avplay-area {
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.45);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+.player-cbar .tdd-list {
+  top: auto;
+  bottom: 100%;
+  border-radius: 12px 12px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: none;
 }
 
 .tdd-list {
@@ -1477,7 +1730,7 @@ body.movie-avplay-on #avplay-area {
 
 /* â”€â”€ Similar panel (Movie player) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .similar-panel {
-  width: 280px;
+  width: 240px;
   flex-shrink: 0;
   background: rgba(9, 9, 15, 0.96);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
@@ -1627,8 +1880,13 @@ body.movie-avplay-on #avplay-area {
   top: 10px;
   left: 10px;
   display: flex;
-  gap: 5px;
+  gap: 8px;
   z-index: 5;
+}
+
+/* Push badges below the cyan SERIES label on series cards */
+.card-badges--below {
+  top: 40px;
 }
 
 .card-badge {
@@ -1676,5 +1934,270 @@ body.movie-avplay-on #avplay-area {
 
 .key-red    { background: #7f1d1d; color: #fca5a5; border: 1px solid #f87171; }
 .key-blue   { background: #1e3a5f; color: #93c5fd; border: 1px solid #60a5fa; }
+.key-yellow { background: #713f12; color: #fde047; border: 1px solid #ca8a04; }
+
+/* ── Watchlist playlist: now-playing highlight ─────────────────────────── */
+.similar-item.playlist-current {
+  background: rgba(124, 58, 237, 0.15);
+  border-left: 3px solid #7c3aed;
+}
+
+/* ── Favourites / Watchlist empty state ────────────────────────────────── */
+.list-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 72px;
+  color: rgba(240, 240, 248, 0.45);
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Home page color-button row ────────────────────────────────────────── */
+.home-key-hints {
+  padding: 10px 72px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.home-hint-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.home-color-btn {
+  display: inline-block;
+  width: 30px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.home-color-red    { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.50); }
+.home-color-green  { background: #4ade80;  box-shadow: 0 0 6px rgba(74,222,128,0.50); }
+.home-color-blue   { background: #60a5fa;  box-shadow: 0 0 6px rgba(96,165,250,0.50); }
+.home-color-yellow { background: #fde047;  box-shadow: 0 0 6px rgba(253,224,71,0.50); }
+
+.home-hint-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(240, 240, 248, 0.45);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+body.theme-bright .home-hint-label { color: rgba(10,10,32,0.55) !important; }
+
+
+/* ── Phase 3: Animations & Final Polish ────────────────────────────────── */
+
+/* Hero actions — stagger fade-up on load */
+@-webkit-keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1;    transform: translateY(0); }
+}
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-actions .btn {
+  -webkit-animation: hero-fade-up 0.5s ease both;
+  animation: hero-fade-up 0.5s ease both;
+}
+.hero-actions .btn:nth-child(1) { -webkit-animation-delay: 0.10s; animation-delay: 0.10s; }
+.hero-actions .btn:nth-child(2) { -webkit-animation-delay: 0.22s; animation-delay: 0.22s; }
+
+/* Focus pulse — subtle beat on focused interactive elements */
+@-webkit-keyframes focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 4px rgba(124,58,237,0.25); }
+  50%       { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 8px rgba(124,58,237,0.12); }
+}
+@keyframes focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 4px rgba(124,58,237,0.25); }
+  50%       { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 8px rgba(124,58,237,0.12); }
+}
+
+/* Progress track — richer fill + focused glow */
+.player-cbar-fill {
+  background:         linear-gradient(to right, #7c3aed, #a78bfa);
+}
+
+.player-cbar-track {
+  height: 5px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+}
+
+.player-cbar-track.nav-focused {
+  background: rgba(124,58,237,0.30) !important;
+  outline: 2px solid rgba(167,139,250,0.80);
+  border-radius: 4px;
+  -webkit-animation: focus-pulse 2s ease infinite;
+  animation: focus-pulse 2s ease infinite;
+}
+
+/* Nav-item sidebar — slightly richer focused state */
+.nav-item.nav-focused {
+  background:         linear-gradient(to right, rgba(167,139,250,0.26) 0%, rgba(167,139,250,0.10) 100%);
+}
+
+/* Toast — match new card aesthetic */
+.toast {
+  background:         linear-gradient(135deg, #1f1f35, #1f1f38);
+  border-color: rgba(167,139,250,0.30);
+  box-shadow:         0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(167,139,250,0.15);
+}
+
+.toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ── Animation Polish ───────────────────────────────────────────────────── */
+
+/* Hero title — stronger two-layer glow */
+.hero-title {
+  text-shadow:
+    0 2px 24px rgba(0,0,0,0.90),
+    0 0  70px rgba(124,58,237,0.55),
+    0 0 120px rgba(124,58,237,0.25);
+}
+
+/* Skeleton — enhanced purple shimmer sweep */
+.skeleton {
+  background: linear-gradient(90deg,
+    #171728             0%,
+    #1f1f35            35%,
+    rgba(167,139,250,0.18)     50%,
+    #1f1f35            65%,
+    #171728           100%);
+  background-size: 400% 100%;
+  -webkit-animation: shimmer 1.6s ease-in-out infinite;
+  animation:         shimmer 1.6s ease-in-out infinite;
+}
+
+/* Card entrance — fade-up from slightly below */
+@-webkit-keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1;    transform: translateY(0)    scale(1); }
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.card {
+  -webkit-animation: card-in 0.30s ease both;
+  animation:         card-in 0.30s ease both;
+}
+
+/* Stagger first 8 cards in a row */
+.card:nth-child(1)  { -webkit-animation-delay:0.00s; animation-delay:0.00s; }
+.card:nth-child(2)  { -webkit-animation-delay:0.04s; animation-delay:0.04s; }
+.card:nth-child(3)  { -webkit-animation-delay:0.08s; animation-delay:0.08s; }
+.card:nth-child(4)  { -webkit-animation-delay:0.12s; animation-delay:0.12s; }
+.card:nth-child(5)  { -webkit-animation-delay:0.16s; animation-delay:0.16s; }
+.card:nth-child(6)  { -webkit-animation-delay:0.20s; animation-delay:0.20s; }
+.card:nth-child(7)  { -webkit-animation-delay:0.24s; animation-delay:0.24s; }
+.card:nth-child(8)  { -webkit-animation-delay:0.28s; animation-delay:0.28s; }
+
+/* Button ripple — radiating glow on press */
+@-webkit-keyframes btn-ripple {
+  0%   { box-shadow: 0 0 0 0px  rgba(124, 58, 237, 0.45), 0 4px 12px rgba(0,0,0,0.35); }
+  60%  { box-shadow: 0 0 0 18px rgba(124,58,237,0), 0 4px 12px rgba(0,0,0,0.35); }
+  100% { box-shadow: 0 0 0 0px  transparent,        0 4px 12px rgba(0,0,0,0.35); }
+}
+@keyframes btn-ripple {
+  0%   { box-shadow: 0 0 0 0px  rgba(124, 58, 237, 0.45), 0 4px 12px rgba(0,0,0,0.35); }
+  60%  { box-shadow: 0 0 0 18px rgba(124,58,237,0), 0 4px 12px rgba(0,0,0,0.35); }
+  100% { box-shadow: 0 0 0 0px  transparent,        0 4px 12px rgba(0,0,0,0.35); }
+}
+
+.btn.btn-pressed {
+  -webkit-animation: btn-ripple 0.40s ease !important;
+  animation:         btn-ripple 0.40s ease !important;
+}
+
+/* ── Per-theme CSS variable palette (CSS fallback for JS setProperty) ─── */
+
+/* Default / Calm — cosmic purple + teal */
+body.theme-calm {
+  --accent:       #7c3aed;
+  --accent-light: #a78bfa;
+  --accent-glow:  rgba(124,58,237,0.45);
+  --accent-dim:   rgba(124,58,237,0.15);
+  --cyan:         #06b6d4;
+  --cyan-glow:    rgba(6,182,212,0.35);
+  --green:        #4ade80;
+  --surface:      #0f0f1c;
+  --surface2:     #171728;
+  --surface3:     #1f1f35;
+}
+
+/* Bright — deeper purple + warm amber */
+body.theme-bright {
+  --accent:       #6d28d9;
+  --accent-light: #7c3aed;
+  --accent-glow:  rgba(109,40,217,0.28);
+  --accent-dim:   rgba(109,40,217,0.12);
+  --cyan:         #d97706;
+  --cyan-glow:    rgba(217,119,6,0.30);
+  --green:        #059669;
+  --surface:      #eaeaf5;
+  --surface2:     #f0f0fa;
+  --surface3:     #e4e4f2;
+}
+
+/* Night — bright lavender + electric sky blue */
+body.theme-night {
+  --accent:       #a78bfa;
+  --accent-light: #c4b5fd;
+  --accent-glow:  rgba(167,139,250,0.55);
+  --accent-dim:   rgba(167,139,250,0.18);
+  --cyan:         #38bdf8;
+  --cyan-glow:    rgba(56,189,248,0.38);
+  --green:        #34d399;
+  --surface:      #0c0c16;
+  --surface2:     #121220;
+  --surface3:     #18182c;
+}
+
+/* Night — IPTV */
+body.theme-night .iptv-sidebar { background: #080810 !important; border-right-color: rgba(167,139,250,0.10) !important; }
+body.theme-night .iptv-channel-bar { background: #080810 !important; border-top-color: rgba(167,139,250,0.10) !important; }
+body.theme-night .iptv-sidebar-title { color: #e8e8f0 !important; }
+body.theme-night .iptv-idle-text { color: rgba(232,232,240,0.40) !important; }
+body.theme-night .iptv-bar-name { color: #e8e8f0 !important; }
+body.theme-night .iptv-bar-meta { color: rgba(232,232,240,0.45) !important; }
+body.theme-night .channel-name { color: #e8e8f0 !important; }
+/* Night — channel cards & logo */
+body.theme-night .channel-item { background: #0d0d18 !important; border-color: rgba(167,139,250,0.06) !important; }
+body.theme-night .channel-item:hover,
+body.theme-night .channel-item.nav-focused { background: #111124 !important; border-color: #a78bfa !important; box-shadow: inset 0 0 0 1px #a78bfa, 0 0 18px rgba(167,139,250,0.35) !important; }
+body.theme-night .channel-item.active { background: rgba(167,139,250,0.12) !important; border-color: #a78bfa !important; }
+body.theme-night .channel-logo { background: rgba(255,255,255,0.04) !important; }
+body.theme-night .channel-initial { color: rgba(232,232,240,0.35) !important; }
+/* Night — working filter button */
+body.theme-night .iptv-working-btn { background: #0c0c16 !important; border-color: rgba(167,139,250,0.15) !important; color: rgba(232,232,240,0.50) !important; }
+body.theme-night .iptv-working-btn:hover,
+body.theme-night .iptv-working-btn.nav-focused { background: #111120 !important; border-color: rgba(74,222,128,0.45) !important; color: #e8e8f0 !important; }
+body.theme-night .iptv-working-btn.active { background: rgba(74,222,128,0.10) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
+
+/* Night — enhanced glow on focused cards for OLED */
+body.theme-night .card.nav-focused {
+  box-shadow:         0 0 0 2px #a78bfa, 0 0 0 4px rgba(167,139,250,0.22), 0 12px 50px rgba(0,0,0,0.90), 0 0 40px rgba(167,139,250,0.45) !important;
+}
+
+/* Bright — tighter focus ring for light background */
+body.theme-bright .card.nav-focused {
+  box-shadow:         0 0 0 2px #6d28d9, 0 0 0 4px rgba(109,40,217,0.18), 0 8px 24px rgba(10,10,32,0.18) !important;
+}
 
 

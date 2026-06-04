@@ -10,8 +10,19 @@ const Nav = (() => {
   function all() {
     // Dropdown open — lock nav inside it
     const openDD = document.querySelector('.tdd-wrapper.open');
-    const scope = openDD || document;
-    return Array.from(scope.querySelectorAll(FOCUSABLE)).filter(
+    if (openDD) {
+      return Array.from(openDD.querySelectorAll(FOCUSABLE)).filter(
+        function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
+      );
+    }
+    // Player modal open — lock nav inside modal only (prevents ghost focus on hidden sidebar/content)
+    const modal = document.getElementById('player-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      return Array.from(modal.querySelectorAll(FOCUSABLE)).filter(
+        function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
+      );
+    }
+    return Array.from(document.querySelectorAll(FOCUSABLE)).filter(
       function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
     );
   }

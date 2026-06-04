@@ -34,7 +34,6 @@ const MoviesPage = (() => {
   // ── Card rendering ──────────────────────────────────────
   function movieCard(movie) {
     const poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
-    const year   = (movie.release_date || '').slice(0, 4);
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
     const isFav  = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
     const isWL   = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
@@ -50,17 +49,13 @@ const MoviesPage = (() => {
           ${rating ? `<div class="card-rating">★ ${rating}</div>` : ''}
           <div class="card-badges" id="badges-${movie.id}">
             ${isFav ? '<span class="card-badge card-badge-fav">♥</span>' : ''}
-            ${isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : ''}
+            ${isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : ''}
           </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
           </div>
           <div class="card-prog" id="cprog-${movie.id}"></div>
-        </div>
-        <div class="card-info">
-          <div class="card-title">${movie.title || ''}</div>
-          <div class="card-year">${year}</div>
         </div>
       </div>`;
   }
@@ -72,7 +67,7 @@ const MoviesPage = (() => {
     const isWL  = NexPlayDB.isInWatchlist(movieId, 'movie');
     el.innerHTML =
       (isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '') +
-      (isWL  ? '<span class="card-badge card-badge-wl">&#128278;</span>' : '');
+      (isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
   }
 
   // ── Genre pills ─────────────────────────────────────────
@@ -164,7 +159,9 @@ const MoviesPage = (() => {
   function bindRemoteKeys() {
     _keyHandler = function(e) {
       if (typeof NexPlayDB === 'undefined') return;
-      const focused = Nav.current();
+      // Fallback to CSS-class in case Samsung INFO key briefly clears Nav focus
+      const focused = Nav.current() ||
+        document.querySelector('[data-nav].nav-focused[data-movie-id]');
       if (!focused || !focused.dataset.movieId) return;
       const movieId = focused.dataset.movieId;
       const title   = focused.dataset.movieTitle || '';
@@ -180,6 +177,9 @@ const MoviesPage = (() => {
         const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
+      } else if (e.keyCode === Config.KEYS.YELLOW) {
+        e.preventDefault();
+        App.navigate('detail', { id: movieId, type: 'movie' });
       }
     };
     document.addEventListener('keydown', _keyHandler);
@@ -267,10 +267,6 @@ const MoviesPage = (() => {
             <input type="text" id="movie-search-input" class="search-active-input"
                    placeholder="Type to search..." autocomplete="off">
             <button id="movie-search-close" class="search-close-btn" tabindex="-1">&#x2715;</button>
-          </div>
-          <div class="key-hint" style="margin-left:auto;">
-            <span class="key-hint-chip key-red">RED</span> Favourite &nbsp;
-            <span class="key-hint-chip key-blue">BLUE</span> Watchlist
           </div>
         </div>
 
