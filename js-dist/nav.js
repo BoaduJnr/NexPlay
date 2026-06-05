@@ -100,6 +100,10 @@ var Nav = function () {
     }
     var pageScroll = document.getElementById('main-content');
     if (pageScroll) {
+      if (el.closest('#hero-wrapper')) {
+        pageScroll.scrollTop = 0;
+        return;
+      }
       var _er = rect(el);
       var vH = window.innerHeight;
       if (_er.bottom > vH - 80) {

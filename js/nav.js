@@ -93,6 +93,11 @@ const Nav = (() => {
 
     const pageScroll = document.getElementById('main-content');
     if (pageScroll) {
+      // Hero elements: always snap to top so the full hero backdrop and title show
+      if (el.closest('#hero-wrapper')) {
+        pageScroll.scrollTop = 0;
+        return;
+      }
       const er = rect(el);
       const vH = window.innerHeight;
       if (er.bottom > vH - 80) {

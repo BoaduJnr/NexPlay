@@ -1,8 +1,6 @@
 class IPTVClient {
   constructor() {
-    this._allChannels = null; // index.m3u parsed + grouped
-    this._streams     = null; // kept for legacy getStreamUrl() compatibility
-    this._streamSet   = null;
+    this._allChannels = null;
     this._countries   = null;
     this._categories  = null;
   }
@@ -42,49 +40,6 @@ class IPTVClient {
       this._categories = await this._fetchJSON('/categories.json');
     }
     return this._categories;
-  }
-
-  async getChannels() {
-    if (this._channels) return this._channels;
-    // Try 24-hour localStorage cache first (avoids 54s download on repeat visits)
-    var cached = IPTVClient._readCache('np_iptv_ch_v1', 24 * 60 * 60 * 1000);
-    if (cached) { this._channels = cached; return this._channels; }
-    this._channels = await this._fetchJSON('/channels.json');
-    IPTVClient._writeCache('np_iptv_ch_v1', this._channels);
-    return this._channels;
-  }
-
-  async getStreams() {
-    if (!this._streams) {
-      this._streams = await this._fetchJSON('/streams.json');
-    }
-    return this._streams;
-  }
-
-  // Group channels by country for the country filter UI
-  async channelsByCountry() {
-    const [channels, countries] = await Promise.all([
-      this.getChannels(),
-      this.getCountries(),
-    ]);
-    const countryMap = {};
-    for (const c of countries) countryMap[c.code] = c;
-
-    const grouped = {};
-    for (const ch of channels) {
-      if (ch.is_nsfw) continue;
-      const code = ch.country || 'INTL';
-      if (!grouped[code]) grouped[code] = { code, name: (countryMap[code] && countryMap[code].name) || code, channels: [] };
-      grouped[code].channels.push(ch);
-    }
-    return Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  // Quick lookup: country name from code
-  async countryName(code) {
-    const countries = await this.getCountries();
-    const found = countries.find(c => c.code === code);
-    return (found && found.name) || code;
   }
 
   // ── M3U parser ──────────────────────────────────────────

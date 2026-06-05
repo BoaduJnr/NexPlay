@@ -27,6 +27,10 @@ var PlayerPage = function () {
       _currentEpisode = parseInt(params.episode || 1);
       _activeSourceIdx = 0;
       _seriesDetails = null;
+      _availableQualities = [];
+      _qualityHeaders = null;
+      _resumePos = 0;
+      _streamErrorRetries = 0;
       var isTV = params.type === 'tv';
       var modal = document.getElementById('player-modal');
       if (!modal) return Promise.resolve();
@@ -41,10 +45,13 @@ var PlayerPage = function () {
         var qi = parseInt(val);
         var q = _availableQualities && _availableQualities[qi];
         if (!q) return;
+        try {
+          localStorage.setItem('np_pref_quality', q.label);
+        } catch (e) {}
         _resumePos = capturePos();
-        var hdrs = _qualityHeaders || {
-          'Referer': 'https://player.videasy.net/',
-          'Origin': 'https://player.videasy.net'
+        var hdrs = (_qualityHeaders && Object.keys(_qualityHeaders).length) ? _qualityHeaders : {
+          'Referer': 'https://cineby.sc/',
+          'Origin': 'https://cineby.sc'
         };
         stopAvPlay();
         setPlayerStatus('Switching quality...');
@@ -259,40 +266,40 @@ var PlayerPage = function () {
     }
   };
   var SOURCES = [{
-    id: 'vidsrc-xyz',
+    id: '2embed',
     label: 'Source 1',
     movieUrl: function movieUrl(id) {
-      return "https://vidsrc.xyz/embed/movie?tmdb=".concat(id);
+      return "https://www.2embed.cc/embed/".concat(id);
     },
     tvUrl: function tvUrl(id, s, e) {
-      return "https://vidsrc.xyz/embed/tv?tmdb=".concat(id, "&season=").concat(s, "&episode=").concat(e);
+      return "https://www.2embed.cc/embedtv/".concat(id, "&s=").concat(s, "&e=").concat(e);
+    }
+  }, {
+    id: 'vsembed',
+    label: 'Source 2',
+    movieUrl: function movieUrl(id) {
+      return "".concat(Config.VSEMBED_BASE, "/embed/movie?tmdb=").concat(id);
+    },
+    tvUrl: function tvUrl(id, s, e) {
+      return "".concat(Config.VSEMBED_BASE, "/embed/tv?tmdb=").concat(id, "&season=").concat(s, "&episode=").concat(e);
+    }
+  }, {
+    id: 'vidsrc-me',
+    label: 'Source 3',
+    movieUrl: function movieUrl(id) {
+      return "https://vidsrc.me/embed/movie?tmdb=".concat(id);
+    },
+    tvUrl: function tvUrl(id, s, e) {
+      return "https://vidsrc.me/embed/tv?tmdb=".concat(id, "&season=").concat(s, "&episode=").concat(e);
     }
   }, {
     id: 'vidsrc',
-    label: 'Source 2',
+    label: 'Source 4',
     movieUrl: function movieUrl(id) {
       return "https://vidsrc.to/embed/movie/".concat(id);
     },
     tvUrl: function tvUrl(id, s, e) {
       return "https://vidsrc.to/embed/tv/".concat(id, "/").concat(s, "/").concat(e);
-    }
-  }, {
-    id: 'videasy',
-    label: 'Source 3',
-    movieUrl: function movieUrl(id) {
-      return "".concat(Config.VIDEASY_BASE, "/embed/movie/").concat(id);
-    },
-    tvUrl: function tvUrl(id, s, e) {
-      return "".concat(Config.VIDEASY_BASE, "/embed/tv/").concat(id, "/").concat(s, "/").concat(e);
-    }
-  }, {
-    id: 'vsembed',
-    label: 'Source 4',
-    movieUrl: function movieUrl(id) {
-      return "".concat(Config.VSEMBED_BASE, "/embed/movie/").concat(id);
-    },
-    tvUrl: function tvUrl(id, s, e) {
-      return "".concat(Config.VSEMBED_BASE, "/embed/tv/").concat(id, "/").concat(s, "/").concat(e);
     }
   }];
   var _params = {};
@@ -315,6 +322,7 @@ var PlayerPage = function () {
   // ── Quality switching state ────────────────────────────
   var _resumePos = 0; // ms to seek to after a quality switch
   var _qualityHeaders = null; // headers from the resolved stream — reused on quality change
+  var _streamErrorRetries = 0; // re-resolution attempts before falling back to embed scraping
 
   function showPlayerUI() {
     var modal = document.getElementById('player-modal');
@@ -402,7 +410,10 @@ var PlayerPage = function () {
     if (typeof webapis === 'undefined' || !webapis.avplay) return;
     try {
       webapis.avplay.seekTo(Math.max(0, webapis.avplay.getCurrentTime() + ms));
-    } catch (e) {}
+    } catch (e) {
+      setPlayerStatus('Seek not available for this stream');
+      setTimeout(function () { setPlayerStatus(''); }, 2000);
+    }
   }
   function goNextEpisode() {
     if (_params.type !== 'tv') return;
@@ -435,7 +446,7 @@ var PlayerPage = function () {
     }
   }
   function startAutoHide() {
-    if (_keyListener2) return;
+    stopAutoHide(); // always tear down any stale listener before creating a new one
     stopMediaKeys(); // hand off from buffering listener to full player listener
     _keyListener2 = function _keyListener(e) {
       // Self-clean if player modal is no longer visible
@@ -506,7 +517,8 @@ var PlayerPage = function () {
         var isCtrl = focused && focused.classList.contains('ctrl-btn');
         var isTrigger = focused && focused.hasAttribute('data-tdd-trigger');
         var isDDOpt = focused && focused.hasAttribute('data-tdd-opt');
-        if (!isBack && !isCtrl && !isTrigger && !isDDOpt) {
+        var isPanel = focused && (focused.classList.contains('episode-item') || focused.classList.contains('similar-item'));
+        if (!isBack && !isCtrl && !isTrigger && !isDDOpt && !isPanel) {
           if (_uiHidden) showPlayerUI();
           e.stopPropagation();
           e.preventDefault();
@@ -641,31 +653,56 @@ var PlayerPage = function () {
       el.style.display = 'none';
     }
   }
+
+  // Iframe embed state — tracks which source is active across switches
+  var _embedSourceList = [];
+  var _embedSourceIdx = 0;
   function showIframeEmbed(embedUrl) {
-    // Web fallback: show the provider's own player in an iframe.
-    // The embed runs in its own origin context, handles the CDN directly.
-    // Only used on web (not on TV where iframes for video are unsupported).
-    if (typeof webapis !== 'undefined' && webapis.avplay) return; // TV path
+    // Web fallback only — TV uses AVPlay which cannot render iframes.
+    if (typeof webapis !== 'undefined' && webapis.avplay) return;
     var area = document.getElementById('avplay-area');
     if (!area) return;
-    area.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen frameborder="0" allow="autoplay; fullscreen" style="width:100%;height:100%;border:none;background:#000;"></iframe>';
+    var srcLabel = _embedSourceList[_embedSourceIdx] ? _embedSourceList[_embedSourceIdx].label : 'Embed';
+    var hasNext = _embedSourceIdx < _embedSourceList.length - 1;
+
+    // Sandbox prevents iframes from navigating the parent page.
+    // 2embed/vsembed are sandbox-safe; vidsrc.me/vidsrc.to need it to not redirect.
+    area.innerHTML = '<iframe id="embed-frame" src="' + embedUrl + '" allowfullscreen frameborder="0"' + ' allow="autoplay; fullscreen; encrypted-media; picture-in-picture"' + ' sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"' + ' style="width:100%;height:100%;border:none;background:#000;"></iframe>' +
+    // Play overlay — click is a user gesture, enabling iframe autoplay
+    '<div id="embed-play-btn" class="ctrl-btn" data-nav tabindex="0"' + ' style="position:absolute;inset:0;display:flex;flex-direction:column;' + 'align-items:center;justify-content:center;gap:16px;cursor:pointer;">' + '<div style="width:72px;height:72px;border-radius:50%;background:rgba(0,0,0,0.55);' + 'border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;">' + '<svg viewBox="0 0 24 24" fill="white" width="38" height="38"><path d="M8 5v14l11-7z"/></svg>' + '</div>' + '<span style="color:rgba(255,255,255,0.6);font-size:12px;">' + srcLabel + '</span>' + (hasNext ? '<button id="embed-next-src" class="ctrl-btn btn btn-secondary" data-nav tabindex="0"' + ' style="font-size:12px;padding:4px 14px;" onclick="event.stopPropagation()">Try next source</button>' : '') + '</div>';
     setPlayerStatus('');
     console.log('[Player] iframe embed:', embedUrl.slice(0, 80));
+    var btn = document.getElementById('embed-play-btn');
+    var frame = document.getElementById('embed-frame');
+    var next = document.getElementById('embed-next-src');
+    if (btn) btn.addEventListener('click', function () {
+      if (btn.parentNode) btn.parentNode.removeChild(btn);
+      if (frame) frame.focus();
+    });
+    if (next) next.addEventListener('click', function (e) {
+      e.stopPropagation();
+      _embedSourceIdx++;
+      if (_embedSourceIdx < _embedSourceList.length) {
+        var src = _embedSourceList[_embedSourceIdx];
+        var url = _params.type === 'tv' ? src.tvUrl(_params.id, _currentSeason, _currentEpisode) : src.movieUrl(_params.id);
+        showIframeEmbed(url);
+      }
+    });
     startAutoHide();
+    Nav.reset(document.getElementById('player-modal'));
   }
   function trySource(idx) {
     if (idx >= SOURCES.length) {
-      // All direct-stream scraping failed. On web, show the best embed as iframe.
+      // All direct-stream scraping failed. On web, show embed iframe fallback.
       if (typeof webapis === 'undefined' || !webapis.avplay) {
-        // Prefer Videasy embed (Source 3) — most compatible, then vidsrc
-        var preferredSources = [SOURCES[2], SOURCES[0], SOURCES[1]];
-        for (var ps = 0; ps < preferredSources.length; ps++) {
-          var src = preferredSources[ps];
-          if (src) {
-            showIframeEmbed(_params.type === 'tv' ? src.tvUrl(_params.id, _currentSeason, _currentEpisode) : src.movieUrl(_params.id));
-            return;
-          }
+        // Order: 2embed (no redirect, sandbox-safe) → vsembed → vidsrc.me → vidsrc.to
+        _embedSourceList = [SOURCES[0], SOURCES[1], SOURCES[2], SOURCES[3]].filter(Boolean);
+        _embedSourceIdx = 0;
+        if (_embedSourceList.length) {
+          var first = _embedSourceList[0];
+          showIframeEmbed(_params.type === 'tv' ? first.tvUrl(_params.id, _currentSeason, _currentEpisode) : first.movieUrl(_params.id));
         }
+        return;
       }
       setPlayerStatus('Stream unavailable for this title');
       return;
@@ -744,6 +781,7 @@ var PlayerPage = function () {
       }
       hls.on(Hls.Events.MANIFEST_PARSED, function () {
         console.log('[Player] HLS manifest parsed, playing');
+        _streamErrorRetries = 0;
         video.play().catch(function () {});
         setPlayerStatus('');
         updatePlayIcon(true);
@@ -778,7 +816,14 @@ var PlayerPage = function () {
       hls.on(Hls.Events.ERROR, function (ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          trySource(0);
+          _streamErrorRetries++;
+          if (_streamErrorRetries <= 2) {
+            setPlayerStatus('Reconnecting...');
+            loadBestSource();
+          } else {
+            _streamErrorRetries = 0;
+            trySource(0);
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -795,23 +840,24 @@ var PlayerPage = function () {
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
 
-    // Both web (hls.js) and TV (AVPlay) route through the CF Worker proxy.
-    // The proxy injects the correct Referer/Origin for the CDN and rewrites
-    // all HLS segment URLs back through itself.
-    // For web: this fixes CDN rejection (browser can't set Referer manually).
-    var proxyUrl = buildProxyUrl(url, headers);
+    // TV always proxies (TLS compat). Browser only proxies when headers are needed.
+    // VidLink on TV uses a Deno proxy (x-via-deno flag) instead of the CF Worker
+    // because VidLink CDN is on Cloudflare (CF→CF blocked) and uses TLS 1.3.
+    var isTizenTV = typeof webapis !== 'undefined' && !!webapis.avplay;
+    var needsProxy = isTizenTV || headers && Object.keys(headers).length > 0;
+    var playUrl = needsProxy ? buildProxyUrl(url, headers) : url;
     if (typeof webapis === 'undefined' || !webapis.avplay) {
-      playWithHlsJs(proxyUrl, headers);
+      playWithHlsJs(playUrl, headers);
       return;
     }
 
-    // TV: AVPlay via proxy (proxyUrl already built above)
-    console.log('[Player] AVPlay via proxy:', proxyUrl.slice(0, 80));
+    // TV: AVPlay always via proxy (TLS compat)
+    console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     try {
       var s = webapis.avplay.getState();
       if (s === 'PLAYING' || s === 'PAUSED' || s === 'READY') webapis.avplay.stop();
       if (s !== 'NONE' && s !== 'IDLE') webapis.avplay.close();
-      webapis.avplay.open(proxyUrl);
+      webapis.avplay.open(playUrl);
       webapis.avplay.setDisplayRect(0, 0, 1920, 1080);
       // Clear html/body backgrounds so AVPlay layer shows through
       document.documentElement.style.background = 'transparent';
@@ -831,11 +877,19 @@ var PlayerPage = function () {
         onerror: function onerror(e) {
           console.error('[Player] AVPlay error:', e);
           document.body.classList.remove('movie-avplay-on');
-          trySource(0);
+          _streamErrorRetries++;
+          if (_streamErrorRetries <= 2) {
+            setPlayerStatus('Reconnecting...');
+            loadBestSource();
+          } else {
+            _streamErrorRetries = 0;
+            trySource(0);
+          }
         }
       });
       webapis.avplay.prepareAsync(function () {
         console.log('[Player] prepareAsync success');
+        _streamErrorRetries = 0;
         webapis.avplay.play();
         setPlayerStatus('');
         updatePlayIcon(true);
@@ -921,7 +975,15 @@ var PlayerPage = function () {
         _qualityHeaders = result.headers || null; // keep for quality switching
         console.log('[Player] stream resolved:', result.url.slice(0, 60));
         setPlayerStatus('Starting playback...');
-        playWithUrl(result.url, result.headers);
+        // Start at saved quality preference when the stream offers it
+        var _savedPrefLabel = '';
+        try {
+          _savedPrefLabel = localStorage.getItem('np_pref_quality') || '';
+        } catch (e) {}
+        var _prefQ = _savedPrefLabel && _availableQualities.find(function (q) {
+          return q.label === _savedPrefLabel;
+        });
+        playWithUrl(_prefQ ? _prefQ.url : result.url, result.headers);
         renderQualityDropdown();
       } else {
         console.log('[Player] no stream, falling back to embeds');
@@ -1012,20 +1074,30 @@ var PlayerPage = function () {
         label: q.label
       };
     });
-    var best = _availableQualities.findIndex(function (q) {
+    var prefLabel = '';
+    try {
+      prefLabel = localStorage.getItem('np_pref_quality') || '';
+    } catch (e) {}
+    var prefIdx = _availableQualities.findIndex(function (q) {
+      return q.label === prefLabel;
+    });
+    var bestIdx = _availableQualities.findIndex(function (q) {
       return q.label === '1080p';
     });
-    var defaultIdx = best >= 0 ? best : 0;
+    var defaultIdx = prefIdx >= 0 ? prefIdx : bestIdx >= 0 ? bestIdx : 0;
     wrap.innerHTML = TVDropdown.html('quality-dd', opts, String(defaultIdx));
     wrap.style.display = '';
     TVDropdown.mount('quality-dd', function (val) {
       var qi = parseInt(val);
       var q = _availableQualities[qi];
       if (!q) return;
+      try {
+        localStorage.setItem('np_pref_quality', q.label);
+      } catch (e) {}
       _resumePos = capturePos(); // save position before stopping
-      var hdrs = _qualityHeaders || {
-        'Referer': 'https://player.videasy.net/',
-        'Origin': 'https://player.videasy.net'
+      var hdrs = (_qualityHeaders && Object.keys(_qualityHeaders).length) ? _qualityHeaders : {
+        'Referer': 'https://cineby.sc/',
+        'Origin': 'https://cineby.sc'
       };
       stopAvPlay();
       setPlayerStatus('Switching quality...');

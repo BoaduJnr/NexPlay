@@ -6,7 +6,6 @@ const App = (() => {
   let _currentPage = '';
   let _pageParams = {};
   let _sidebarExpanded = false;
-  let _genres = [];
 
   const PAGES = {
     home:       { module: () => HomePage,       label: 'Home',       nav: 'home' },
@@ -23,83 +22,69 @@ const App = (() => {
 
   // ── Theme management ────────────────────────────────────
   const THEMES = ['theme-calm', 'theme-bright', 'theme-night'];
-  const THEME_LABELS = { 'theme-calm': 'Default', 'theme-bright': 'Bright', 'theme-night': 'Night' };
+  const THEME_LABELS = { 'theme-calm': 'Calm', 'theme-bright': 'Bright', 'theme-night': 'Night' };
   let _currentTheme = localStorage.getItem('nexplay-theme') || 'theme-calm';
+
+  const THEME_COLORS = {
+    'theme-calm':   { bg: '#0d1117', text: '#c9d1d9' },
+    'theme-bright': { bg: '#f0f0fa', text: '#0a0a20' },
+    'theme-night':  { bg: '#0a0a0f', text: '#e8e8f0' },
+  };
+
+  // setProperty() unsupported on some Tizen 3.0 firmware — always in try/catch.
+  const THEME_PALETTE = {
+    'theme-calm': {
+      '--accent': '#7c3aed', '--accent-light': '#a78bfa',
+      '--accent-glow': 'rgba(124,58,237,0.45)', '--accent-dim': 'rgba(124,58,237,0.15)',
+      '--cyan': '#06b6d4', '--cyan-glow': 'rgba(6,182,212,0.35)',
+      '--green': '#4ade80', '--yellow': '#facc15',
+      '--card-bg': 'linear-gradient(135deg,#131322 0%,#1a1a2e 100%)',
+      '--card-border': '1px solid rgba(167,139,250,0.15)',
+      '--surface': '#0f0f1c', '--surface2': '#171728', '--surface3': '#1f1f35',
+    },
+    'theme-bright': {
+      '--accent': '#6d28d9', '--accent-light': '#7c3aed',
+      '--accent-glow': 'rgba(109,40,217,0.28)', '--accent-dim': 'rgba(109,40,217,0.12)',
+      '--cyan': '#d97706', '--cyan-glow': 'rgba(217,119,6,0.30)',
+      '--green': '#059669', '--yellow': '#dc2626',
+      '--card-bg': '#ffffff', '--card-border': '1px solid rgba(10,10,32,0.12)',
+      '--surface': '#eaeaf5', '--surface2': '#f0f0fa', '--surface3': '#e4e4f2',
+    },
+    'theme-night': {
+      '--accent': '#a78bfa', '--accent-light': '#c4b5fd',
+      '--accent-glow': 'rgba(167,139,250,0.55)', '--accent-dim': 'rgba(167,139,250,0.18)',
+      '--cyan': '#38bdf8', '--cyan-glow': 'rgba(56,189,248,0.38)',
+      '--green': '#34d399', '--yellow': '#fbbf24',
+      '--card-bg': 'linear-gradient(135deg,#0d0d18 0%,#111120 100%)',
+      '--card-border': '1px solid rgba(167,139,250,0.12)',
+      '--surface': '#0c0c16', '--surface2': '#121220', '--surface3': '#18182c',
+    },
+  };
 
   function applyTheme(theme) {
     THEMES.forEach(t => document.body.classList.remove(t));
-    if (theme !== 'theme-default') document.body.classList.add(theme);
+    document.body.classList.add(theme);
     _currentTheme = theme;
     try { localStorage.setItem('nexplay-theme', theme); } catch(e) {}
-    // Also set inline styles for old Chromium (no CSS variable support)
-    var colors = {
-      'theme-default': { bg: '#09090f', text: '#f0f0f8' },
-      'theme-bright':  { bg: '#f0f0fa', text: '#0a0a20' },
-      'theme-calm':    { bg: '#0d1117', text: '#c9d1d9' },
-      'theme-night':   { bg: '#0a0a0f', text: '#e8e8f0' },
-    };
 
-    // Complementary palette per theme — sets CSS variables for live theming
-    var palette = {
-      'theme-calm': {
-        '--accent':       '#7c3aed',
-        '--accent-light': '#a78bfa',
-        '--accent-glow':  'rgba(124,58,237,0.45)',
-        '--accent-dim':   'rgba(124,58,237,0.15)',
-        '--cyan':         '#06b6d4',
-        '--cyan-glow':    'rgba(6,182,212,0.35)',
-        '--green':        '#4ade80',
-        '--yellow':       '#facc15',
-        '--card-bg':      'linear-gradient(135deg,#131322 0%,#1a1a2e 100%)',
-        '--card-border':  '1px solid rgba(167,139,250,0.15)',
-        '--surface':      '#0f0f1c',
-        '--surface2':     '#171728',
-        '--surface3':     '#1f1f35',
-      },
-      'theme-bright': {
-        '--accent':       '#6d28d9',
-        '--accent-light': '#7c3aed',
-        '--accent-glow':  'rgba(109,40,217,0.28)',
-        '--accent-dim':   'rgba(109,40,217,0.12)',
-        '--cyan':         '#d97706',  // warm amber — complement to purple on light bg
-        '--cyan-glow':    'rgba(217,119,6,0.30)',
-        '--green':        '#059669',
-        '--yellow':       '#dc2626',
-        '--card-bg':      '#ffffff',
-        '--card-border':  '1px solid rgba(10,10,32,0.12)',
-        '--surface':      '#eaeaf5',
-        '--surface2':     '#f0f0fa',
-        '--surface3':     '#e4e4f2',
-      },
-      'theme-night': {
-        '--accent':       '#a78bfa',  // bright lavender — vivid on deep black
-        '--accent-light': '#c4b5fd',
-        '--accent-glow':  'rgba(167,139,250,0.55)',
-        '--accent-dim':   'rgba(167,139,250,0.18)',
-        '--cyan':         '#38bdf8',  // sky blue — electric complement on black
-        '--cyan-glow':    'rgba(56,189,248,0.38)',
-        '--green':        '#34d399',
-        '--yellow':       '#fbbf24',
-        '--card-bg':      'linear-gradient(135deg,#0d0d18 0%,#111120 100%)',
-        '--card-border':  '1px solid rgba(167,139,250,0.12)',
-        '--surface':      '#0c0c16',
-        '--surface2':     '#121220',
-        '--surface3':     '#18182c',
-      },
-    };
-
-    var p = palette[theme] || palette['theme-calm'];
+    var p = THEME_PALETTE[theme] || THEME_PALETTE['theme-calm'];
     try {
-      // CSS custom property setProperty not supported on all Tizen firmware versions
       Object.keys(p).forEach(function(k) {
         document.documentElement.style.setProperty(k, p[k]);
       });
     } catch(e) {}
 
-    var c = colors[theme] || colors['theme-default'];
+    var c = THEME_COLORS[theme] || THEME_COLORS['theme-calm'];
     document.documentElement.style.background = c.bg;
     document.body.style.background = c.bg;
     document.body.style.color = c.text;
+
+    // AVPlay renders behind the HTML layer and requires transparent backgrounds
+    // to show through. If a theme is changed during video playback, restore them.
+    if (document.body.classList.contains('movie-avplay-on')) {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+    }
   }
 
   function cycleTheme() {
@@ -164,7 +149,7 @@ const App = (() => {
     sidebar.innerHTML = `
       <div class="sidebar-logo">
         <div class="logo-mark">N</div>
-        <span class="logo-text">NexPlay</span>
+        <span class="logo-text">exPlay</span>
       </div>
       <ul class="sidebar-nav">
         <li>

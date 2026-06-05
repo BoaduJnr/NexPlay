@@ -137,11 +137,7 @@ var SeriesPage = function () {
       }
       if (replace) {
         _page = 1;
-        grid.innerHTML = Array.from({
-          length: 12
-        }, function () {
-          return "<div class=\"card\">\n          <div class=\"card-poster skeleton\"></div>\n          <div class=\"card-info\">\n            <div class=\"skeleton\" style=\"height:14px;width:80%;margin-bottom:6px;border-radius:4px;\"></div>\n            <div class=\"skeleton\" style=\"height:12px;width:40%;border-radius:4px;\"></div>\n          </div>\n        </div>";
-        }).join('');
+        grid.innerHTML = UX.skeletonCards(12);
       }
       var _temp = _catch(function () {
         return Promise.resolve(fetchShows(_page)).then(function (data) {
@@ -152,7 +148,7 @@ var SeriesPage = function () {
             grid.insertAdjacentHTML('beforeend', cards);
           }
           bindCardClicks(grid);
-          fillProgressBars(grid);
+          UX.fillProgressBars(grid);
           if (replace) Nav.reset(document.getElementById('series-page'));
         });
       }, function (err) {
@@ -239,16 +235,12 @@ var SeriesPage = function () {
   function showCard(show) {
     var poster = show.poster_path ? TMDB.img(show.poster_path, Config.IMG.POSTER_MD) : '';
     var rating = show.vote_average ? show.vote_average.toFixed(1) : '';
-    var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(show.id, 'tv');
-    var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(show.id, 'tv');
-    return "\n      <div class=\"card\" data-nav data-show-id=\"".concat(show.id, "\"\n           data-show-title=\"").concat((show.name || '').replace(/"/g, '&quot;'), "\"\n           data-show-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(show.name, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83D\uDCFA</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div style=\"position:absolute;top:10px;left:10px;background:#22d3ee;\n            color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;\n            letter-spacing:0.5px;\">SERIES</div>\n          <div class=\"card-badges card-badges--below\" id=\"badges-").concat(show.id, "\">\n            ").concat(isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '', "\n            ").concat(isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '', "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(show.id, "\"></div>\n        </div>\n      </div>");
+    return "\n      <div class=\"card\" data-nav data-show-id=\"".concat(show.id, "\"\n           data-show-title=\"").concat((show.name || '').replace(/"/g, '&quot;'), "\"\n           data-show-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(show.name, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83D\uDCFA</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div style=\"position:absolute;top:10px;left:10px;background:#22d3ee;\n            color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;\n            letter-spacing:0.5px;\">SERIES</div>\n          <div class=\"card-badges card-badges--below\" id=\"badges-").concat(show.id, "\">\n            ").concat(UX.badgesHTML(show.id, 'tv'), "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(show.id, "\"></div>\n        </div>\n      </div>");
   }
   function updateCardBadge(showId) {
     var el = document.getElementById('badges-' + showId);
-    if (!el || typeof NexPlayDB === 'undefined') return;
-    var isFav = NexPlayDB.isFavourite(showId, 'tv');
-    var isWL = NexPlayDB.isInWatchlist(showId, 'tv');
-    el.innerHTML = (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') + (isWL ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
+    if (!el) return;
+    el.innerHTML = UX.badgesHTML(showId, 'tv');
   }
   function bindRemoteKeys() {
     _keyHandler = function _keyHandler(e) {
@@ -310,17 +302,6 @@ var SeriesPage = function () {
           episode: 1
         });
       });
-    });
-  }
-  function fillProgressBars(container) {
-    if (typeof NexPlayDB === 'undefined') return;
-    (container || document).querySelectorAll('[id^="cprog-"]').forEach(function (el) {
-      var id = el.id.replace('cprog-', '');
-      var saved = NexPlayDB.getProgress(id, 'movie') || NexPlayDB.getProgress(id, 'tv');
-      if (saved && saved.position > 5000 && saved.duration > 0) {
-        var pct = Math.min(98, saved.position / saved.duration * 100).toFixed(0);
-        el.innerHTML = '<div style="width:' + pct + '%;height:100%;background:#7c3aed;border-radius:0 2px 0 0;"></div>';
-      }
     });
   }
 

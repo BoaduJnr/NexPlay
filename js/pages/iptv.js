@@ -11,18 +11,20 @@
   let _keyListener = null;
 
   const CHANNEL_BATCH = 80;
+  const PROXY_BASE    = 'https://nexplay-proxy.pielly16.workers.dev';
   let _channelOffset     = 0;
   let _chanScrollHandler = null;
   let _showWorkingOnly   = false;
-  let _useGhana          = false;  // P1: gh.m3u source active
 
   // P2: multi-stream state
-  let _streamUrls  = [];  // all candidate URLs for the current channel
-  let _streamIdx   = 0;   // which URL we're currently playing
+  let _streamUrls  = [];
+  let _streamIdx   = 0;
 
-  // P3: stall detection
-  let _stallCount  = 0;
-  let _stallTimer  = null;
+  // P3: stall detection + auto-recovery
+  let _stallCount      = 0;
+  let _stallTimer      = null;
+  let _reconnectCount  = 0;
+  const MAX_RECONNECTS = 2;   // reconnect same URL twice before switching to next
 
   // ── Player UI show/hide ────────────────────────────────
   function showUI() {
@@ -95,6 +97,82 @@
     xxx:           'Adult',
   };
 
+  // ── Check if response body is a valid HLS manifest ───────
+  function isHLS(text) {
+    var t = (text || '').trim().slice(0, 200);
+    return t.indexOf('#EXTM3U') >= 0 || t.indexOf('#EXT-X-') >= 0 || t.indexOf('#EXTINF') >= 0;
+  }
+
+  // ── Manifest test: direct first, proxy fallback ────────────
+  // Direct works for local channels that allow CORS from user's IP.
+  // Proxy fallback: only marks OK if manifest valid; geo-blocked → stays grey
+  //   (channel may still work on TV via AVPlay which ignores CORS).
+  function testChannelManifest(channelId, streamUrl) {
+    return new Promise(function(resolve) {
+      var stored = getChStatus(channelId);
+      if (stored === 'ok' || stored === 'fail') { resolve(); return; }
+
+      // Step 1 — direct request (no proxy)
+      var direct = new XMLHttpRequest();
+      direct.timeout = 5000;
+      direct.open('GET', streamUrl);
+
+      direct.onload = function() {
+        if (direct.status >= 200 && direct.status < 400 && isHLS(direct.responseText)) {
+          // Direct success → channel works from user's network
+          setChStatus(channelId, 'ok');
+          updateChannelCard(channelId, 'ok');
+          resolve();
+        } else {
+          tryViaProxy();
+        }
+      };
+      direct.onerror   = function() { tryViaProxy(); }; // CORS or network → try proxy
+      direct.ontimeout = function() { tryViaProxy(); };
+      direct.send();
+
+      // Step 2 — proxy fallback
+      function tryViaProxy() {
+        var proxyUrl = PROXY_BASE + '/?url=' + encodeURIComponent(streamUrl);
+        var xhr = new XMLHttpRequest();
+        xhr.timeout = 8000;
+        xhr.open('GET', proxyUrl);
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 400) {
+            if (isHLS(xhr.responseText)) {
+              // Proxy confirms valid HLS → green
+              setChStatus(channelId, 'ok');
+              updateChannelCard(channelId, 'ok');
+            }
+            // else: proxy returned geo-blocked HTML → leave grey (TV may still play it)
+          } else {
+            // Definitive 4xx → red
+            setChStatus(channelId, 'fail');
+            updateChannelCard(channelId, 'fail');
+          }
+          resolve();
+        };
+        xhr.onerror   = function() { resolve(); }; // proxy error → leave grey
+        xhr.ontimeout = function() { resolve(); }; // timeout → leave grey
+        xhr.send();
+      }
+    });
+  }
+
+  // ── Test a batch concurrently (6 at a time) ────────────────
+  async function testVisibleChannels(channels) {
+    var CONCURRENT = 6;
+    var toTest = channels.filter(function(ch) {
+      return ch.url && getChStatus(ch.id) === 'unknown';
+    });
+    for (var i = 0; i < toTest.length; i += CONCURRENT) {
+      var chunk = toTest.slice(i, i + CONCURRENT);
+      await Promise.all(chunk.map(function(ch) {
+        return testChannelManifest(ch.id, ch.url);
+      }));
+    }
+  }
+
   // ── P3: stall helpers ─────────────────────────────────────
   function resetStall() {
     _stallCount = 0;
@@ -104,6 +182,7 @@
   // Try the next stream URL for the current channel (P2+P3 shared)
   function tryNextStream() {
     resetStall();
+    _reconnectCount = 0; // clean slate for the new URL
     _streamIdx++;
     var playerArea = document.getElementById('iptv-player-area');
     if (_streamIdx >= _streamUrls.length) {
@@ -121,29 +200,23 @@
     }
   }
 
-  // ── P2: race top-3 stream URLs, return fastest responding ─
-  function raceStreams(urls) {
-    if (!urls || !urls.length) return Promise.resolve(null);
-    if (urls.length === 1) return Promise.resolve(urls[0]);
-    return new Promise(function(resolve) {
-      var settled = false;
-      var count = 0;
-      var top = urls.slice(0, 3);
-      function done(winner) {
-        count++;
-        if (!settled && winner) { settled = true; resolve(winner); return; }
-        if (count === top.length && !settled) resolve(top[0]); // all HEAD failed → try first anyway
+  // ── Reconnect same stream before giving up to next URL ─────
+  // Uses setTimeout to exit the AVPlay callback stack before calling stop/open,
+  // which is required on Tizen 3.0 to avoid AVPlay state machine deadlock.
+  function reconnectCurrentStream() {
+    var url = _streamUrls[_streamIdx];
+    if (!url || !_activeChannel) { tryNextStream(); return; }
+    resetStall();
+    App.showToast('Reconnecting stream (' + _reconnectCount + '/' + MAX_RECONNECTS + ')...');
+    setTimeout(function() {
+      stopAvPlay();
+      if (_videoEl) { try { _videoEl.pause(); _videoEl.src = ''; } catch(e) {} _videoEl = null; }
+      var pa = document.getElementById('iptv-player-area');
+      if (pa) pa.innerHTML = '<div class="iptv-placeholder"><div class="spinner"></div><p>Reconnecting...</p></div>';
+      if (!playWithAvPlay(url, document.getElementById('iptv-player-area'))) {
+        playWithHTML5(url, document.getElementById('iptv-player-area'));
       }
-      top.forEach(function(url) {
-        var xhr = new XMLHttpRequest();
-        xhr.timeout = 4000;
-        xhr.open('HEAD', url);
-        xhr.onload    = function() { done(xhr.status < 400 ? url : null); };
-        xhr.onerror   = function() { done(null); };
-        xhr.ontimeout = function() { done(null); };
-        xhr.send();
-      });
-    });
+    }, 500);
   }
 
   // ── Channel status — persisted in localStorage ───────────
@@ -238,12 +311,20 @@
       });
       hls.on(Hls.Events.ERROR, function(ev, data) {
         if (data.fatal) {
-          hls.destroy();
-          // P3: try next stream URL before giving up
-          if (_streamIdx + 1 < _streamUrls.length) {
-            tryNextStream();
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && _reconnectCount < MAX_RECONNECTS) {
+            _reconnectCount++;
+            hls.startLoad(); // HLS.js recovery for transient network interruptions
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && _reconnectCount < MAX_RECONNECTS) {
+            _reconnectCount++;
+            hls.recoverMediaError();
           } else {
-            onFail();
+            hls.destroy();
+            _reconnectCount = 0;
+            if (_streamIdx + 1 < _streamUrls.length) {
+              tryNextStream();
+            } else {
+              onFail();
+            }
           }
         }
       });
@@ -268,29 +349,42 @@
       // Set listener BEFORE prepareAsync (Samsung requirement)
       webapis.avplay.setListener({
         onbufferingstart: function() {
-          // P3: start a stall timer — if buffering doesn't complete in 8s, try next stream
           if (_stallTimer) clearTimeout(_stallTimer);
           _stallTimer = setTimeout(function() {
             _stallTimer = null;
             _stallCount++;
-            if (_stallCount >= 2) tryNextStream(); // 2 consecutive stalls → switch
+            if (_stallCount >= 2) {
+              // 2 consecutive stalls: reconnect same URL before switching
+              if (_reconnectCount < MAX_RECONNECTS) {
+                _reconnectCount++;
+                reconnectCurrentStream();
+              } else {
+                tryNextStream(); // exhausted reconnects → try next URL
+              }
+            }
           }, 8000);
         },
         onbufferingcomplete: function() {
-          // Buffering resolved — cancel stall timer, reset count
           if (_stallTimer) { clearTimeout(_stallTimer); _stallTimer = null; }
-          _stallCount = 0;
+          _stallCount     = 0;
+          _reconnectCount = 0; // stream recovered — reset reconnect counter
           if (_activeChannel) { setChStatus(_activeChannel.id, 'ok'); updateChannelCard(_activeChannel.id, 'ok'); }
         },
         onerror: function() {
           resetStall();
-          if (_activeChannel) { setChStatus(_activeChannel.id, 'fail'); updateChannelCard(_activeChannel.id, 'fail'); }
-          stopAvPlay();
-          // Try next stream URL before falling back to HTML5
-          if (_streamIdx + 1 < _streamUrls.length) {
-            tryNextStream();
+          // Try reconnecting before marking fail / switching URL
+          if (_reconnectCount < MAX_RECONNECTS) {
+            _reconnectCount++;
+            reconnectCurrentStream();
           } else {
-            playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
+            _reconnectCount = 0;
+            if (_activeChannel) { setChStatus(_activeChannel.id, 'fail'); updateChannelCard(_activeChannel.id, 'fail'); }
+            stopAvPlay();
+            if (_streamIdx + 1 < _streamUrls.length) {
+              tryNextStream();
+            } else {
+              playWithHTML5(streamUrl, document.getElementById('iptv-player-area'));
+            }
           }
         },
       });
@@ -374,8 +468,9 @@
     }
 
     // P2: collect ALL stream URLs for this channel
-    _streamUrls = [];
-    _streamIdx  = 0;
+    _streamUrls     = [];
+    _streamIdx      = 0;
+    _reconnectCount = 0;
     resetStall();
 
     // All channels now have urls[] from index.m3u — no streams.json lookup needed
@@ -388,13 +483,11 @@
       return;
     }
 
-    // P2: race top-3 to find fastest responding URL
-    var bestUrl = await raceStreams(_streamUrls);
-    _streamIdx = Math.max(0, _streamUrls.indexOf(bestUrl));
-
-    // Play (AVPlay on TV, HLS.js on web)
-    if (!playWithAvPlay(bestUrl, playerArea)) {
-      playWithHTML5(bestUrl, playerArea);
+    // Use first URL directly — testChannelManifest already validated it in the background.
+    // tryNextStream() handles failover if it doesn't play.
+    _streamIdx = 0;
+    if (!playWithAvPlay(_streamUrls[0], playerArea)) {
+      playWithHTML5(_streamUrls[0], playerArea);
     }
   }
 
@@ -472,6 +565,8 @@
       var item = tmp.firstElementChild;
       if (item) { list.appendChild(item); bindChannelItems([item]); }
     });
+    // Background manifest check — test first 20 per batch (keeps XHR volume manageable)
+    testVisibleChannels(batch.slice(0, 20));
   }
 
   // ── Refresh filtered channel list ──────────────────────
@@ -578,7 +673,7 @@
             ${TVDropdown.html('iptv-category', [{ value: '', label: 'All Categories' }], '')}
 
             <button id="iptv-ghana-toggle" data-nav tabindex="0"
-              class="iptv-working-btn${_useGhana ? ' active' : ''}" style="margin-top:8px;">
+              class="iptv-working-btn${_selCountry === 'GH' ? ' active' : ''}" style="margin-top:8px;">
               🇬🇭 Ghana Direct
             </button>
             <button id="iptv-working-toggle" data-nav tabindex="0"
@@ -668,9 +763,9 @@
     _chanScrollHandler  = null;
     _channelOffset      = 0;
     _showWorkingOnly    = false;
-    _useGhana           = false;
     _streamUrls         = [];
     _streamIdx          = 0;
+    _reconnectCount     = 0;
     resetStall();
   }
 

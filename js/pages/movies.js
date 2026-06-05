@@ -35,8 +35,6 @@ const MoviesPage = (() => {
   function movieCard(movie) {
     const poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
-    const isFav  = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie');
-    const isWL   = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie');
     return `
       <div class="card" data-nav data-movie-id="${movie.id}"
            data-movie-title="${(movie.title || '').replace(/"/g, '&quot;')}"
@@ -48,8 +46,7 @@ const MoviesPage = (() => {
             : `<div class="no-img">🎬</div>`}
           ${rating ? `<div class="card-rating">★ ${rating}</div>` : ''}
           <div class="card-badges" id="badges-${movie.id}">
-            ${isFav ? '<span class="card-badge card-badge-fav">♥</span>' : ''}
-            ${isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : ''}
+            ${UX.badgesHTML(movie.id, 'movie')}
           </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
@@ -62,12 +59,8 @@ const MoviesPage = (() => {
 
   function updateCardBadge(movieId) {
     const el = document.getElementById('badges-' + movieId);
-    if (!el || typeof NexPlayDB === 'undefined') return;
-    const isFav = NexPlayDB.isFavourite(movieId, 'movie');
-    const isWL  = NexPlayDB.isInWatchlist(movieId, 'movie');
-    el.innerHTML =
-      (isFav ? '<span class="card-badge card-badge-fav">♥</span>' : '') +
-      (isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
+    if (!el) return;
+    el.innerHTML = UX.badgesHTML(movieId, 'movie');
   }
 
   // ── Genre pills ─────────────────────────────────────────
@@ -93,13 +86,7 @@ const MoviesPage = (() => {
     if (!grid) { _loading = false; return; }
 
     if (replace) {
-      grid.innerHTML = Array.from({ length: 12 }, () =>
-        `<div class="card"><div class="card-poster skeleton"></div>
-          <div class="card-info">
-            <div class="skeleton" style="height:14px;width:80%;margin-bottom:6px;border-radius:4px;"></div>
-            <div class="skeleton" style="height:12px;width:40%;border-radius:4px;"></div>
-          </div></div>`
-      ).join('');
+      grid.innerHTML = UX.skeletonCards(12);
       _page = 1;
     }
 
@@ -128,7 +115,7 @@ const MoviesPage = (() => {
         grid.insertAdjacentHTML('beforeend', cards);
       }
       bindCardClicks(grid);
-      fillProgressBars(grid);
+      UX.fillProgressBars(grid);
       if (replace) Nav.reset(document.getElementById('movies-page'));
     } catch (err) {
       console.error('Movies load error:', err);
@@ -199,17 +186,6 @@ const MoviesPage = (() => {
     });
   }
 
-  function fillProgressBars(container) {
-    if (typeof NexPlayDB === 'undefined') return;
-    (container || document).querySelectorAll('[id^="cprog-"]').forEach(function(el) {
-      const id   = el.id.replace('cprog-', '');
-      const saved = NexPlayDB.getProgress(id, 'movie') || NexPlayDB.getProgress(id, 'tv');
-      if (saved && saved.position > 5000 && saved.duration > 0) {
-        const pct = Math.min(98, (saved.position / saved.duration) * 100).toFixed(0);
-        el.innerHTML = `<div style="width:${pct}%;height:100%;background:#7c3aed;border-radius:0 2px 0 0;"></div>`;
-      }
-    });
-  }
 
   // ── Genre pills ─────────────────────────────────────────
   function bindGenrePills(container) {

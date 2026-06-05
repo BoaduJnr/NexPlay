@@ -8,7 +8,12 @@ var Config = {
   // Embed player sources — NexPlay tries Videasy first, falls back to Vidrock
   VIDEASY_BASE: 'https://www.videasy.net',
   VIDROCK_BASE: 'https://vidrock.ru',
+  VIDLINK_BASE: 'https://vidlink.pro',
   VSEMBED_BASE: 'https://vsembed.ru',
+  // Deno Deploy proxy for VidLink on TV (VidLink CDN is CF-hosted — CF→CF blocked,
+  // and uses TLS 1.3 which Tizen 3.0 can't speak). Deploy deno-proxy.js to
+  // https://dash.deno.com and set your URL here. Leave '' to use Vidrock on TV.
+  VIDLINK_PROXY_URL: 'https://nexplay.boadujnr.deno.net',
   // iptv-org public API (no key required)
   IPTV_API: 'https://iptv-org.github.io/api',
   // Image sizes used across the app

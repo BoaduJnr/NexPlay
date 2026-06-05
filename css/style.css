@@ -32,9 +32,9 @@
   --sidebar-exp:   260px;
   --row-pad:        72px;   /* overscan-safe horizontal margin */
   --safe-v:         32px;   /* overscan-safe vertical margin   */
-  --card-w:        220px;   /* wider cards readable at 10 feet */
-  --card-h:        330px;
-  --card-gap:       28px;
+  --card-w:        248px;   /* 50" TV @ ~2.5m — ~6 cards visible per row */
+  --card-h:        372px;
+  --card-gap:       32px;
   --hero-h:        540px;
 
   --shadow-card:    0 4px 12px rgba(0,0,0,0.35);
@@ -124,6 +124,17 @@ body.theme-bright .tdd-option { color: rgba(10,10,32,0.80) !important; }
 body.theme-bright .tdd-option:hover,
 body.theme-bright .tdd-option.nav-focused { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; }
 body.theme-bright .tdd-option.selected { background: rgba(124,58,237,0.10) !important; color: #7c3aed !important; }
+/* Player quality dropdown always keeps dark video-overlay styling regardless of theme */
+body.theme-bright .player-cbar .tdd-trigger { background: rgba(0,0,0,0.65) !important; color: rgba(255,255,255,0.90) !important; border-color: rgba(255,255,255,0.25) !important; }
+body.theme-bright .player-cbar .tdd-list { background: rgba(12,12,22,0.96) !important; border-color: rgba(255,255,255,0.12) !important; }
+body.theme-bright .player-cbar .tdd-option { color: rgba(255,255,255,0.75) !important; }
+body.theme-bright .player-cbar .tdd-option:hover,
+body.theme-bright .player-cbar .tdd-option.nav-focused { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
+body.theme-bright .player-cbar .tdd-option.selected { background: rgba(124,58,237,0.25) !important; color: #c4b5fd !important; }
+/* Key hints on bright theme (dark text on light background) */
+body.theme-bright .key-hint { color: rgba(10,10,32,0.45) !important; }
+/* Card progress track on bright theme (dark track on white card) */
+body.theme-bright .card-prog { background: rgba(10,10,32,0.12) !important; }
 
 /* Search */
 body.theme-bright .search-pill-btn { background: rgba(10,10,32,0.07) !important; border-color: rgba(10,10,32,0.18) !important; color: rgba(10,10,32,0.55) !important; }
@@ -157,6 +168,7 @@ body.theme-bright .iptv-working-btn { background: rgba(10,10,32,0.06) !important
 body.theme-bright .iptv-working-btn:hover,
 body.theme-bright .iptv-working-btn.nav-focused { background: rgba(10,10,32,0.12) !important; border-color: rgba(74,222,128,0.50) !important; color: #0a0a20 !important; }
 body.theme-bright .iptv-working-btn.active { background: rgba(74,222,128,0.14) !important; border-color: #4ade80 !important; color: #166534 !important; }
+body.theme-bright #iptv-ghana-toggle.active { background: rgba(109,40,217,0.10) !important; border-color: #7c3aed !important; color: #7c3aed !important; }
 
 /* ── Calm Theme — direct colors ─────────────────────────── */
 body.theme-calm,
@@ -172,6 +184,27 @@ body.theme-calm .card-year,
 body.theme-calm .section-title { color: rgba(201,209,217,0.50) !important; }
 body.theme-calm .logo-mark { background: linear-gradient(135deg,#58a6ff,#79c0ff) !important; }
 body.theme-calm .card.nav-focused { box-shadow: 0 0 0 3px #58a6ff, 0 8px 40px rgba(88,166,255,0.4) !important; }
+/* Calm — IPTV */
+body.theme-calm .iptv-sidebar { background: #161b22 !important; border-right-color: rgba(88,166,255,0.12) !important; }
+body.theme-calm .iptv-channel-bar { background: #161b22 !important; border-top-color: rgba(88,166,255,0.12) !important; }
+body.theme-calm .iptv-filter-label { color: rgba(201,209,217,0.55) !important; }
+body.theme-calm .iptv-sidebar-title { color: #c9d1d9 !important; }
+body.theme-calm .iptv-idle-text { color: rgba(201,209,217,0.40) !important; }
+body.theme-calm .iptv-bar-name { color: #c9d1d9 !important; }
+body.theme-calm .iptv-bar-meta { color: rgba(201,209,217,0.50) !important; }
+body.theme-calm .channel-name { color: #c9d1d9 !important; }
+body.theme-calm .iptv-placeholder { color: rgba(255,255,255,0.65) !important; }
+body.theme-calm .channel-item { background: #1c2230 !important; border-color: rgba(88,166,255,0.08) !important; }
+body.theme-calm .channel-item:hover,
+body.theme-calm .channel-item.nav-focused { background: #1f2a3a !important; border-color: #58a6ff !important; -webkit-box-shadow: inset 0 0 0 1px #58a6ff, 0 0 12px rgba(88,166,255,0.18) !important; box-shadow: inset 0 0 0 1px #58a6ff, 0 0 12px rgba(88,166,255,0.18) !important; }
+body.theme-calm .channel-item.active { background: rgba(88,166,255,0.10) !important; border-color: #58a6ff !important; }
+body.theme-calm .channel-logo { background: rgba(255,255,255,0.05) !important; }
+body.theme-calm .channel-initial { color: rgba(201,209,217,0.40) !important; }
+body.theme-calm .iptv-working-btn { background: #1c2230 !important; border-color: rgba(88,166,255,0.12) !important; color: rgba(201,209,217,0.55) !important; }
+body.theme-calm .iptv-working-btn:hover,
+body.theme-calm .iptv-working-btn.nav-focused { background: #1f2a3a !important; border-color: rgba(74,222,128,0.45) !important; color: #c9d1d9 !important; }
+body.theme-calm .iptv-working-btn.active { background: rgba(74,222,128,0.12) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
+body.theme-calm #iptv-ghana-toggle.active { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #79c0ff !important; }
 
 .ctrl-btn.ctrl-ep-prev,
 .ctrl-btn.ctrl-ep-next {
@@ -183,8 +216,8 @@ body.theme-calm .card.nav-focused { box-shadow: 0 0 0 3px #58a6ff, 0 8px 40px rg
 html, body {
   width: 100vw; height: 100vh;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
+  background: #0d1117;  /* calm default — overridden by theme class via applyTheme() */
+  color: #c9d1d9;
   font-family: 'Samsung Sharp Sans', 'Helvetica Neue', Arial, sans-serif;
   font-size: var(--fs-base);
   -webkit-font-smoothing: antialiased;
@@ -236,7 +269,7 @@ body.movie-avplay-on #avplay-area {
 }
 .player-cbar-fill {
   height: 100%; width: 0%;
-  background: #7c3aed; border-radius: 2px;
+  background: var(--accent); border-radius: 2px;
   -webkit-transition: width 1s linear; transition: width 1s linear;
 }
 .player-cbar-time {
@@ -300,7 +333,7 @@ body.movie-avplay-on #avplay-area {
   box-shadow:         0 0 0 2px #fff, 0 0 0 4px var(--accent), var(--glow-accent);
 }
 /* Legacy id */
-#progress-fill { height:100%; background:#7c3aed; border-radius:2px; width:0%; -webkit-transition:width 1s linear; transition:width 1s linear; }
+#progress-fill { height:100%; background:var(--accent); border-radius:2px; width:0%; -webkit-transition:width 1s linear; transition:width 1s linear; }
 
 /* ── Player UI auto-hide ─────────────────────────────── */
 .player-header, .player-info-bar, .player-cbar,
@@ -642,7 +675,7 @@ body.movie-avplay-on #avplay-area {
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--row-pad) 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   border-bottom: 1px solid rgba(167,139,250,0.12);
 }
 
@@ -758,6 +791,13 @@ body.movie-avplay-on #avplay-area {
   color: #4ade80;
 }
 
+/* Ghana Direct active uses theme accent — distinguishes it from the green working-only button */
+#iptv-ghana-toggle.active {
+  background: rgba(124,58,237,0.15);
+  border-color: var(--accent-light);
+  color: var(--accent-light);
+}
+
 /* ── IPTV channel status dot ──────────────────────────────────────────── */
 .ch-status {
   position: absolute;
@@ -781,7 +821,7 @@ body.movie-avplay-on #avplay-area {
 }
 
 .card:hover, .card.nav-focused {
-  transform: scale(1.06) translateY(-6px);
+  transform: scale(1.08) translateY(-8px);
   z-index: 10;
 }
 
@@ -803,7 +843,7 @@ body.movie-avplay-on #avplay-area {
 .card-prog {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 4px;
+  height: 5px;
   background: rgba(255,255,255,0.15);
 }
 
@@ -833,9 +873,9 @@ body.movie-avplay-on #avplay-area {
   background: rgba(0,0,0,0.80);
   backdrop-filter: blur(6px);
   color: var(--yellow);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 700;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
 }
 
@@ -855,7 +895,7 @@ body.movie-avplay-on #avplay-area {
 .card.nav-focused .card-overlay { opacity: 1; }
 
 .card-play-icon {
-  width: 44px; height: 44px;
+  width: 52px; height: 52px;
   background: var(--accent);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -896,10 +936,10 @@ body.movie-avplay-on #avplay-area {
 
 /* Wide card (for collections / IPTV channels) */
 .card-wide {
-  width: 280px;
+  width: 316px;
 }
 
-.card-wide .card-poster { height: 160px; }
+.card-wide .card-poster { height: 185px; }
 
 /* â”€â”€ Genre Tabs / Pill Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .filter-bar {
@@ -1113,7 +1153,7 @@ body.movie-avplay-on #avplay-area {
 }
 
 .iptv-filter-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -1152,12 +1192,12 @@ body.movie-avplay-on #avplay-area {
   -webkit-flex: 1;
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 5px;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
-  gap: 6px;
+  /* gap not supported in Tizen 3.0 — spacing via item margins */
   -webkit-align-content: flex-start;
   align-content: flex-start;
   scrollbar-width: thin;
@@ -1165,15 +1205,16 @@ body.movie-avplay-on #avplay-area {
 }
 
 .channel-item {
-  width: calc(50% - 3px);
-  padding: 10px 6px 8px;
+  width: calc(50% - 8px);
+  margin: 4px;
+  padding: 12px 8px 10px;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
   -webkit-align-items: center;
   align-items: center;
-  gap: 7px;
+  /* gap replaced by logo margin-bottom below */
   background: var(--surface2);
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -1201,8 +1242,8 @@ body.movie-avplay-on #avplay-area {
 }
 
 .channel-logo {
-  width: 64px;
-  height: 52px;
+  width: 72px;
+  height: 58px;
   border-radius: 6px;
   background: var(--surface3);
   overflow: hidden;
@@ -1215,11 +1256,12 @@ body.movie-avplay-on #avplay-area {
   justify-content: center;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+  margin-bottom: 8px;
 }
 
 /* initial letter — always rendered, logo overlays it when loaded */
 .channel-initial {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--text3);
   line-height: 1;
@@ -1238,7 +1280,7 @@ body.movie-avplay-on #avplay-area {
 }
 
 .channel-name {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text2);
   white-space: nowrap;
@@ -1325,34 +1367,42 @@ body.movie-avplay-on #avplay-area {
   padding: 14px 20px;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  display: -webkit-flex;
   display: flex;
+  -webkit-align-items: center;
   align-items: center;
-  gap: 14px;
+  /* gap replaced by live-badge margin-right */
 }
 
 /* IPTV theme-aware text classes */
 .iptv-sidebar-title { font-size: 18px; font-weight: 800; color: var(--text); }
 .iptv-idle-text     { font-size: 14px; color: var(--text3); }
-.iptv-bar-name      { font-size: 16px; font-weight: 700; color: var(--text); }
-.iptv-bar-meta      { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.iptv-bar-name      { font-size: 18px; font-weight: 700; color: var(--text); }
+.iptv-bar-meta      { font-size: 14px; color: var(--text3); margin-top: 2px; }
 
 .live-badge {
+  display: -webkit-inline-flex;
   display: inline-flex;
+  -webkit-align-items: center;
   align-items: center;
-  gap: 5px;
   background: var(--live-red);
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 1px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 4px;
+  margin-right: 14px;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .live-dot {
   width: 6px; height: 6px;
   background: #fff;
   border-radius: 50%;
+  margin-right: 5px;
+  -webkit-animation: blink 1.2s ease infinite;
   animation: blink 1.2s ease infinite;
 }
 
@@ -2050,14 +2100,16 @@ body.movie-avplay-on #avplay-area {
 
 /* ── Home page color-button row ────────────────────────────────────────── */
 .home-key-hints {
-  padding: 10px var(--row-pad) 0;
+  padding: 10px var(--row-pad) 8px;
   display: -webkit-flex;
   display: flex;
   -webkit-align-items: center;
   align-items: center;
   -webkit-justify-content: flex-end;
   justify-content: flex-end;
-  gap: 18px;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  /* gap not supported in Tizen 3.0 WebKit — use margins on items instead */
 }
 
 .home-hint-item {
@@ -2065,33 +2117,51 @@ body.movie-avplay-on #avplay-area {
   display: inline-flex;
   -webkit-align-items: center;
   align-items: center;
-  gap: 7px;
+  margin-left: 22px;
+  margin-bottom: 4px;
 }
+
+.home-hint-item:first-child { margin-left: 0; }
 
 .home-color-btn {
   display: inline-block;
-  width: 30px;
+  width: 20px;
   height: 11px;
   border-radius: 3px;
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 1;
+  margin-right: 8px;
 }
 
-.home-color-red    { background: #f87171; -webkit-box-shadow: 0 0 6px rgba(248,113,113,0.50); box-shadow: 0 0 6px rgba(248,113,113,0.50); }
-.home-color-green  { background: #4ade80; -webkit-box-shadow: 0 0 6px rgba(74,222,128,0.50);  box-shadow: 0 0 6px rgba(74,222,128,0.50); }
-.home-color-blue   { background: #60a5fa; -webkit-box-shadow: 0 0 6px rgba(96,165,250,0.50);  box-shadow: 0 0 6px rgba(96,165,250,0.50); }
-.home-color-yellow { background: #fde047; -webkit-box-shadow: 0 0 6px rgba(253,224,71,0.50);  box-shadow: 0 0 6px rgba(253,224,71,0.50); }
+/* Calm theme (dark bg) — rich, saturated */
+.home-color-red    { background: #ef4444; -webkit-box-shadow: 0 0 7px rgba(239,68,68,0.65);    box-shadow: 0 0 7px rgba(239,68,68,0.65); }
+.home-color-green  { background: #22c55e; -webkit-box-shadow: 0 0 7px rgba(34,197,94,0.65);   box-shadow: 0 0 7px rgba(34,197,94,0.65); }
+.home-color-blue   { background: #3b82f6; -webkit-box-shadow: 0 0 7px rgba(59,130,246,0.65);  box-shadow: 0 0 7px rgba(59,130,246,0.65); }
+.home-color-yellow { background: #eab308; -webkit-box-shadow: 0 0 7px rgba(234,179,8,0.65);   box-shadow: 0 0 7px rgba(234,179,8,0.65); }
+
+/* Bright theme — deep/dark shades to stand out on light bg, no glow */
+body.theme-bright .home-color-red    { background: #b91c1c !important; -webkit-box-shadow: none !important; box-shadow: none !important; }
+body.theme-bright .home-color-green  { background: #15803d !important; -webkit-box-shadow: none !important; box-shadow: none !important; }
+body.theme-bright .home-color-blue   { background: #1d4ed8 !important; -webkit-box-shadow: none !important; box-shadow: none !important; }
+body.theme-bright .home-color-yellow { background: #a16207 !important; -webkit-box-shadow: none !important; box-shadow: none !important; }
+
+/* Night theme — vivid with stronger OLED glow */
+body.theme-night .home-color-red    { background: #f87171 !important; -webkit-box-shadow: 0 0 10px rgba(248,113,113,0.75) !important; box-shadow: 0 0 10px rgba(248,113,113,0.75) !important; }
+body.theme-night .home-color-green  { background: #4ade80 !important; -webkit-box-shadow: 0 0 10px rgba(74,222,128,0.75) !important;  box-shadow: 0 0 10px rgba(74,222,128,0.75) !important; }
+body.theme-night .home-color-blue   { background: #60a5fa !important; -webkit-box-shadow: 0 0 10px rgba(96,165,250,0.75) !important;  box-shadow: 0 0 10px rgba(96,165,250,0.75) !important; }
+body.theme-night .home-color-yellow { background: #fde047 !important; -webkit-box-shadow: 0 0 10px rgba(253,224,71,0.75) !important;  box-shadow: 0 0 10px rgba(253,224,71,0.75) !important; }
 
 .home-hint-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text3);
+  color: rgba(240,240,248,0.26);
   white-space: nowrap;
   letter-spacing: 0.3px;
 }
 
-body.theme-bright .home-hint-label { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .home-hint-label { color: rgba(10,10,32,0.42) !important; }
+body.theme-night  .home-hint-label { color: rgba(240,240,248,0.32) !important; }
 
 
 /* ── Phase 3: Animations & Final Polish ────────────────────────────────── */
@@ -2299,6 +2369,7 @@ body.theme-night .iptv-working-btn { background: #0c0c16 !important; border-colo
 body.theme-night .iptv-working-btn:hover,
 body.theme-night .iptv-working-btn.nav-focused { background: #111120 !important; border-color: rgba(74,222,128,0.45) !important; color: #e8e8f0 !important; }
 body.theme-night .iptv-working-btn.active { background: rgba(74,222,128,0.10) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
+body.theme-night #iptv-ghana-toggle.active { background: rgba(167,139,250,0.10) !important; border-color: #a78bfa !important; color: #a78bfa !important; }
 
 /* Night — enhanced glow on focused cards for OLED */
 body.theme-night .card.nav-focused {

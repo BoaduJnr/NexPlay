@@ -29,8 +29,6 @@
   function showCard(show) {
     const poster = show.poster_path ? TMDB.img(show.poster_path, Config.IMG.POSTER_MD) : '';
     const rating = show.vote_average ? show.vote_average.toFixed(1) : '';
-    const isFav  = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(show.id, 'tv');
-    const isWL   = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(show.id, 'tv');
     return `
       <div class="card" data-nav data-show-id="${show.id}"
            data-show-title="${(show.name || '').replace(/"/g, '&quot;')}"
@@ -45,8 +43,7 @@
             color:#000;font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;
             letter-spacing:0.5px;">SERIES</div>
           <div class="card-badges card-badges--below" id="badges-${show.id}">
-            ${isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : ''}
-            ${isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : ''}
+            ${UX.badgesHTML(show.id, 'tv')}
           </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
@@ -59,12 +56,8 @@
 
   function updateCardBadge(showId) {
     const el = document.getElementById('badges-' + showId);
-    if (!el || typeof NexPlayDB === 'undefined') return;
-    const isFav = NexPlayDB.isFavourite(showId, 'tv');
-    const isWL  = NexPlayDB.isInWatchlist(showId, 'tv');
-    el.innerHTML =
-      (isFav ? '<span class="card-badge card-badge-fav">&#9829;</span>' : '') +
-      (isWL  ? '<span class="card-badge card-badge-wl"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' : '');
+    if (!el) return;
+    el.innerHTML = UX.badgesHTML(showId, 'tv');
   }
 
   function bindRemoteKeys() {
@@ -148,15 +141,7 @@
 
     if (replace) {
       _page = 1;
-      grid.innerHTML = Array.from({ length: 12 }, () =>
-        `<div class="card">
-          <div class="card-poster skeleton"></div>
-          <div class="card-info">
-            <div class="skeleton" style="height:14px;width:80%;margin-bottom:6px;border-radius:4px;"></div>
-            <div class="skeleton" style="height:12px;width:40%;border-radius:4px;"></div>
-          </div>
-        </div>`
-      ).join('');
+      grid.innerHTML = UX.skeletonCards(12);
     }
 
     try {
@@ -164,7 +149,7 @@
       const cards = data.results.map(showCard).join('');
       if (replace) { grid.innerHTML = cards; } else { grid.insertAdjacentHTML('beforeend', cards); }
       bindCardClicks(grid);
-      fillProgressBars(grid);
+      UX.fillProgressBars(grid);
       if (replace) Nav.reset(document.getElementById('series-page'));
     } catch (err) {
       console.error('Series load error:', err);
@@ -180,17 +165,6 @@
     });
   }
 
-  function fillProgressBars(container) {
-    if (typeof NexPlayDB === 'undefined') return;
-    (container || document).querySelectorAll('[id^="cprog-"]').forEach(function(el) {
-      var id = el.id.replace('cprog-', '');
-      var saved = NexPlayDB.getProgress(id, 'movie') || NexPlayDB.getProgress(id, 'tv');
-      if (saved && saved.position > 5000 && saved.duration > 0) {
-        var pct = Math.min(98, (saved.position / saved.duration) * 100).toFixed(0);
-        el.innerHTML = '<div style="width:' + pct + '%;height:100%;background:#7c3aed;border-radius:0 2px 0 0;"></div>';
-      }
-    });
-  }
 
   // ── Genre pills ─────────────────────────────────────────
   function genrePills() {
@@ -290,7 +264,7 @@
     }
 
     const seriesSearchInput = document.getElementById('series-search-input');
-    var _searchTimer = null;
+    let _searchTimer = null;
     if (seriesSearchInput) {
       seriesSearchInput.addEventListener('keydown', function(e) {
         e.stopPropagation();

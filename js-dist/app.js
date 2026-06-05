@@ -66,7 +66,6 @@ var App = function () {
   var _currentPage = '';
   var _pageParams = {};
   var _sidebarExpanded = false;
-  var _genres = [];
   var PAGES = {
     home: {
       module: function module() {
@@ -125,102 +124,97 @@ var App = function () {
   // ── Theme management ────────────────────────────────────
   var THEMES = ['theme-calm', 'theme-bright', 'theme-night'];
   var THEME_LABELS = {
-    'theme-calm': 'Default',
+    'theme-calm': 'Calm',
     'theme-bright': 'Bright',
     'theme-night': 'Night'
   };
   var _currentTheme = localStorage.getItem('nexplay-theme') || 'theme-calm';
+  var THEME_COLORS = {
+    'theme-calm': {
+      bg: '#0d1117',
+      text: '#c9d1d9'
+    },
+    'theme-bright': {
+      bg: '#f0f0fa',
+      text: '#0a0a20'
+    },
+    'theme-night': {
+      bg: '#0a0a0f',
+      text: '#e8e8f0'
+    }
+  };
+
+  // setProperty() unsupported on some Tizen 3.0 firmware — always in try/catch.
+  var THEME_PALETTE = {
+    'theme-calm': {
+      '--accent': '#7c3aed',
+      '--accent-light': '#a78bfa',
+      '--accent-glow': 'rgba(124,58,237,0.45)',
+      '--accent-dim': 'rgba(124,58,237,0.15)',
+      '--cyan': '#06b6d4',
+      '--cyan-glow': 'rgba(6,182,212,0.35)',
+      '--green': '#4ade80',
+      '--yellow': '#facc15',
+      '--card-bg': 'linear-gradient(135deg,#131322 0%,#1a1a2e 100%)',
+      '--card-border': '1px solid rgba(167,139,250,0.15)',
+      '--surface': '#0f0f1c',
+      '--surface2': '#171728',
+      '--surface3': '#1f1f35'
+    },
+    'theme-bright': {
+      '--accent': '#6d28d9',
+      '--accent-light': '#7c3aed',
+      '--accent-glow': 'rgba(109,40,217,0.28)',
+      '--accent-dim': 'rgba(109,40,217,0.12)',
+      '--cyan': '#d97706',
+      '--cyan-glow': 'rgba(217,119,6,0.30)',
+      '--green': '#059669',
+      '--yellow': '#dc2626',
+      '--card-bg': '#ffffff',
+      '--card-border': '1px solid rgba(10,10,32,0.12)',
+      '--surface': '#eaeaf5',
+      '--surface2': '#f0f0fa',
+      '--surface3': '#e4e4f2'
+    },
+    'theme-night': {
+      '--accent': '#a78bfa',
+      '--accent-light': '#c4b5fd',
+      '--accent-glow': 'rgba(167,139,250,0.55)',
+      '--accent-dim': 'rgba(167,139,250,0.18)',
+      '--cyan': '#38bdf8',
+      '--cyan-glow': 'rgba(56,189,248,0.38)',
+      '--green': '#34d399',
+      '--yellow': '#fbbf24',
+      '--card-bg': 'linear-gradient(135deg,#0d0d18 0%,#111120 100%)',
+      '--card-border': '1px solid rgba(167,139,250,0.12)',
+      '--surface': '#0c0c16',
+      '--surface2': '#121220',
+      '--surface3': '#18182c'
+    }
+  };
   function applyTheme(theme) {
     THEMES.forEach(function (t) {
       return document.body.classList.remove(t);
     });
-    if (theme !== 'theme-default') document.body.classList.add(theme);
+    document.body.classList.add(theme);
     _currentTheme = theme;
     try {
       localStorage.setItem('nexplay-theme', theme);
     } catch (e) {}
-    // Also set inline styles for old Chromium (no CSS variable support)
-    var colors = {
-      'theme-default': {
-        bg: '#09090f',
-        text: '#f0f0f8'
-      },
-      'theme-bright': {
-        bg: '#f0f0fa',
-        text: '#0a0a20'
-      },
-      'theme-calm': {
-        bg: '#0d1117',
-        text: '#c9d1d9'
-      },
-      'theme-night': {
-        bg: '#0a0a0f',
-        text: '#e8e8f0'
-      }
-    };
-
-    // Complementary palette per theme — sets CSS variables for live theming
-    var palette = {
-      'theme-calm': {
-        '--accent': '#7c3aed',
-        '--accent-light': '#a78bfa',
-        '--accent-glow': 'rgba(124,58,237,0.45)',
-        '--accent-dim': 'rgba(124,58,237,0.15)',
-        '--cyan': '#06b6d4',
-        '--cyan-glow': 'rgba(6,182,212,0.35)',
-        '--green': '#4ade80',
-        '--yellow': '#facc15',
-        '--card-bg': 'linear-gradient(135deg,#131322 0%,#1a1a2e 100%)',
-        '--card-border': '1px solid rgba(167,139,250,0.15)',
-        '--surface': '#0f0f1c',
-        '--surface2': '#171728',
-        '--surface3': '#1f1f35'
-      },
-      'theme-bright': {
-        '--accent': '#6d28d9',
-        '--accent-light': '#7c3aed',
-        '--accent-glow': 'rgba(109,40,217,0.28)',
-        '--accent-dim': 'rgba(109,40,217,0.12)',
-        '--cyan': '#d97706',
-        // warm amber — complement to purple on light bg
-        '--cyan-glow': 'rgba(217,119,6,0.30)',
-        '--green': '#059669',
-        '--yellow': '#dc2626',
-        '--card-bg': '#ffffff',
-        '--card-border': '1px solid rgba(10,10,32,0.12)',
-        '--surface': '#eaeaf5',
-        '--surface2': '#f0f0fa',
-        '--surface3': '#e4e4f2'
-      },
-      'theme-night': {
-        '--accent': '#a78bfa',
-        // bright lavender — vivid on deep black
-        '--accent-light': '#c4b5fd',
-        '--accent-glow': 'rgba(167,139,250,0.55)',
-        '--accent-dim': 'rgba(167,139,250,0.18)',
-        '--cyan': '#38bdf8',
-        // sky blue — electric complement on black
-        '--cyan-glow': 'rgba(56,189,248,0.38)',
-        '--green': '#34d399',
-        '--yellow': '#fbbf24',
-        '--card-bg': 'linear-gradient(135deg,#0d0d18 0%,#111120 100%)',
-        '--card-border': '1px solid rgba(167,139,250,0.12)',
-        '--surface': '#0c0c16',
-        '--surface2': '#121220',
-        '--surface3': '#18182c'
-      }
-    };
-    var p = palette[theme] || palette['theme-calm'];
+    var p = THEME_PALETTE[theme] || THEME_PALETTE['theme-calm'];
     try {
-      // CSS custom property setProperty not supported on all Tizen firmware versions
       Object.keys(p).forEach(function (k) {
         document.documentElement.style.setProperty(k, p[k]);
       });
     } catch (e) {}
-    var c = colors[theme] || colors['theme-default'];
+    var c = THEME_COLORS[theme] || THEME_COLORS['theme-calm'];
     document.documentElement.style.background = c.bg;
     document.body.style.background = c.bg;
     document.body.style.color = c.text;
+    if (document.body.classList.contains('movie-avplay-on')) {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+    }
   }
   function cycleTheme() {
     var idx = THEMES.indexOf(_currentTheme);
@@ -256,7 +250,7 @@ var App = function () {
   function buildSidebar() {
     var sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
-    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">NexPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"favourites\" tabindex=\"0\">\n            ").concat(ICONS.favourites, "<span class=\"nav-label\">Favourites</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"watchlist\" tabindex=\"0\">\n            ").concat(ICONS.watchlist, "<span class=\"nav-label\">Watchlist</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
+    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">exPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"favourites\" tabindex=\"0\">\n            ").concat(ICONS.favourites, "<span class=\"nav-label\">Favourites</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"watchlist\" tabindex=\"0\">\n            ").concat(ICONS.watchlist, "<span class=\"nav-label\">Watchlist</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
     sidebar.querySelectorAll('[data-nav-page]').forEach(function (el) {
       el.addEventListener('click', function () {
         return navigate(el.dataset.navPage);

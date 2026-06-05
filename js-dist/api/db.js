@@ -27,6 +27,15 @@ var NexPlayDB = function () {
     } catch (e) {}
   }
 
+  // Returns index of matching item, or -1 if not found.
+  function findItem(arr, id, type) {
+    var sid = String(id);
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].id === sid && arr[i].type === type) return i;
+    }
+    return -1;
+  }
+
   // ── Progress (continue watching) ──────────────────────────────────────
   // key: "movie-550" or "tv-1396-1-3" (type-id-season-episode)
   function progressKey(id, type, season, episode) {
@@ -166,13 +175,7 @@ var NexPlayDB = function () {
   // ── Favourites ────────────────────────────────────────────────────────
   function toggleFavourite(id, type, title, poster) {
     var favs = load(K.FAVOURITES) || [];
-    var idx = -1;
-    for (var i = 0; i < favs.length; i++) {
-      if (favs[i].id === String(id) && favs[i].type === type) {
-        idx = i;
-        break;
-      }
-    }
+    var idx = findItem(favs, id, type);
     if (idx >= 0) {
       favs.splice(idx, 1);
       save(K.FAVOURITES, favs);
@@ -189,11 +192,7 @@ var NexPlayDB = function () {
     return true;
   }
   function isFavourite(id, type) {
-    var favs = load(K.FAVOURITES) || [];
-    for (var i = 0; i < favs.length; i++) {
-      if (favs[i].id === String(id) && favs[i].type === type) return true;
-    }
-    return false;
+    return findItem(load(K.FAVOURITES) || [], id, type) >= 0;
   }
   function getFavourites(limit) {
     return (load(K.FAVOURITES) || []).slice(0, limit || 100);
@@ -202,13 +201,7 @@ var NexPlayDB = function () {
   // ── Watchlist ─────────────────────────────────────────────────────────
   function toggleWatchlist(id, type, title, poster) {
     var wl = load(K.WATCHLIST) || [];
-    var idx = -1;
-    for (var i = 0; i < wl.length; i++) {
-      if (wl[i].id === String(id) && wl[i].type === type) {
-        idx = i;
-        break;
-      }
-    }
+    var idx = findItem(wl, id, type);
     if (idx >= 0) {
       wl.splice(idx, 1);
       save(K.WATCHLIST, wl);
@@ -225,11 +218,7 @@ var NexPlayDB = function () {
     return true;
   }
   function isInWatchlist(id, type) {
-    var wl = load(K.WATCHLIST) || [];
-    for (var i = 0; i < wl.length; i++) {
-      if (wl[i].id === String(id) && wl[i].type === type) return true;
-    }
-    return false;
+    return findItem(load(K.WATCHLIST) || [], id, type) >= 0;
   }
   function getWatchlist(limit) {
     return (load(K.WATCHLIST) || []).slice(0, limit || 100);
