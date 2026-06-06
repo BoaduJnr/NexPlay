@@ -1250,6 +1250,46 @@ body.movie-avplay-on #avplay-area {
 
 .player-modal.hidden { display: none; }
 
+/* Iframe embed mode — hide controls that don't work on cross-origin iframes */
+.player-modal.player-embed-mode .player-cbar,
+.player-modal.player-embed-mode .player-info-bar { display: none !important; }
+
+/* Embed launch overlay */
+.embed-launch-overlay {
+  position: absolute;
+  inset: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  cursor: pointer;
+  z-index: 10;
+}
+.embed-launch-card {
+  background: rgba(15,15,28,0.92);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 36px 44px;
+  text-align: center;
+  max-width: 460px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.embed-launch-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.embed-launch-hint {
+  font-size: 15px;
+  color: rgba(240,240,248,0.60);
+  line-height: 1.6;
+}
+
 .player-header {
   display: flex;
   align-items: center;
@@ -2954,6 +2994,198 @@ body.theme-night .card.nav-focused {
 body.theme-bright .card.nav-focused {
   -webkit-box-shadow: 0 0 0 2px #6d28d9, 0 0 0 4px rgba(109,40,217,0.18), 0 8px 24px rgba(10,10,32,0.18) !important;
   box-shadow:         0 0 0 2px #6d28d9, 0 0 0 4px rgba(109,40,217,0.18), 0 8px 24px rgba(10,10,32,0.18) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE  (< 1024 px)
+   Bypasses the fixed 1920×1080 TV canvas — scaleApp() sets is-mobile on body.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+
+  /* ── CSS root variables override ── */
+  :root {
+    --row-pad:  16px;
+    --safe-v:    8px;
+    --card-w:  155px;
+    --card-h:  232px;
+    --card-gap: 10px;
+    --hero-h:  260px;
+    --fs-xs:   12px;
+    --fs-sm:   13px;
+    --fs-base: 14px;
+    --fs-md:   16px;
+    --fs-lg:   20px;
+    --fs-xl:   22px;
+    --fs-hero: 26px;
+  }
+
+  /* ── App shell ── */
+  #app {
+    width: 100vw !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    position: relative !important;
+    -webkit-transform: none !important;
+    transform: none !important;
+    left: 0 !important;
+    top: 0 !important;
+    -webkit-flex-direction: column;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  /* ── Main content ── */
+  .main-content {
+    width: 100% !important;
+    height: auto !important;
+    min-height: calc(100vh - 58px) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 68px !important;
+    -webkit-flex: 1; flex: 1 !important;
+  }
+
+  /* ── Sidebar → horizontal bottom tab bar ── */
+  .sidebar {
+    width: 100% !important;
+    height: 58px !important;
+    min-width: 0 !important;
+    -webkit-flex-direction: row !important;
+    flex-direction: row !important;
+    position: fixed !important;
+    bottom: 0; left: 0; right: 0; top: auto !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border) !important;
+    z-index: 9000 !important;
+    overflow: visible !important;
+    -webkit-transition: none !important;
+    transition: none !important;
+  }
+  .sidebar.expanded { width: 100% !important; }
+  /* Gradient separator moves to top edge */
+  .sidebar::after {
+    top: 0 !important; right: 0 !important;
+    width: 100% !important; height: 1px !important;
+    background: -webkit-linear-gradient(left, transparent 0%, var(--accent-light) 40%, var(--accent-light) 60%, transparent 100%) !important;
+    background:         linear-gradient(to right, transparent 0%, var(--accent-light) 40%, var(--accent-light) 60%, transparent 100%) !important;
+  }
+  .sidebar-logo { display: none !important; }
+  .sidebar-nav {
+    display: -webkit-flex !important; display: flex !important;
+    -webkit-flex-direction: row !important; flex-direction: row !important;
+    width: 100% !important; padding: 0 !important; overflow: visible !important;
+  }
+  .nav-item {
+    -webkit-flex: 1 !important; flex: 1 !important;
+    -webkit-flex-direction: column !important; flex-direction: column !important;
+    gap: 2px !important;
+    padding: 5px 2px 4px !important;
+    font-size: 9px !important;
+    -webkit-align-items: center !important; align-items: center !important;
+    -webkit-justify-content: center !important; justify-content: center !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+  .nav-item::before { display: none !important; }
+  .nav-item svg { width: 20px !important; height: 20px !important; }
+  .nav-item .nav-label { font-size: 9px !important; margin-top: 1px !important; }
+
+  /* ── Hero ── */
+  .hero { height: var(--hero-h) !important; }
+  .hero-content { padding: 20px var(--row-pad) !important; }
+  .hero-title { font-size: 22px !important; line-height: 1.2 !important; }
+  .hero-overview { display: none !important; }
+  .hero-badge { font-size: 11px !important; padding: 5px 10px !important; margin-bottom: 8px !important; }
+  .hero-meta { font-size: 13px !important; }
+  .hero-actions { gap: 10px !important; }
+  .hero-dots { display: none !important; }
+
+  /* ── Buttons ── */
+  .btn { font-size: 15px !important; padding: 12px 20px !important; }
+
+  /* ── Section rows ── */
+  .section { padding: 20px 0 4px !important; }
+  .section-header { padding: 0 var(--row-pad) !important; margin-bottom: 10px !important; }
+  .section-title { font-size: 18px !important; }
+  .card-row { padding: 0 var(--row-pad) !important; gap: var(--card-gap) !important; }
+  .card { width: var(--card-w) !important; }
+  .card-poster { height: calc(var(--card-w) * 1.5) !important; }
+
+  /* ── Filter pills ── */
+  .pill { font-size: 13px !important; padding: 8px 16px !important; }
+
+  /* ── Page titles ── */
+  .page-title { font-size: 22px !important; }
+  .page-subtitle { font-size: 13px !important; }
+
+  /* ── Movies / Series grid ── */
+  .movies-grid,
+  .series-grid {
+    padding: var(--row-pad) !important;
+    gap: 12px !important;
+  }
+  .movies-grid .card,
+  .series-grid .card {
+    width: calc(50% - 6px) !important;
+    height: auto !important;
+    style: none;
+  }
+  .movies-grid .card-poster,
+  .series-grid .card-poster { height: calc((50vw - 22px) * 1.5) !important; }
+
+  /* ── Player ── */
+  #player-modal { z-index: 8000 !important; }
+  .player-cbar { bottom: 68px !important; right: 0 !important; }
+  .player-info-bar { right: 0 !important; padding-bottom: 72px !important; }
+  .player-header { padding: 12px 16px !important; }
+  #similar-slot, #similar-panel { display: none !important; }
+  .episode-panel {
+    width: 100% !important;
+    height: 180px !important;
+    position: relative !important;
+  }
+
+  /* ── IPTV ── */
+  #iptv-page {
+    -webkit-flex-direction: column !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: calc(100vh - 58px) !important;
+  }
+  .iptv-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 280px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .iptv-player { -webkit-flex: 1 !important; flex: 1 !important; min-height: 250px !important; }
+  .iptv-player-area { min-height: 200px !important; }
+  .iptv-channel-bar { min-height: auto !important; padding: 10px 14px !important; }
+
+  /* ── Detail page ── */
+  #detail-page { min-height: calc(100vh - 58px) !important; }
+  #detail-backdrop { height: 340px !important; }
+  #detail-page > div[style] { padding: 200px 16px 40px !important; }
+  #detail-title { font-size: 26px !important; }
+  #detail-overview { font-size: 15px !important; }
+
+}
+
+/* Extra-small phones */
+@media (max-width: 480px) {
+  :root {
+    --card-w:   130px;
+    --hero-h:   220px;
+  }
+  .hero-title { font-size: 18px !important; }
+  .nav-item { font-size: 8px !important; }
+  .nav-item svg { width: 18px !important; height: 18px !important; }
+  .movies-grid .card-poster,
+  .series-grid .card-poster { height: calc((50vw - 22px) * 1.5) !important; }
 }
 
 

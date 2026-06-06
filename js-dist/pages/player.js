@@ -342,6 +342,24 @@ var PlayerPage = function () {
   var _seekMode = false; // true while user is scrubbing the progress bar
   var _seekPreview = 0; // target position (ms) being previewed
 
+  // ── Embed-mode focus toast ─────────────────────────────
+  var _embedFocusHandler = null;
+  function _addEmbedFocusToast() {
+    _removeEmbedFocusToast();
+    _embedFocusHandler = function _embedFocusHandler() {
+      // User switched back to this tab — confirm embed is still running
+      if (typeof App !== 'undefined') {
+        App.showToast('Movie still playing below ↓');
+      }
+    };
+    window.addEventListener('focus', _embedFocusHandler);
+  }
+  function _removeEmbedFocusToast() {
+    if (_embedFocusHandler) {
+      window.removeEventListener('focus', _embedFocusHandler);
+      _embedFocusHandler = null;
+    }
+  }
   function showPlayerUI() {
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.remove('player-ui-hidden');
@@ -802,22 +820,32 @@ var PlayerPage = function () {
     if (typeof webapis !== 'undefined' && webapis.avplay) return;
     var area = document.getElementById('avplay-area');
     if (!area) return;
-    var srcLabel = _embedSourceList[_embedSourceIdx] ? _embedSourceList[_embedSourceIdx].label : 'Embed';
-    var hasNext = _embedSourceIdx < _embedSourceList.length - 1;
 
-    // Sandbox prevents iframes from navigating the parent page.
-    // 2embed/vsembed are sandbox-safe; vidsrc.me/vidsrc.to need it to not redirect.
-    area.innerHTML = '<iframe id="embed-frame" src="' + embedUrl + '" allowfullscreen frameborder="0"' + ' allow="autoplay; fullscreen; encrypted-media; picture-in-picture"' + ' sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"' + ' style="width:100%;height:100%;border:none;background:#000;"></iframe>' +
-    // Play overlay — click is a user gesture, enabling iframe autoplay
-    '<div id="embed-play-btn" class="ctrl-btn" data-nav tabindex="0"' + ' style="position:absolute;inset:0;display:flex;flex-direction:column;' + 'align-items:center;justify-content:center;gap:16px;cursor:pointer;">' + '<div style="width:72px;height:72px;border-radius:50%;background:rgba(0,0,0,0.55);' + 'border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;">' + '<svg viewBox="0 0 24 24" fill="white" width="38" height="38"><path d="M8 5v14l11-7z"/></svg>' + '</div>' + '<span style="color:rgba(255,255,255,0.6);font-size:12px;">' + srcLabel + '</span>' + (hasNext ? '<button id="embed-next-src" class="ctrl-btn btn btn-secondary" data-nav tabindex="0"' + ' style="font-size:12px;padding:4px 14px;" onclick="event.stopPropagation()">Try next source</button>' : '') + '</div>';
+    // Hide our controls — they don't work on cross-origin iframe players
+    var _pModal = document.getElementById('player-modal');
+    if (_pModal) _pModal.classList.add('player-embed-mode');
+
+    // Friendly source names for display
+    var SOURCE_NAMES = {
+      '2embed': '2Embed',
+      'vsembed': 'VSEmbed',
+      'vidsrc-me': 'VidSrc',
+      'vidsrc': 'VidSrc.to'
+    };
+    var srcObj = _embedSourceList[_embedSourceIdx] || {};
+    var srcName = SOURCE_NAMES[srcObj.id] || srcObj.label || 'Embed Player';
+    var hasNext = _embedSourceIdx < _embedSourceList.length - 1;
+    area.innerHTML = '<iframe id="embed-frame" src="' + embedUrl + '" allowfullscreen frameborder="0"' + ' allow="autoplay; fullscreen; encrypted-media; picture-in-picture"' + ' style="width:100%;height:100%;border:none;background:#000;"></iframe>' + '<div id="embed-play-btn" data-nav tabindex="0" class="embed-launch-overlay">' + '  <div class="embed-launch-card">' + '    <svg viewBox="0 0 24 24" fill="white" width="48" height="48" style="margin-bottom:12px;"><path d="M8 5v14l11-7z"/></svg>' + '    <div class="embed-launch-title">Watch on ' + srcName + '</div>' + '    <div class="embed-launch-hint">The player may open a new tab.<br>Return to this tab — your movie continues here.</div>' + (hasNext ? '    <button id="embed-next-src" class="btn btn-secondary" style="margin-top:16px;font-size:14px;padding:8px 20px;" onclick="event.stopPropagation()">Try next source</button>' : '') + '  </div>' + '</div>';
     setPlayerStatus('');
     console.log('[Player] iframe embed:', embedUrl.slice(0, 80));
+
+    // Add focus listener — toast when user returns after embed opens a new tab
+    _addEmbedFocusToast();
     var btn = document.getElementById('embed-play-btn');
     var frame = document.getElementById('embed-frame');
     var next = document.getElementById('embed-next-src');
     if (btn) btn.addEventListener('click', function () {
       if (btn.parentNode) btn.parentNode.removeChild(btn);
-      if (frame) frame.focus();
     });
     if (next) next.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -890,6 +918,10 @@ var PlayerPage = function () {
     // URLs back through itself, so hls.js just loads the proxied manifest URL.
     var playUrl = streamUrl;
     console.log('[Player] playWithHlsJs via proxy:', playUrl.slice(0, 80));
+    // Real HLS stream — restore controls and remove embed tab listener
+    _removeEmbedFocusToast();
+    var _pm = document.getElementById('player-modal');
+    if (_pm) _pm.classList.remove('player-embed-mode');
     setPlayerStatus('Buffering...');
 
     // Destroy any existing hls.js instance so its event handlers don't fire on
@@ -918,6 +950,11 @@ var PlayerPage = function () {
       if (playerModal) {
         playerModal.addEventListener('mousemove', function () {
           showPlayerUI();
+        });
+        playerModal.addEventListener('touchstart', function () {
+          showPlayerUI();
+        }, {
+          passive: true
         });
         playerModal.addEventListener('mouseleave', function () {
           if (_hideTimer) clearTimeout(_hideTimer);
@@ -998,6 +1035,10 @@ var PlayerPage = function () {
 
     // TV: AVPlay always via proxy (TLS compat)
     console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
+    // Restore controls in case we're retrying after an iframe embed
+    _removeEmbedFocusToast();
+    var _pm2 = document.getElementById('player-modal');
+    if (_pm2) _pm2.classList.remove('player-embed-mode');
     try {
       var s = webapis.avplay.getState();
       if (s === 'PLAYING' || s === 'PAUSED' || s === 'READY') webapis.avplay.stop();
@@ -1277,7 +1318,11 @@ var PlayerPage = function () {
     stopMediaKeys();
     stopAvPlay();
     var modal = document.getElementById('player-modal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('player-embed-mode');
+    }
+    _removeEmbedFocusToast();
     Nav.reset(document.getElementById('main-content'));
   }
   function onLeave() {

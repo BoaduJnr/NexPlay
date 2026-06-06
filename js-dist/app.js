@@ -348,15 +348,28 @@ var App = function () {
     }
   }
 
-  // ── Viewport scaling — keeps 1920×1080 layout on any screen ──
+  // ── Viewport scaling — keeps 1920×1080 layout on TV/desktop ──
+  // Below 1024px (mobile/tablet) CSS responsive layout takes over instead.
   function scaleApp() {
-    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
     var app = document.getElementById('app');
     if (!app) return;
-    app.style.transform = "scale(".concat(scale, ")");
-    // Centre the scaled canvas when letterboxing occurs
-    app.style.left = Math.max(0, (window.innerWidth - 1920 * scale) / 2) + 'px';
-    app.style.top = Math.max(0, (window.innerHeight - 1080 * scale) / 2) + 'px';
+    if (window.innerWidth < 1024) {
+      // Mobile — disable canvas scaling, let CSS handle layout
+      app.style.transform = 'none';
+      app.style.left = '0';
+      app.style.top = '0';
+      app.style.width = '';
+      app.style.height = '';
+      document.body.classList.add('is-mobile');
+    } else {
+      document.body.classList.remove('is-mobile');
+      var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      app.style.transform = "scale(".concat(scale, ")");
+      app.style.left = Math.max(0, (window.innerWidth - 1920 * scale) / 2) + 'px';
+      app.style.top = Math.max(0, (window.innerHeight - 1080 * scale) / 2) + 'px';
+      app.style.width = '1920px';
+      app.style.height = '1080px';
+    }
   }
   function showToast(msg, duration) {
     var toast = document.getElementById('toast');
