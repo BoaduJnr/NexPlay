@@ -49,7 +49,7 @@ var PlayerPage = function () {
           localStorage.setItem('np_pref_quality', q.label);
         } catch (e) {}
         _resumePos = capturePos();
-        var hdrs = (_qualityHeaders && Object.keys(_qualityHeaders).length) ? _qualityHeaders : {
+        var hdrs = _qualityHeaders && Object.keys(_qualityHeaders).length ? _qualityHeaders : {
           'Referer': 'https://cineby.sc/',
           'Origin': 'https://cineby.sc'
         };
@@ -330,12 +330,14 @@ var PlayerPage = function () {
     _uiHidden = false;
     if (_hideTimer) clearTimeout(_hideTimer);
     _hideTimer = setTimeout(hidePlayerUI, 4000);
-    // Focus the relevant panel: episodes for series, suggestions for movies
+    // TV series → episode list (quick episode switching).
+    // Movies → play button (most common action when UI appears mid-stream).
     setTimeout(function () {
       var ep = document.querySelector('#episode-list .episode-item');
+      var play = document.getElementById('ctrl-play');
       var sim = document.querySelector('#similar-panel .similar-item');
       var btn = document.querySelector('.player-back');
-      if (ep) Nav.focusEl(ep);else if (sim) Nav.focusEl(sim);else if (btn) Nav.focusEl(btn);
+      if (ep) Nav.focusEl(ep);else if (play) Nav.focusEl(play);else if (sim) Nav.focusEl(sim);else if (btn) Nav.focusEl(btn);
     }, 80);
   }
   function hidePlayerUI() {
@@ -411,8 +413,11 @@ var PlayerPage = function () {
     try {
       webapis.avplay.seekTo(Math.max(0, webapis.avplay.getCurrentTime() + ms));
     } catch (e) {
+      // AVPlay throws on live/sliding-window HLS streams that don't support seeking
       setPlayerStatus('Seek not available for this stream');
-      setTimeout(function () { setPlayerStatus(''); }, 2000);
+      setTimeout(function () {
+        setPlayerStatus('');
+      }, 2000);
     }
   }
   function goNextEpisode() {
@@ -514,11 +519,12 @@ var PlayerPage = function () {
       if (k === Config.KEYS.ENTER || k === 13) {
         var focused = document.querySelector('.nav-focused');
         var isBack = focused && focused.classList.contains('player-back');
-        var isCtrl = focused && focused.classList.contains('ctrl-btn');
+        var isCtrl = focused && (focused.classList.contains('ctrl-btn') || focused.classList.contains('pcb-btn'));
         var isTrigger = focused && focused.hasAttribute('data-tdd-trigger');
         var isDDOpt = focused && focused.hasAttribute('data-tdd-opt');
         var isPanel = focused && (focused.classList.contains('episode-item') || focused.classList.contains('similar-item'));
         if (!isBack && !isCtrl && !isTrigger && !isDDOpt && !isPanel) {
+          // Non-interactive element: show UI on first press, consume key
           if (_uiHidden) showPlayerUI();
           e.stopPropagation();
           e.preventDefault();
@@ -526,7 +532,31 @@ var PlayerPage = function () {
           _hideTimer = setTimeout(hidePlayerUI, 4000);
           return;
         }
-        // let Enter propagate so the click fires
+
+        // Interactive element (ctrl, trigger, option, panel item, back):
+        if (isBack) {
+          // Back always closes regardless of UI state
+          if (focused) focused.click();
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+        if (_uiHidden) {
+          // UI hidden: first press only shows UI (focus will land on play button).
+          // User presses OK a second time to activate the focused control.
+          showPlayerUI();
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+
+        // UI visible: directly fire action on the visually focused element
+        if (_hideTimer) clearTimeout(_hideTimer);
+        _hideTimer = setTimeout(hidePlayerUI, 4000);
+        if (focused) focused.click();
+        e.stopPropagation();
+        e.preventDefault();
+        return;
       }
 
       // ── All other keys: show UI if hidden ────────────────
@@ -595,6 +625,11 @@ var PlayerPage = function () {
         e.stopPropagation();
         e.preventDefault();
         closePlayer();
+      } else if (k === Config.KEYS.ENTER || k === 13) {
+        // Consume ENTER during load so Nav doesn't click the focused Back button.
+        // startAutoHide() (registered when stream is ready) takes over full ENTER handling.
+        e.stopPropagation();
+        e.preventDefault();
       }
     };
     document.addEventListener('keydown', _mediaKeyListener2, true);
@@ -613,8 +648,14 @@ var PlayerPage = function () {
       clearInterval(_progressInterval);
       _progressInterval = null;
     }
-    // Destroy hls.js instance so segments stop loading and no stale events fire.
+    // Web: save hls.js watch position before destroying the video
     if (_hlsInstance) {
+      try {
+        var _wv = document.getElementById('web-video');
+        if (_wv && typeof NexPlayDB !== 'undefined' && _wv.currentTime > 5) {
+          NexPlayDB.saveProgress(_params.id, _params.type || 'movie', _titleCache, _posterCache, Math.round(_wv.currentTime * 1000), Math.round((_wv.duration || 0) * 1000), _currentSeason, _currentEpisode);
+        }
+      } catch (e) {}
       try {
         _hlsInstance.destroy();
       } catch (e) {}
@@ -630,6 +671,10 @@ var PlayerPage = function () {
     }
     try {
       if (typeof webapis !== 'undefined' && webapis.avplay) {
+        // Clear callbacks before stopping so queued native events don't fire into stale handlers.
+        try {
+          webapis.avplay.setListener({});
+        } catch (e2) {}
         var state = webapis.avplay.getState();
         if (state === 'PLAYING' || state === 'PAUSED' || state === 'READY') {
           webapis.avplay.stop();
@@ -692,6 +737,11 @@ var PlayerPage = function () {
     Nav.reset(document.getElementById('player-modal'));
   }
   function trySource(idx) {
+    // On TV, embed scraping and iframes never work with AVPlay — bail immediately
+    if (typeof webapis !== 'undefined' && webapis.avplay) {
+      setPlayerStatus('Stream unavailable for this title');
+      return;
+    }
     if (idx >= SOURCES.length) {
       // All direct-stream scraping failed. On web, show embed iframe fallback.
       if (typeof webapis === 'undefined' || !webapis.avplay) {
@@ -782,6 +832,9 @@ var PlayerPage = function () {
       hls.on(Hls.Events.MANIFEST_PARSED, function () {
         console.log('[Player] HLS manifest parsed, playing');
         _streamErrorRetries = 0;
+        if (typeof NexPlayDB !== 'undefined') {
+          NexPlayDB.addToHistory(_params.id, _params.type || 'movie', _titleCache, _posterCache, _currentSeason, _currentEpisode);
+        }
         video.play().catch(function () {});
         setPlayerStatus('');
         updatePlayIcon(true);
@@ -843,9 +896,10 @@ var PlayerPage = function () {
     // TV always proxies (TLS compat). Browser only proxies when headers are needed.
     // VidLink on TV uses a Deno proxy (x-via-deno flag) instead of the CF Worker
     // because VidLink CDN is on Cloudflare (CF→CF blocked) and uses TLS 1.3.
-    var isTizenTV = typeof webapis !== 'undefined' && !!webapis.avplay;
-    var needsProxy = isTizenTV || headers && Object.keys(headers).length > 0;
-    var playUrl = needsProxy ? buildProxyUrl(url, headers) : url;
+    // Always proxy: TV needs TLS 1.2 compat; web needs CORS bypass
+    // (hls.js also needs segment URLs rewritten through the proxy).
+    var needsProxy = true;
+    var playUrl = buildProxyUrl(url, headers);
     if (typeof webapis === 'undefined' || !webapis.avplay) {
       playWithHlsJs(playUrl, headers);
       return;
@@ -875,6 +929,9 @@ var PlayerPage = function () {
           if (_params.playlist === 'watchlist') goNextInPlaylist();
         },
         onerror: function onerror(e) {
+          // Guard: callbacks can fire after the player is closed on Tizen
+          var _m = document.getElementById('player-modal');
+          if (!_m || _m.classList.contains('hidden')) return;
           console.error('[Player] AVPlay error:', e);
           document.body.classList.remove('movie-avplay-on');
           _streamErrorRetries++;
@@ -893,7 +950,9 @@ var PlayerPage = function () {
         webapis.avplay.play();
         setPlayerStatus('');
         updatePlayIcon(true);
-        startAutoHide();
+        // Defer out of AVPlay native callback context so document.addEventListener
+        // registers correctly on Tizen 3.0 (fails silently when called inline).
+        setTimeout(startAutoHide, 0);
         // Get duration for progress tracking
         try {
           _durationMs = webapis.avplay.getDuration();
@@ -931,12 +990,27 @@ var PlayerPage = function () {
       }, function (e) {
         console.error('[Player] prepareAsync error:', e);
         document.body.classList.remove('movie-avplay-on');
-        trySource(0);
+        // Re-resolve to get fresh CDN URLs (same as onerror retry)
+        _streamErrorRetries++;
+        if (_streamErrorRetries <= 2) {
+          setPlayerStatus('Reconnecting...');
+          loadBestSource();
+        } else {
+          _streamErrorRetries = 0;
+          trySource(0);
+        }
       });
     } catch (e) {
       console.error('[Player] playWithUrl exception:', e.message);
       document.body.classList.remove('movie-avplay-on');
-      trySource(0);
+      _streamErrorRetries++;
+      if (_streamErrorRetries <= 2) {
+        setPlayerStatus('Reconnecting...');
+        loadBestSource();
+      } else {
+        _streamErrorRetries = 0;
+        trySource(0);
+      }
     }
   }
   function loadBestSource() {
@@ -976,10 +1050,13 @@ var PlayerPage = function () {
         console.log('[Player] stream resolved:', result.url.slice(0, 60));
         setPlayerStatus('Starting playback...');
         // Start at saved quality preference when the stream offers it
+        // Only use saved quality on first load — on retry the saved URL may be stale/expired
         var _savedPrefLabel = '';
-        try {
-          _savedPrefLabel = localStorage.getItem('np_pref_quality') || '';
-        } catch (e) {}
+        if (_streamErrorRetries === 0) {
+          try {
+            _savedPrefLabel = localStorage.getItem('np_pref_quality') || '';
+          } catch (e) {}
+        }
         var _prefQ = _savedPrefLabel && _availableQualities.find(function (q) {
           return q.label === _savedPrefLabel;
         });
@@ -1095,7 +1172,7 @@ var PlayerPage = function () {
         localStorage.setItem('np_pref_quality', q.label);
       } catch (e) {}
       _resumePos = capturePos(); // save position before stopping
-      var hdrs = (_qualityHeaders && Object.keys(_qualityHeaders).length) ? _qualityHeaders : {
+      var hdrs = _qualityHeaders && Object.keys(_qualityHeaders).length ? _qualityHeaders : {
         'Referer': 'https://cineby.sc/',
         'Origin': 'https://cineby.sc'
       };

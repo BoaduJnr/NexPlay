@@ -211,6 +211,9 @@ var App = function () {
     document.documentElement.style.background = c.bg;
     document.body.style.background = c.bg;
     document.body.style.color = c.text;
+
+    // AVPlay renders behind the HTML layer and requires transparent backgrounds
+    // to show through. If a theme is changed during video playback, restore them.
     if (document.body.classList.contains('movie-avplay-on')) {
       document.documentElement.style.background = 'transparent';
       document.body.style.background = 'transparent';

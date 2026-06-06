@@ -124,13 +124,15 @@ body.theme-bright .tdd-option { color: rgba(10,10,32,0.80) !important; }
 body.theme-bright .tdd-option:hover,
 body.theme-bright .tdd-option.nav-focused { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; }
 body.theme-bright .tdd-option.selected { background: rgba(124,58,237,0.10) !important; color: #7c3aed !important; }
-/* Player quality dropdown always keeps dark video-overlay styling regardless of theme */
-body.theme-bright .player-cbar .tdd-trigger { background: rgba(0,0,0,0.65) !important; color: rgba(255,255,255,0.90) !important; border-color: rgba(255,255,255,0.25) !important; }
-body.theme-bright .player-cbar .tdd-list { background: rgba(12,12,22,0.96) !important; border-color: rgba(255,255,255,0.12) !important; }
-body.theme-bright .player-cbar .tdd-option { color: rgba(255,255,255,0.75) !important; }
-body.theme-bright .player-cbar .tdd-option:hover,
-body.theme-bright .player-cbar .tdd-option.nav-focused { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
-body.theme-bright .player-cbar .tdd-option.selected { background: rgba(124,58,237,0.25) !important; color: #c4b5fd !important; }
+/* All dropdowns inside player modal (quality + season) — dark overlay for all themes.
+   body prefix raises specificity to 0,2,1 to beat body.theme-bright .tdd-* (also 0,2,1);
+   since this rule comes AFTER the bright override it wins the tie. */
+body .player-modal .tdd-trigger { background: rgba(15,15,25,0.80) !important; color: rgba(255,255,255,0.90) !important; border-color: rgba(255,255,255,0.22) !important; }
+body .player-modal .tdd-list { background: rgba(8,8,20,0.92) !important; border-color: rgba(255,255,255,0.12) !important; }
+body .player-modal .tdd-option { color: rgba(255,255,255,0.75) !important; }
+body .player-modal .tdd-option:hover,
+body .player-modal .tdd-option.nav-focused { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
+body .player-modal .tdd-option.selected { background: rgba(124,58,237,0.25) !important; color: #c4b5fd !important; }
 /* Key hints on bright theme (dark text on light background) */
 body.theme-bright .key-hint { color: rgba(10,10,32,0.45) !important; }
 /* Card progress track on bright theme (dark track on white card) */
@@ -206,6 +208,77 @@ body.theme-calm .iptv-working-btn.nav-focused { background: #1f2a3a !important; 
 body.theme-calm .iptv-working-btn.active { background: rgba(74,222,128,0.12) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
 body.theme-calm #iptv-ghana-toggle.active { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #79c0ff !important; }
 
+/* ── Card progress fill — CSS class so theme overrides work without inline var() ── */
+.card-prog-fill {
+  height: 100%; border-radius: 0 2px 0 0;
+  background:         linear-gradient(to right, #7c3aed, #a78bfa);
+}
+body.theme-calm .card-prog-fill {
+  background:         linear-gradient(to right, #58a6ff, #79c0ff) !important;
+}
+body.theme-calm .card-prog  { background: rgba(88,166,255,0.14) !important; }
+
+/* ── Player streaming colours per theme ─────────────────────────────── */
+
+/* Night — deeper blacks, richer purple glow */
+body.theme-night .player-cbar {
+  background:         linear-gradient(to top, rgba(0,0,0,0.96) 0%, transparent 100%) !important;
+}
+body.theme-night .player-cbar-fill,
+body.theme-night #progress-fill {
+  background:         linear-gradient(to right, #7c3aed, #c4b5fd) !important;
+}
+body.theme-night .pcb-btn.pcb-play {
+  background:         linear-gradient(135deg, #9333ea 0%, #581c87 100%) !important;
+  box-shadow:         0 4px 22px rgba(124,58,237,0.70) !important;
+}
+body.theme-night .pcb-btn.nav-focused,
+body.theme-night .ctrl-btn.nav-focused {
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 26px rgba(124,58,237,0.60) !important;
+}
+body.theme-night .player-status-overlay { color: rgba(232,232,240,0.60) !important; }
+body.theme-night .card-prog            { background: rgba(255,255,255,0.10) !important; }
+
+/* Calm — soft blue accent throughout player */
+body.theme-calm .player-cbar {
+  background:         linear-gradient(to top, rgba(8,12,20,0.93) 0%, transparent 100%) !important;
+}
+body.theme-calm .player-cbar-fill,
+body.theme-calm #progress-fill {
+  background:         linear-gradient(to right, #58a6ff, #79c0ff) !important;
+}
+body.theme-calm .player-cbar-track     { background: rgba(88,166,255,0.20) !important; }
+body.theme-calm .player-cbar-track.nav-focused {
+  background: rgba(88,166,255,0.32) !important;
+  outline: 2px solid rgba(121,192,255,0.80) !important;
+}
+body.theme-calm .pcb-btn               { border-color: rgba(88,166,255,0.38) !important; }
+body.theme-calm .pcb-btn.pcb-play {
+  background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  border-color: #79c0ff !important;
+  box-shadow:         0 4px 18px rgba(88,166,255,0.55) !important;
+}
+body.theme-calm .pcb-btn.nav-focused,
+body.theme-calm .ctrl-btn.nav-focused {
+  background:         linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%) !important;
+  border-color: #fff !important;
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 0 22px rgba(88,166,255,0.48) !important;
+}
+body.theme-calm .player-status-overlay { color: rgba(201,209,217,0.70) !important; }
+body.theme-calm .player-cbar-time      { color: rgba(121,192,255,0.85) !important; }
+body.theme-calm .player-title          { color: #e6edf3 !important; }
+body.theme-calm .player-meta           { color: rgba(121,192,255,0.75) !important; }
+
+/* Bright — overlay always dark; reinforce control legibility on light-bg app */
+body.theme-bright .player-cbar {
+  background:         linear-gradient(to top, rgba(0,0,0,0.90) 0%, transparent 100%) !important;
+}
+body.theme-bright .pcb-btn {
+  background: rgba(0,0,0,0.72) !important;
+  border-color: rgba(255,255,255,0.38) !important;
+}
+body.theme-bright .player-status-overlay { color: rgba(255,255,255,0.78) !important; }
+
 .ctrl-btn.ctrl-ep-prev,
 .ctrl-btn.ctrl-ep-next {
   width: 64px;
@@ -267,7 +340,7 @@ body.movie-avplay-on #avplay-area {
 }
 .player-cbar-fill {
   height: 100%; width: 0%;
-  background: var(--accent); border-radius: 2px; transition: width 1s linear;
+  background: #7c3aed; border-radius: 2px; transition: width 1s linear;
 }
 .player-cbar-time {
   color: rgba(255,255,255,0.80);
@@ -314,7 +387,7 @@ body.movie-avplay-on #avplay-area {
   box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 20px rgba(124,58,237,0.55);
 }
 /* Legacy id */
-#progress-fill { height:100%; background:var(--accent); border-radius:2px; width:0%; transition:width 1s linear; }
+#progress-fill { height:100%; background:#7c3aed; border-radius:2px; width:0%; transition:width 1s linear; }
 
 /* ── Player UI auto-hide ─────────────────────────────── */
 .player-header, .player-info-bar, .player-cbar,
@@ -676,7 +749,7 @@ body.movie-avplay-on #avplay-area {
 
 .card-row {
   display: flex;
-  gap: 28px;
+  gap: 32px;
   padding: 8px 72px 20px;
   overflow-x: auto;
   overflow-y: visible;
@@ -689,7 +762,7 @@ body.movie-avplay-on #avplay-area {
 /* â”€â”€ Movie Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .card {
   flex-shrink: 0;
-  width: 220px;
+  width: 248px;
   cursor: pointer;
   outline: none;
   border-radius: 0;
@@ -1139,12 +1212,9 @@ body.movie-avplay-on #avplay-area {
   flex: 1;
   overflow-y: auto;
   padding: 5px;
-  display: -webkit-flex;
   display: flex;
-  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   /* gap not supported in Tizen 3.0 — spacing via item margins */
-  -webkit-align-content: flex-start;
   align-content: flex-start;
   scrollbar-width: thin;
   scrollbar-color: #1f1f35 transparent;
@@ -1154,11 +1224,8 @@ body.movie-avplay-on #avplay-area {
   width: calc(50% - 8px);
   margin: 4px;
   padding: 12px 8px 10px;
-  display: -webkit-flex;
   display: flex;
-  -webkit-flex-direction: column;
   flex-direction: column;
-  -webkit-align-items: center;
   align-items: center;
   /* gap replaced by logo margin-bottom below */
   background: #171728;
@@ -1192,13 +1259,9 @@ body.movie-avplay-on #avplay-area {
   background: #1f1f35;
   overflow: hidden;
   position: relative;
-  display: -webkit-flex;
   display: flex;
-  -webkit-align-items: center;
   align-items: center;
-  -webkit-justify-content: center;
   justify-content: center;
-  -webkit-flex-shrink: 0;
   flex-shrink: 0;
   margin-bottom: 8px;
 }
@@ -1299,9 +1362,7 @@ body.movie-avplay-on #avplay-area {
   padding: 14px 20px;
   background: #0f0f1c;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: -webkit-flex;
   display: flex;
-  -webkit-align-items: center;
   align-items: center;
   /* gap replaced by live-badge margin-right */
 }
@@ -1313,9 +1374,7 @@ body.movie-avplay-on #avplay-area {
 .iptv-bar-meta      { font-size: 14px; color: rgba(240, 240, 248, 0.45); margin-top: 2px; }
 
 .live-badge {
-  display: -webkit-inline-flex;
   display: inline-flex;
-  -webkit-align-items: center;
   align-items: center;
   background: #ef4444;
   color: #fff;
@@ -1325,7 +1384,6 @@ body.movie-avplay-on #avplay-area {
   padding: 5px 12px;
   border-radius: 4px;
   margin-right: 14px;
-  -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
 
@@ -1335,7 +1393,7 @@ body.movie-avplay-on #avplay-area {
   border-radius: 50%;
   margin-right: 5px;
   -webkit-animation: blink 1.2s ease infinite;
-          animation: blink 1.2s ease infinite;
+  animation: blink 1.2s ease infinite;
 }
 
 @-webkit-keyframes blink {
@@ -2017,21 +2075,15 @@ body.movie-avplay-on #avplay-area {
 /* ── Home page color-button row ────────────────────────────────────────── */
 .home-key-hints {
   padding: 10px 72px 8px;
-  display: -webkit-flex;
   display: flex;
-  -webkit-align-items: center;
   align-items: center;
-  -webkit-justify-content: flex-end;
   justify-content: flex-end;
-  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   /* gap not supported in Tizen 3.0 WebKit — use margins on items instead */
 }
 
 .home-hint-item {
-  display: -webkit-inline-flex;
   display: inline-flex;
-  -webkit-align-items: center;
   align-items: center;
   margin-left: 22px;
   margin-bottom: 4px;
@@ -2044,17 +2096,16 @@ body.movie-avplay-on #avplay-area {
   width: 20px;
   height: 11px;
   border-radius: 3px;
-  -webkit-flex-shrink: 0;
   flex-shrink: 0;
   opacity: 1;
   margin-right: 8px;
 }
 
 /* Calm theme (dark bg) — rich, saturated */
-.home-color-red    { background: #ef4444; box-shadow: 0 0 7px rgba(239,68,68,0.65); }
-.home-color-green  { background: #22c55e; box-shadow: 0 0 7px rgba(34,197,94,0.65); }
-.home-color-blue   { background: #3b82f6; box-shadow: 0 0 7px rgba(59,130,246,0.65); }
-.home-color-yellow { background: #eab308; box-shadow: 0 0 7px rgba(234,179,8,0.65); }
+.home-color-red    { background: #ef4444;    box-shadow: 0 0 7px rgba(239,68,68,0.65); }
+.home-color-green  { background: #22c55e;   box-shadow: 0 0 7px rgba(34,197,94,0.65); }
+.home-color-blue   { background: #3b82f6;  box-shadow: 0 0 7px rgba(59,130,246,0.65); }
+.home-color-yellow { background: #eab308;   box-shadow: 0 0 7px rgba(234,179,8,0.65); }
 
 /* Bright theme — deep/dark shades to stand out on light bg, no glow */
 body.theme-bright .home-color-red    { background: #b91c1c !important; box-shadow: none !important; }
@@ -2064,9 +2115,9 @@ body.theme-bright .home-color-yellow { background: #a16207 !important; box-shado
 
 /* Night theme — vivid with stronger OLED glow */
 body.theme-night .home-color-red    { background: #f87171 !important; box-shadow: 0 0 10px rgba(248,113,113,0.75) !important; }
-body.theme-night .home-color-green  { background: #4ade80 !important; box-shadow: 0 0 10px rgba(74,222,128,0.75) !important; }
-body.theme-night .home-color-blue   { background: #60a5fa !important; box-shadow: 0 0 10px rgba(96,165,250,0.75) !important; }
-body.theme-night .home-color-yellow { background: #fde047 !important; box-shadow: 0 0 10px rgba(253,224,71,0.75) !important; }
+body.theme-night .home-color-green  { background: #4ade80 !important;  box-shadow: 0 0 10px rgba(74,222,128,0.75) !important; }
+body.theme-night .home-color-blue   { background: #60a5fa !important;  box-shadow: 0 0 10px rgba(96,165,250,0.75) !important; }
+body.theme-night .home-color-yellow { background: #fde047 !important;  box-shadow: 0 0 10px rgba(253,224,71,0.75) !important; }
 
 .home-hint-label {
   font-size: 14px;
@@ -2111,7 +2162,7 @@ body.theme-night  .home-hint-label { color: rgba(240,240,248,0.32) !important; }
 
 /* Progress track — richer fill + focused glow */
 .player-cbar-fill {
-  background: linear-gradient(to right, var(--accent), var(--accent-light));
+  background:         linear-gradient(to right, #7c3aed, #a78bfa);
 }
 
 .player-cbar-track {

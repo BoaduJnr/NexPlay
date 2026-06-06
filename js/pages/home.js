@@ -29,7 +29,7 @@
               <path d="M8 5v14l11-7z"/>
             </svg>
           </div>
-          <div class="card-prog" id="cprog-${movie.id}"></div>
+          <div class="card-prog" id="cprog-${movie.id}" data-type="movie"></div>
         </div>
       </div>`;
   }

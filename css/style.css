@@ -124,13 +124,15 @@ body.theme-bright .tdd-option { color: rgba(10,10,32,0.80) !important; }
 body.theme-bright .tdd-option:hover,
 body.theme-bright .tdd-option.nav-focused { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; }
 body.theme-bright .tdd-option.selected { background: rgba(124,58,237,0.10) !important; color: #7c3aed !important; }
-/* Player quality dropdown always keeps dark video-overlay styling regardless of theme */
-body.theme-bright .player-cbar .tdd-trigger { background: rgba(0,0,0,0.65) !important; color: rgba(255,255,255,0.90) !important; border-color: rgba(255,255,255,0.25) !important; }
-body.theme-bright .player-cbar .tdd-list { background: rgba(12,12,22,0.96) !important; border-color: rgba(255,255,255,0.12) !important; }
-body.theme-bright .player-cbar .tdd-option { color: rgba(255,255,255,0.75) !important; }
-body.theme-bright .player-cbar .tdd-option:hover,
-body.theme-bright .player-cbar .tdd-option.nav-focused { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
-body.theme-bright .player-cbar .tdd-option.selected { background: rgba(124,58,237,0.25) !important; color: #c4b5fd !important; }
+/* All dropdowns inside player modal (quality + season) — dark overlay for all themes.
+   body prefix raises specificity to 0,2,1 to beat body.theme-bright .tdd-* (also 0,2,1);
+   since this rule comes AFTER the bright override it wins the tie. */
+body .player-modal .tdd-trigger { background: rgba(15,15,25,0.80) !important; color: rgba(255,255,255,0.90) !important; border-color: rgba(255,255,255,0.22) !important; }
+body .player-modal .tdd-list { background: rgba(8,8,20,0.92) !important; border-color: rgba(255,255,255,0.12) !important; }
+body .player-modal .tdd-option { color: rgba(255,255,255,0.75) !important; }
+body .player-modal .tdd-option:hover,
+body .player-modal .tdd-option.nav-focused { background: rgba(255,255,255,0.10) !important; color: #fff !important; }
+body .player-modal .tdd-option.selected { background: rgba(124,58,237,0.25) !important; color: #c4b5fd !important; }
 /* Key hints on bright theme (dark text on light background) */
 body.theme-bright .key-hint { color: rgba(10,10,32,0.45) !important; }
 /* Card progress track on bright theme (dark track on white card) */
@@ -205,6 +207,91 @@ body.theme-calm .iptv-working-btn:hover,
 body.theme-calm .iptv-working-btn.nav-focused { background: #1f2a3a !important; border-color: rgba(74,222,128,0.45) !important; color: #c9d1d9 !important; }
 body.theme-calm .iptv-working-btn.active { background: rgba(74,222,128,0.12) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
 body.theme-calm #iptv-ghana-toggle.active { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #79c0ff !important; }
+
+/* ── Card progress fill — CSS class so theme overrides work without inline var() ── */
+.card-prog-fill {
+  height: 100%; border-radius: 0 2px 0 0;
+  background: -webkit-linear-gradient(left, #7c3aed, #a78bfa);
+  background:         linear-gradient(to right, #7c3aed, #a78bfa);
+}
+body.theme-calm .card-prog-fill {
+  background: -webkit-linear-gradient(left, #58a6ff, #79c0ff) !important;
+  background:         linear-gradient(to right, #58a6ff, #79c0ff) !important;
+}
+body.theme-calm .card-prog  { background: rgba(88,166,255,0.14) !important; }
+
+/* ── Player streaming colours per theme ─────────────────────────────── */
+
+/* Night — deeper blacks, richer purple glow */
+body.theme-night .player-cbar {
+  background: -webkit-linear-gradient(bottom, rgba(0,0,0,0.96) 0%, transparent 100%) !important;
+  background:         linear-gradient(to top, rgba(0,0,0,0.96) 0%, transparent 100%) !important;
+}
+body.theme-night .player-cbar-fill,
+body.theme-night #progress-fill {
+  background: -webkit-linear-gradient(left, #7c3aed, #c4b5fd) !important;
+  background:         linear-gradient(to right, #7c3aed, #c4b5fd) !important;
+}
+body.theme-night .pcb-btn.pcb-play {
+  background: -webkit-linear-gradient(135deg, #9333ea 0%, #581c87 100%) !important;
+  background:         linear-gradient(135deg, #9333ea 0%, #581c87 100%) !important;
+  -webkit-box-shadow: 0 4px 22px rgba(124,58,237,0.70) !important;
+  box-shadow:         0 4px 22px rgba(124,58,237,0.70) !important;
+}
+body.theme-night .pcb-btn.nav-focused,
+body.theme-night .ctrl-btn.nav-focused {
+  -webkit-box-shadow: 0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 26px rgba(124,58,237,0.60) !important;
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 26px rgba(124,58,237,0.60) !important;
+}
+body.theme-night .player-status-overlay { color: rgba(232,232,240,0.60) !important; }
+body.theme-night .card-prog            { background: rgba(255,255,255,0.10) !important; }
+
+/* Calm — soft blue accent throughout player */
+body.theme-calm .player-cbar {
+  background: -webkit-linear-gradient(bottom, rgba(8,12,20,0.93) 0%, transparent 100%) !important;
+  background:         linear-gradient(to top, rgba(8,12,20,0.93) 0%, transparent 100%) !important;
+}
+body.theme-calm .player-cbar-fill,
+body.theme-calm #progress-fill {
+  background: -webkit-linear-gradient(left, #58a6ff, #79c0ff) !important;
+  background:         linear-gradient(to right, #58a6ff, #79c0ff) !important;
+}
+body.theme-calm .player-cbar-track     { background: rgba(88,166,255,0.20) !important; }
+body.theme-calm .player-cbar-track.nav-focused {
+  background: rgba(88,166,255,0.32) !important;
+  outline: 2px solid rgba(121,192,255,0.80) !important;
+}
+body.theme-calm .pcb-btn               { border-color: rgba(88,166,255,0.38) !important; }
+body.theme-calm .pcb-btn.pcb-play {
+  background: -webkit-linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  border-color: #79c0ff !important;
+  -webkit-box-shadow: 0 4px 18px rgba(88,166,255,0.55) !important;
+  box-shadow:         0 4px 18px rgba(88,166,255,0.55) !important;
+}
+body.theme-calm .pcb-btn.nav-focused,
+body.theme-calm .ctrl-btn.nav-focused {
+  background: -webkit-linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%) !important;
+  background:         linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%) !important;
+  border-color: #fff !important;
+  -webkit-box-shadow: 0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 0 22px rgba(88,166,255,0.48) !important;
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 0 22px rgba(88,166,255,0.48) !important;
+}
+body.theme-calm .player-status-overlay { color: rgba(201,209,217,0.70) !important; }
+body.theme-calm .player-cbar-time      { color: rgba(121,192,255,0.85) !important; }
+body.theme-calm .player-title          { color: #e6edf3 !important; }
+body.theme-calm .player-meta           { color: rgba(121,192,255,0.75) !important; }
+
+/* Bright — overlay always dark; reinforce control legibility on light-bg app */
+body.theme-bright .player-cbar {
+  background: -webkit-linear-gradient(bottom, rgba(0,0,0,0.90) 0%, transparent 100%) !important;
+  background:         linear-gradient(to top, rgba(0,0,0,0.90) 0%, transparent 100%) !important;
+}
+body.theme-bright .pcb-btn {
+  background: rgba(0,0,0,0.72) !important;
+  border-color: rgba(255,255,255,0.38) !important;
+}
+body.theme-bright .player-status-overlay { color: rgba(255,255,255,0.78) !important; }
 
 .ctrl-btn.ctrl-ep-prev,
 .ctrl-btn.ctrl-ep-next {

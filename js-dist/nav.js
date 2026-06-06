@@ -92,14 +92,22 @@ var Nav = function () {
     if (scroller) {
       var er = rect(el);
       var sr = rect(scroller);
-      if (er.left < sr.left + 40) {
-        scroller.scrollLeft -= sr.left - er.left + 60;
-      } else if (er.right > sr.right - 40) {
-        scroller.scrollLeft += er.right - sr.right + 60;
+      // Horizontal scroll (card rows) — wider margin so the full card is visible
+      if (er.left < sr.left + 60) {
+        scroller.scrollLeft -= sr.left - er.left + 80;
+      } else if (er.right > sr.right - 60) {
+        scroller.scrollLeft += er.right - sr.right + 80;
+      }
+      // Vertical scroll (episode list, similar/watchlist panel)
+      if (er.top < sr.top + 20) {
+        scroller.scrollTop -= sr.top - er.top + 40;
+      } else if (er.bottom > sr.bottom - 20) {
+        scroller.scrollTop += er.bottom - sr.bottom + 40;
       }
     }
     var pageScroll = document.getElementById('main-content');
     if (pageScroll) {
+      // Hero elements: always snap to top so the full hero backdrop and title show
       if (el.closest('#hero-wrapper')) {
         pageScroll.scrollTop = 0;
         return;
@@ -165,6 +173,9 @@ var Nav = function () {
 
   // After a page renders, focus the default element (first or marked default)
   function reset(container) {
+    // Remove nav-focused from current element before clearing — prevents stale class
+    // staying on sidebar items when player opens and confusing the player key listener.
+    if (_current) _current.classList.remove('nav-focused');
     _current = null;
     var preferred = (container || document).querySelector('[data-nav-default]');
     // Prefer elements inside the container — avoids focusing the main sidebar

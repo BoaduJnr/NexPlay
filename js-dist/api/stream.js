@@ -12,6 +12,7 @@
  * Proxy: nexplay-proxy.pielly16.workers.dev handles CORS + Referer injection
  *        + m3u8 segment URL rewriting for HLS playback.
  */
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 var StreamResolver = function () {
   // ── XHR helpers ───────────────────────────────────────
   function xhrGet(url, timeoutMs, headers) {
@@ -92,25 +93,9 @@ var StreamResolver = function () {
   }
 
   // ── Videasy ────────────────────────────────────────────
-  // All known server aliases — tried sequentially until one resolves.
-  var VIDEASY_ENDPOINTS = ['https://api.videasy.net/mb-flix/sources-with-title',
-  // Neon
-  'https://api.videasy.net/cdn/sources-with-title',
-  // Yoru
-  'https://api.videasy.net/moviebox/sources-with-title',
-  // Cypher
-  'https://api.videasy.net/1movies/sources-with-title',
-  // Sage
-  'https://api.videasy.net/m4uhd/sources-with-title',
-  // Breach
-  'https://api.videasy.net/hdmovie/sources-with-title',
-  // Vyse
-  'https://api.videasy.net/meine/sources-with-title',
-  // Killjoy
-  'https://api.videasy.net/superflix/sources-with-title',
-  // Raze
-  'https://api.videasy.net/lamovie/sources-with-title' // Omen
-  ];
+  // Live endpoints only (verified 2026-06-05 — mb-flix, cdn, hdmovie, lamovie respond;
+  // moviebox/1movies=404, m4uhd/meine/superflix=500 → removed to cut resolve time).
+  var VIDEASY_ENDPOINTS = ['https://api.videasy.net/mb-flix/sources-with-title', 'https://api.videasy.net/cdn/sources-with-title', 'https://api.videasy.net/hdmovie/sources-with-title', 'https://api.videasy.net/lamovie/sources-with-title'];
   var VIDEASY_ORIGIN = 'https://cineby.sc';
   var BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
   function resolveVideasy(tmdbId, type, title, year, season, episode) {
@@ -252,6 +237,7 @@ var StreamResolver = function () {
         } catch (e) {
           return null;
         }
+        if (!data || _typeof(data) !== 'object') return null;
         var PROXY_PREFIX = 'https://proxy.vidrock.store/';
         var hlsUrls = [];
         var vdrkIndirect = [];
@@ -259,15 +245,22 @@ var StreamResolver = function () {
           var entry = data[key];
           if (!entry || !entry.url) return;
           var url = entry.url;
+
+          // Unwrap proxy.vidrock.store prefix
           if (url.indexOf(PROXY_PREFIX) === 0) {
             url = decodeURIComponent(url.slice(PROXY_PREFIX.length).replace(/\+/g, '%2B'));
           }
+
+          // Queue hls2.vdrk.site for async indirection follow (returns [{resolution, url}])
           if (url.indexOf('hls2.vdrk.site') !== -1) {
             vdrkIndirect.push(url);
             return;
           }
           if (url.indexOf('.m3u8') !== -1) {
-            hlsUrls.push({ label: entry.label || key || 'Auto', url: url });
+            hlsUrls.push({
+              label: entry.label || key || 'Auto',
+              url: url
+            });
           }
         });
         return followVdrk(vdrkIndirect, 0, []).then(function (indirect) {
@@ -277,21 +270,81 @@ var StreamResolver = function () {
           console.log('[StreamResolver] Vidrock OK:', best.url.slice(0, 60));
           return {
             url: best.url,
-            headers: { 'Referer': VIDROCK_ORIGIN + '/', 'Origin': VIDROCK_ORIGIN },
+            headers: {
+              'Referer': VIDROCK_ORIGIN + '/',
+              'Origin': VIDROCK_ORIGIN
+            },
             qualities: allHls
           };
         });
       }
-      // Try direct first (works on TV — no CORS). Browser falls back to CF Worker proxy.
-      return xhrGet(apiUrl, 10000, vdrHeaders)
-        .then(parseVidrock)
-        .catch(function () {
-          var hdrsB64 = btoa(JSON.stringify({ 'Referer': VIDROCK_ORIGIN + '/', 'Origin': VIDROCK_ORIGIN }));
-          var proxyUrl = PROXY_URL + '/?url=' + encodeURIComponent(apiUrl) + '&headers=' + encodeURIComponent(hdrsB64);
-          return xhrGet(proxyUrl, 10000).then(parseVidrock).catch(function () { return null; });
+
+      // Try direct first (works on TV where CORS is not enforced).
+      // Browser CORS blocks vidrock.net — fall back to CF Worker proxy.
+      return xhrGet(apiUrl, 10000, vdrHeaders).then(parseVidrock).catch(function () {
+        var hdrsB64 = btoa(JSON.stringify({
+          'Referer': VIDROCK_ORIGIN + '/',
+          'Origin': VIDROCK_ORIGIN
+        }));
+        var proxyUrl = PROXY_URL + '/?url=' + encodeURIComponent(apiUrl) + '&headers=' + encodeURIComponent(hdrsB64);
+        return xhrGet(proxyUrl, 10000).then(parseVidrock).catch(function () {
+          return null;
         });
+      });
     }).catch(function (e) {
       console.log('[StreamResolver] Vidrock error:', e.message);
+      return null;
+    });
+  }
+
+  // ── SuperEmbed / seapi.link ───────────────────────────
+  // JSON API: GET https://seapi.link/?type=tmdb&id={ID}&max_results=3
+  // Returns array of {url, quality?, ...} objects with direct HLS stream URLs.
+  // Always routed through CF Worker (CORS bypass + Tizen TLS compat).
+  // DNS currently intermittent — fails gracefully when domain is unreachable.
+  var SEAPI_URL = 'https://seapi.link';
+  function resolveSeapi(tmdbId, type, season, episode) {
+    var qs = '?type=tmdb&id=' + tmdbId + '&max_results=3';
+    if (type === 'tv') qs += '&season=' + (season || 1) + '&episode=' + (episode || 1);
+    var apiUrl = SEAPI_URL + '/' + qs;
+    var proxyUrl = PROXY_URL + '/?url=' + encodeURIComponent(apiUrl);
+    return xhrGet(proxyUrl, 10000).then(function (text) {
+      var arr;
+      try {
+        arr = JSON.parse(text);
+      } catch (e) {
+        return null;
+      }
+      // Handle both array and {results:[]} envelope formats
+      if (arr && arr.results) arr = arr.results;
+      if (!Array.isArray(arr) || !arr.length) return null;
+      var hlsSources = arr.filter(function (s) {
+        return s && s.url;
+      });
+      if (!hlsSources.length) return null;
+
+      // Pick highest quality — prefer 1080p then 720p then first
+      function match(s, q) {
+        return (s.quality || '') === q || (s.label || '') === q;
+      }
+      var best = hlsSources.find(function (s) {
+        return match(s, '1080p');
+      }) || hlsSources.find(function (s) {
+        return match(s, '720p');
+      }) || hlsSources[0];
+      var qualities = hlsSources.map(function (s) {
+        return {
+          label: s.quality || s.label || 'Auto',
+          url: s.url
+        };
+      });
+      console.log('[StreamResolver] Seapi OK ' + (best.quality || '') + ':', best.url.slice(0, 60));
+      return {
+        url: best.url,
+        headers: {},
+        qualities: qualities
+      };
+    }).catch(function () {
       return null;
     });
   }
@@ -320,14 +373,20 @@ var StreamResolver = function () {
   }
 
   // ── Public API ─────────────────────────────────────────
+  // Embed scraping is useless on TV (AVPlay can't play iframe embeds) — skip it
+  var _isTV = typeof webapis !== 'undefined' && !!webapis.avplay;
   function resolveMovie(tmdbId, title, year) {
     console.log('[StreamResolver] resolveMovie', tmdbId, title);
     return resolveVideasy(tmdbId, 'movie', title, year, null, null).then(function (result) {
       if (result) return result;
-      console.log('[StreamResolver] Videasy failed, trying Vidrock...');
-      return resolveVidrock(tmdbId, 'movie', null, null);
+      console.log('[StreamResolver] Videasy failed, trying Seapi...');
+      return resolveSeapi(tmdbId, 'movie', null, null);
     }).then(function (result) {
       if (result) return result;
+      console.log('[StreamResolver] Seapi failed, trying Vidrock...');
+      return resolveVidrock(tmdbId, 'movie', null, null);
+    }).then(function (result) {
+      if (result || _isTV) return result;
       console.log('[StreamResolver] Vidrock failed, scraping embeds...');
       return tryScrapeUrls(['https://vidsrc.me/embed/movie?tmdb=' + tmdbId, 'https://multiembed.mov/?video_id=' + tmdbId + '&tmdb=1']);
     }).catch(function (e) {
@@ -339,10 +398,14 @@ var StreamResolver = function () {
     console.log('[StreamResolver] resolveTVEpisode', tmdbId, 'S' + season + 'E' + episode);
     return resolveVideasy(tmdbId, 'tv', title, null, season, episode).then(function (result) {
       if (result) return result;
-      console.log('[StreamResolver] Videasy failed, trying Vidrock...');
-      return resolveVidrock(tmdbId, 'tv', season, episode);
+      console.log('[StreamResolver] Videasy failed, trying Seapi...');
+      return resolveSeapi(tmdbId, 'tv', season, episode);
     }).then(function (result) {
       if (result) return result;
+      console.log('[StreamResolver] Seapi failed, trying Vidrock...');
+      return resolveVidrock(tmdbId, 'tv', season, episode);
+    }).then(function (result) {
+      if (result || _isTV) return result;
       console.log('[StreamResolver] Vidrock failed, scraping embeds...');
       return tryScrapeUrls(['https://vidsrc.xyz/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode, 'https://vidsrc.me/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode]);
     }).catch(function (e) {

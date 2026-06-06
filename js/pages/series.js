@@ -49,7 +49,7 @@
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
           </div>
-          <div class="card-prog" id="cprog-${show.id}"></div>
+          <div class="card-prog" id="cprog-${show.id}" data-type="tv"></div>
         </div>
       </div>`;
   }

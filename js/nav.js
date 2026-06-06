@@ -84,10 +84,17 @@ const Nav = (() => {
     if (scroller) {
       const er = rect(el);
       const sr = rect(scroller);
-      if (er.left < sr.left + 40) {
-        scroller.scrollLeft -= sr.left - er.left + 60;
-      } else if (er.right > sr.right - 40) {
-        scroller.scrollLeft += er.right - sr.right + 60;
+      // Horizontal scroll (card rows) — wider margin so the full card is visible
+      if (er.left < sr.left + 60) {
+        scroller.scrollLeft -= sr.left - er.left + 80;
+      } else if (er.right > sr.right - 60) {
+        scroller.scrollLeft += er.right - sr.right + 80;
+      }
+      // Vertical scroll (episode list, similar/watchlist panel)
+      if (er.top < sr.top + 20) {
+        scroller.scrollTop -= sr.top - er.top + 40;
+      } else if (er.bottom > sr.bottom - 20) {
+        scroller.scrollTop += er.bottom - sr.bottom + 40;
       }
     }
 
@@ -150,6 +157,9 @@ const Nav = (() => {
 
   // After a page renders, focus the default element (first or marked default)
   function reset(container) {
+    // Remove nav-focused from current element before clearing — prevents stale class
+    // staying on sidebar items when player opens and confusing the player key listener.
+    if (_current) _current.classList.remove('nav-focused');
     _current = null;
     const preferred = (container || document).querySelector('[data-nav-default]');
     // Prefer elements inside the container — avoids focusing the main sidebar
