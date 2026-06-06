@@ -106,11 +106,11 @@ var StreamResolver = (function() {
       if (idx >= VIDEASY_ENDPOINTS.length) return Promise.resolve(null);
 
       var apiUrl = VIDEASY_ENDPOINTS[idx] + '?' + qs;
-      // Route through proxy — the proxy injects Origin/Referer: cineby.sc which
-      // Videasy now requires. Direct browser calls can't set these headers.
-      var proxyApiUrl = PROXY_URL + '/?url=' + encodeURIComponent(apiUrl);
-      return xhrGet(proxyApiUrl, 10000, {
+      // Videasy has Access-Control-Allow-Origin: * and accepts any origin.
+      // CF/Deno proxies cannot reach api.videasy.net (datacenter IP block) — call directly.
+      return xhrGet(apiUrl, 10000, {
         'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': VIDEASY_ORIGIN + '/',
       }).then(function(hexBlob) {
           if (!hexBlob || hexBlob.length < 20) return tryEndpoint(idx + 1);
 
@@ -348,12 +348,7 @@ var StreamResolver = (function() {
     return resolveVideasy(tmdbId, 'movie', title, year, null, null)
       .then(function(result) {
         if (result) return result;
-        console.log('[StreamResolver] Videasy failed, trying Seapi...');
-        return resolveSeapi(tmdbId, 'movie', null, null);
-      })
-      .then(function(result) {
-        if (result) return result;
-        console.log('[StreamResolver] Seapi failed, trying Vidrock...');
+        console.log('[StreamResolver] Videasy failed, trying Vidrock...');
         return resolveVidrock(tmdbId, 'movie', null, null);
       })
       .then(function(result) {
@@ -375,12 +370,7 @@ var StreamResolver = (function() {
     return resolveVideasy(tmdbId, 'tv', title, null, season, episode)
       .then(function(result) {
         if (result) return result;
-        console.log('[StreamResolver] Videasy failed, trying Seapi...');
-        return resolveSeapi(tmdbId, 'tv', season, episode);
-      })
-      .then(function(result) {
-        if (result) return result;
-        console.log('[StreamResolver] Seapi failed, trying Vidrock...');
+        console.log('[StreamResolver] Videasy failed, trying Vidrock...');
         return resolveVidrock(tmdbId, 'tv', season, episode);
       })
       .then(function(result) {

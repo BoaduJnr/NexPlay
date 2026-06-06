@@ -15,10 +15,18 @@
   let _channelOffset     = 0;
   let _chanScrollHandler = null;
   let _showWorkingOnly   = false;
+  let _showFavsOnly      = false;
+
+  // Background channel scan state
+  let _scanActive = false;
+  let _scanStop   = false;
 
   // P2: multi-stream state
   let _streamUrls  = [];
   let _streamIdx   = 0;
+
+  // EPG panel state
+  let _epgOpen = false;
 
   // P3: stall detection + auto-recovery
   let _stallCount      = 0;
@@ -48,7 +56,29 @@
   function startKeyListener() {
     if (_keyListener) return;
     _keyListener = function(e) {
+      // RED key: toggle favourite on the focused card OR the active channel.
+      // Works whether or not a channel is currently playing.
+      if (e.keyCode === 403 || e.keyCode === Config.KEYS.RED) {
+        var focusedCard = document.querySelector('.nav-focused[data-channel-id]');
+        var targetId    = focusedCard ? focusedCard.dataset.channelId : null;
+        var targetCh    = targetId
+          ? (_filtered.find(function(c) { return c.id === targetId; }) || _activeChannel)
+          : _activeChannel;
+        if (targetCh) {
+          toggleChannelFavourite(targetCh);
+          if (_activeChannel) showUI();
+        }
+        e.stopPropagation(); e.preventDefault();
+        return;
+      }
       if (!_activeChannel) return;
+      // INFO key toggles the EPG schedule panel
+      if (e.keyCode === 457 || e.keyCode === Config.KEYS.INFO) {
+        toggleEPGPanel();
+        showUI();
+        e.stopPropagation(); e.preventDefault();
+        return;
+      }
       if (_uiHidden) {
         showUI();
         e.stopPropagation(); // absorb this key press — just reveal the UI
@@ -65,7 +95,12 @@
       _keyListener = null;
     }
     if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
-    showUI(); // always restore UI when leaving
+    // Restore UI visibility directly — don't call showUI() because it calls
+    // resetHideTimer() which schedules a future hideUI(). That stale timer would
+    // fire on the next IPTV visit and blank the sidebar within 4 seconds.
+    var page = document.getElementById('iptv-page');
+    if (page) page.classList.remove('iptv-ui-hidden');
+    _uiHidden = false;
   }
 
   const CATEGORY_LABELS = {
@@ -110,51 +145,87 @@
   function testChannelManifest(channelId, streamUrl) {
     return new Promise(function(resolve) {
       var stored = getChStatus(channelId);
-      if (stored === 'ok' || stored === 'fail') { resolve(); return; }
+      if (stored === 'ok' || stored === 'fail') {
+        console.log('[SCAN] skip ' + channelId + ' already=' + stored);
+        resolve(); return;
+      }
 
-      // Step 1 — direct request (no proxy)
-      var direct = new XMLHttpRequest();
-      direct.timeout = 5000;
-      direct.open('GET', streamUrl);
+      console.log('[SCAN] testing ' + channelId + ' url=' + (streamUrl || '').slice(0, 60));
 
-      direct.onload = function() {
-        if (direct.status >= 200 && direct.status < 400 && isHLS(direct.responseText)) {
-          // Direct success → channel works from user's network
-          setChStatus(channelId, 'ok');
-          updateChannelCard(channelId, 'ok');
+      var settled = false;
+      function done(reason) {
+        if (!settled) {
+          settled = true;
+          console.log('[SCAN] done ' + channelId + ' reason=' + reason + ' status=' + getChStatus(channelId));
           resolve();
-        } else {
-          tryViaProxy();
         }
+      }
+
+      // Step 1 — direct (manual timeout because Tizen 3.0 xhr.timeout is unreliable)
+      var direct = new XMLHttpRequest();
+      var directTimer = setTimeout(function() {
+        console.log('[SCAN] direct TIMEOUT ' + channelId + ' → proxy');
+        try { direct.abort(); } catch(e) {}
+        tryViaProxy();
+      }, 5000);
+
+      try { direct.open('GET', streamUrl); } catch(e) {
+        console.log('[SCAN] direct open ERROR ' + channelId + ': ' + e.message);
+        clearTimeout(directTimer); tryViaProxy(); return;
+      }
+      direct.onload = function() {
+        clearTimeout(directTimer);
+        console.log('[SCAN] direct onload ' + channelId + ' status=' + direct.status + ' hls=' + isHLS(direct.responseText));
+        if (direct.status >= 200 && direct.status < 400 && isHLS(direct.responseText)) {
+          setChStatus(channelId, 'ok'); updateChannelCard(channelId, 'ok');
+          done('direct-ok');
+        } else { tryViaProxy(); }
       };
-      direct.onerror   = function() { tryViaProxy(); }; // CORS or network → try proxy
-      direct.ontimeout = function() { tryViaProxy(); };
-      direct.send();
+      direct.onerror = function(e) {
+        clearTimeout(directTimer);
+        console.log('[SCAN] direct onerror ' + channelId);
+        tryViaProxy();
+      };
+      direct.onabort = function() { console.log('[SCAN] direct onabort ' + channelId); };
+      try { direct.send(); } catch(e) {
+        console.log('[SCAN] direct send ERROR ' + channelId + ': ' + e.message);
+        clearTimeout(directTimer); tryViaProxy();
+      }
 
       // Step 2 — proxy fallback
       function tryViaProxy() {
+        if (settled) return;
         var proxyUrl = PROXY_BASE + '/?url=' + encodeURIComponent(streamUrl);
+        console.log('[SCAN] proxy start ' + channelId);
         var xhr = new XMLHttpRequest();
-        xhr.timeout = 8000;
-        xhr.open('GET', proxyUrl);
+        var proxyTimer = setTimeout(function() {
+          console.log('[SCAN] proxy TIMEOUT ' + channelId);
+          try { xhr.abort(); } catch(e) {}
+          done('proxy-timeout');
+        }, 8000);
+
+        try { xhr.open('GET', proxyUrl); } catch(e) {
+          console.log('[SCAN] proxy open ERROR ' + channelId + ': ' + e.message);
+          clearTimeout(proxyTimer); done('proxy-open-err'); return;
+        }
         xhr.onload = function() {
+          clearTimeout(proxyTimer);
+          console.log('[SCAN] proxy onload ' + channelId + ' status=' + xhr.status + ' hls=' + isHLS(xhr.responseText));
           if (xhr.status >= 200 && xhr.status < 400) {
-            if (isHLS(xhr.responseText)) {
-              // Proxy confirms valid HLS → green
-              setChStatus(channelId, 'ok');
-              updateChannelCard(channelId, 'ok');
-            }
-            // else: proxy returned geo-blocked HTML → leave grey (TV may still play it)
-          } else {
-            // Definitive 4xx → red
-            setChStatus(channelId, 'fail');
-            updateChannelCard(channelId, 'fail');
-          }
-          resolve();
+            if (isHLS(xhr.responseText)) { setChStatus(channelId, 'ok'); updateChannelCard(channelId, 'ok'); }
+          } else { setChStatus(channelId, 'fail'); updateChannelCard(channelId, 'fail'); }
+          done('proxy-load');
         };
-        xhr.onerror   = function() { resolve(); }; // proxy error → leave grey
-        xhr.ontimeout = function() { resolve(); }; // timeout → leave grey
-        xhr.send();
+        xhr.onerror = function() {
+          clearTimeout(proxyTimer);
+          console.log('[SCAN] proxy onerror ' + channelId);
+          done('proxy-err');
+        };
+        xhr.onabort = function() { console.log('[SCAN] proxy onabort ' + channelId); done('proxy-abort'); };
+        try { xhr.send(); } catch(e) {
+          console.log('[SCAN] proxy send ERROR ' + channelId + ': ' + e.message);
+          clearTimeout(proxyTimer); done('proxy-send-err');
+        }
       }
     });
   }
@@ -170,6 +241,86 @@
       await Promise.all(chunk.map(function(ch) {
         return testChannelManifest(ch.id, ch.url);
       }));
+    }
+  }
+
+  // ── Full channel scan (background, cancellable) ───────────
+  // Capped at 300 channels — scanning thousands locks up Tizen 3.0 and hits CF proxy limits.
+  var SCAN_CAP = 300;
+
+  async function scanChannels() {
+    // Toggle: pressing while scanning cancels it
+    if (_scanActive) { _scanStop = true; return; }
+
+    var toTest = _filtered.filter(function(ch) {
+      return ch.url && getChStatus(ch.id) === 'unknown';
+    });
+    if (!toTest.length) {
+      _updateScanBtn('done', 0);
+      return;
+    }
+
+    // Hard cap: protect Tizen 3.0 from memory / event-loop overload
+    if (toTest.length > SCAN_CAP) {
+      _updateScanBtn('large', toTest.length);
+      return;
+    }
+
+    _scanActive = true;
+    _scanStop   = false;
+    var total = toTest.length;
+    var done  = 0;
+
+    var CONCURRENT = 3;
+    var BATCH_GAP  = 400;
+
+    console.log('[SCAN] starting ' + total + ' channels CONCURRENT=' + CONCURRENT);
+
+    for (var i = 0; i < toTest.length; i += CONCURRENT) {
+      if (_scanStop) { console.log('[SCAN] stopped at ' + done + '/' + total); break; }
+      var chunk = toTest.slice(i, i + CONCURRENT);
+      console.log('[SCAN] batch i=' + i + ' ids=' + chunk.map(function(c){return c.id;}).join(','));
+      await Promise.all(chunk.map(function(ch) {
+        return testChannelManifest(ch.id, ch.url).then(function() {
+          done++;
+          console.log('[SCAN] batch progress ' + done + '/' + total);
+          _updateScanBtn('progress', done, total);
+        });
+      }));
+      console.log('[SCAN] batch complete i=' + i + ' done=' + done + ' waiting ' + BATCH_GAP + 'ms');
+      if (!_scanStop) {
+        await new Promise(function(r) { setTimeout(r, BATCH_GAP); });
+      }
+      console.log('[SCAN] gap done, next batch');
+    }
+
+    _scanActive = false;
+    _scanStop   = false;
+    var working = _filtered.filter(function(ch) { return getChStatus(ch.id) === 'ok'; }).length;
+    _updateScanBtn('done', working);
+    setTimeout(function() { _updateScanBtn('idle'); }, 4000);
+  }
+
+  function _updateScanBtn(state, a, b) {
+    var btn = document.getElementById('iptv-scan-btn');
+    if (!btn) return;
+    btn.classList.remove('active');
+    if (state === 'idle') {
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>' +
+        '<span>Scan channels</span>';
+    } else if (state === 'progress') {
+      var pct = (b > 0) ? Math.round(a / b * 100) : 0;
+      btn.classList.add('active');
+      btn.innerHTML =
+        '<span class="scan-fill-bg" style="width:' + pct + '%"></span>' +
+        '<span class="scan-fill-text">Scanning ' + a + '/' + b + ' &nbsp;✕</span>';
+    } else if (state === 'done') {
+      btn.innerHTML =
+        '<span>✓ ' + (a ? a + ' working' : 'All tested') + '</span>';
+    } else if (state === 'large') {
+      btn.innerHTML =
+        '<span>Filter first (' + a + ' channels)</span>';
     }
   }
 
@@ -220,21 +371,27 @@
   }
 
   // ── Channel status — persisted in localStorage ───────────
-  var CH_STATUS_KEY = 'np_iptv_ch';
+  // In-memory cache so rendering 80+ cards doesn't parse localStorage 80+ times.
+  var CH_STATUS_KEY  = 'np_iptv_ch';
+  var _chStatusCache = null;
+
+  function _loadChCache() {
+    if (!_chStatusCache) {
+      try { _chStatusCache = JSON.parse(localStorage.getItem(CH_STATUS_KEY) || '{}'); }
+      catch(e) { _chStatusCache = {}; }
+    }
+  }
 
   function getChStatus(id) {
-    try {
-      var d = JSON.parse(localStorage.getItem(CH_STATUS_KEY) || '{}');
-      return d[id] || 'unknown'; // 'ok' | 'fail' | 'unknown'
-    } catch(e) { return 'unknown'; }
+    _loadChCache();
+    return _chStatusCache[id] || 'unknown';
   }
 
   function setChStatus(id, status) {
-    try {
-      var d = JSON.parse(localStorage.getItem(CH_STATUS_KEY) || '{}');
-      d[id] = status;
-      localStorage.setItem(CH_STATUS_KEY, JSON.stringify(d));
-    } catch(e) {}
+    _loadChCache();
+    _chStatusCache[id] = status;
+    try { localStorage.setItem(CH_STATUS_KEY, JSON.stringify(_chStatusCache)); }
+    catch(e) {}
   }
 
   function updateChannelCard(id, status) {
@@ -256,12 +413,14 @@
   }
 
   // ── Channel card (logo-first grid tile) ───────────────
-  function channelItem(ch, isActive) {
+  function channelItem(ch, isActive, favSet) {
     var initial = (ch.name || '?').trim()[0].toUpperCase();
     var logoSrc = channelLogoUrl(ch);
-    // Status comes only from actual play attempts — no pre-marking from stream-set
-    // (79% of channels have ID mismatches vs streams.json so pre-marking causes false reds)
-    var status = getChStatus(ch.id);
+    var status  = getChStatus(ch.id);
+    var nowProg = (typeof EPGClient !== 'undefined') ? EPGClient.getCurrent(ch.id) : null;
+    // Use pre-built favSet when available (avoids per-card localStorage read)
+    var isFav   = favSet ? !!favSet[ch.id]
+                : (typeof NexPlayDB !== 'undefined' ? NexPlayDB.isFavourite(ch.id, 'channel') : false);
 
     return `
       <div class="channel-item ${isActive ? 'active' : ''}"
@@ -271,7 +430,11 @@
           ${logoSrc ? `<img src="${logoSrc}" alt="${ch.name}" loading="eager" onerror="this.style.display='none'">` : ''}
           <span class="ch-status ch-status-${status}"></span>
         </div>
-        <div class="channel-name">${ch.name || ''}</div>
+        <div class="ch-name-wrap">
+          <div class="channel-name">${ch.name || ''}</div>
+          ${nowProg ? `<div class="ch-now-prog">${nowProg.title}</div>` : ''}
+        </div>
+        ${isFav ? '<span class="ch-fav-badge">&#9829;</span>' : ''}
       </div>`;
   }
 
@@ -427,6 +590,123 @@
     }
   }
 
+  // ── EPG helpers ────────────────────────────────────────
+  function renderChannelBar(channel) {
+    var bar = document.getElementById('iptv-channel-bar');
+    if (!bar) return;
+    var epg   = typeof EPGClient !== 'undefined';
+    var cur   = epg ? EPGClient.getCurrent(channel.id)       : null;
+    var next  = epg ? EPGClient.getNext(channel.id)          : null;
+    var pct   = epg ? EPGClient.currentProgress(channel.id)  : 0;
+    var cats  = (channel.categories || []).map(function(c) { return CATEGORY_LABELS[c] || c; }).join(' · ');
+
+    bar.innerHTML = `
+      <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+      <div class="channel-logo" style="width:36px;height:36px;flex-shrink:0;">
+        ${channel.logo ? `<img src="${channel.logo}" style="width:100%;height:100%;object-fit:contain;padding:2px;" onerror="this.style.display='none'">` : ''}
+      </div>
+      <div class="iptv-bar-info">
+        <div class="iptv-bar-name">${channel.name}</div>
+        ${cur ? `
+          <div class="iptv-bar-prog">
+            <span class="iptv-prog-label">NOW</span>
+            <span class="iptv-prog-title">${cur.title}</span>
+            <span class="iptv-prog-time">${EPGClient.formatTime(cur.start)}&ndash;${EPGClient.formatTime(cur.stop)}</span>
+          </div>
+          <div class="iptv-prog-bar"><div class="iptv-prog-fill" style="width:${pct.toFixed(1)}%"></div></div>
+          ${next ? `<div class="iptv-bar-prog iptv-bar-next">
+            <span class="iptv-prog-label">NEXT</span>
+            <span class="iptv-prog-title">${next.title}</span>
+            <span class="iptv-prog-time">${EPGClient.formatTime(next.start)}</span>
+          </div>` : ''}
+        ` : `<div class="iptv-bar-meta">${cats || ''}</div>`}
+      </div>
+      <button class="iptv-guide-btn${_epgOpen ? ' active' : ''}" id="iptv-guide-btn" data-nav tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <path d="M7 8h10M7 12h6M7 16h4"/>
+        </svg>
+        Guide
+      </button>`;
+
+    var guideBtn = document.getElementById('iptv-guide-btn');
+    if (guideBtn) guideBtn.addEventListener('click', function() { toggleEPGPanel(); });
+  }
+
+  function toggleEPGPanel() {
+    _epgOpen = !_epgOpen;
+    if (_epgOpen) {
+      renderEPGPanel();
+    } else {
+      var panel = document.getElementById('iptv-epg-panel');
+      if (panel) panel.parentNode.removeChild(panel);
+    }
+    // Refresh guide button active state
+    var btn = document.getElementById('iptv-guide-btn');
+    if (btn) btn.classList.toggle('active', _epgOpen);
+  }
+
+  function renderEPGPanel() {
+    if (!_activeChannel) return;
+    var playerArea = document.getElementById('iptv-player-area');
+    if (!playerArea) return;
+
+    var existing = document.getElementById('iptv-epg-panel');
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var progs = (typeof EPGClient !== 'undefined') ? EPGClient.getToday(_activeChannel.id) : null;
+    var now   = Date.now();
+    var chName = _activeChannel.name || '';
+
+    var panel = document.createElement('div');
+    panel.id        = 'iptv-epg-panel';
+    panel.className = 'iptv-epg-panel';
+
+    if (!progs || !progs.length) {
+      panel.innerHTML = `
+        <div class="epg-panel-header">
+          <span>Programme Guide</span>
+          <span class="epg-panel-ch">${chName}</span>
+        </div>
+        <div class="epg-no-data">
+          No schedule available<br>
+          <span style="font-size:11px;opacity:0.6;">EPG data is limited to certain channels</span>
+        </div>`;
+    } else {
+      var items = progs.map(function(p) {
+        var isCur  = p.start <= now && p.stop > now;
+        var isPast = p.stop < now;
+        var pBar   = isCur ? Math.min(100, (now - p.start) / (p.stop - p.start) * 100) : 0;
+        var dur    = p.stop > p.start ? Math.round((p.stop - p.start) / 60000) + 'm' : '';
+        return `
+          <div class="epg-item${isCur ? ' epg-current' : ''}${isPast ? ' epg-past' : ''}">
+            <div class="epg-item-time">${(typeof EPGClient !== 'undefined') ? EPGClient.formatTime(p.start) : ''}</div>
+            <div class="epg-item-body">
+              <div class="epg-item-title">${p.title || ''}</div>
+              ${dur ? `<div class="epg-item-dur">${dur}</div>` : ''}
+              ${isCur && pBar > 0 ? `<div class="epg-item-prog-bar"><div class="epg-item-prog-fill" style="width:${pBar.toFixed(1)}%"></div></div>` : ''}
+              ${p.desc && !isPast ? `<div class="epg-item-desc">${p.desc.slice(0, 80)}${p.desc.length > 80 ? '&hellip;' : ''}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+      panel.innerHTML = `
+        <div class="epg-panel-header">
+          <span>Today's Schedule</span>
+          <span class="epg-panel-ch">${chName}</span>
+        </div>
+        <div class="epg-list" id="epg-list" data-scroll>${items}</div>`;
+    }
+
+    playerArea.appendChild(panel);
+
+    // Scroll the current programme into view
+    var curEl = panel.querySelector('.epg-current');
+    if (curEl) {
+      setTimeout(function() { curEl.scrollIntoView({ block: 'center' }); }, 80);
+    }
+  }
+
   // ── Play a channel ─────────────────────────────────────
   async function playChannel(channel) {
     _activeChannel = channel;
@@ -448,19 +728,12 @@
       el.classList.toggle('active', el.dataset.channelId === channel.id);
     });
 
-    // Update channel bar
-    const bar = document.getElementById('iptv-channel-bar');
-    if (bar) {
-      bar.innerHTML = `
-        <div class="live-badge"><div class="live-dot"></div> LIVE</div>
-        <div class="channel-logo" style="width:36px;height:36px;">
-          ${channel.logo ? `<img src="${channel.logo}" style="width:100%;height:100%;object-fit:contain;padding:2px;">` : ''}
-        </div>
-        <div>
-          <div class="iptv-bar-name">${channel.name}</div>
-          <div class="iptv-bar-meta">${(channel.categories || []).map(c => CATEGORY_LABELS[c] || c).join(' · ')}</div>
-        </div>`;
-    }
+    // Update channel bar (immediate render, then refresh once EPG loads)
+    renderChannelBar(channel);
+    // Close any open EPG panel — it belongs to the previous channel
+    _epgOpen = false;
+    var oldPanel = document.getElementById('iptv-epg-panel');
+    if (oldPanel) oldPanel.parentNode.removeChild(oldPanel);
 
     const playerArea = document.getElementById('iptv-player-area');
     if (playerArea) {
@@ -489,10 +762,79 @@
     if (!playWithAvPlay(_streamUrls[0], playerArea)) {
       playWithHTML5(_streamUrls[0], playerArea);
     }
+
+    // Fetch EPG for this channel; refresh the bar when data arrives
+    if (typeof EPGClient !== 'undefined') {
+      EPGClient.fetchProgrammes(channel.id).then(function() {
+        // Only refresh if still on the same channel
+        if (_activeChannel && _activeChannel.id === channel.id) {
+          renderChannelBar(channel);
+          // Also update this channel's card to show now-playing text
+          updateChannelCard(channel.id, getChStatus(channel.id));
+        }
+      }).catch(function() {});
+    }
+  }
+
+  // ── Channel favourites ────────────────────────────────────
+  function toggleChannelFavourite(channel) {
+    if (typeof NexPlayDB === 'undefined') return;
+    var added = NexPlayDB.toggleFavourite(channel.id, 'channel', channel.name, channel.logo || '');
+    if (typeof App !== 'undefined') {
+      App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
+    }
+    // Update card badge in the list
+    var card = document.querySelector('[data-channel-id="' + channel.id + '"]');
+    if (card) {
+      var old = card.querySelector('.ch-fav-badge');
+      if (added && !old) {
+        var badge = document.createElement('span');
+        badge.className = 'ch-fav-badge';
+        badge.innerHTML = '♥';
+        card.appendChild(badge);
+      } else if (!added && old) {
+        old.parentNode.removeChild(old);
+      }
+    }
+    // If favourites-only filter is on and we unfavourited, refresh list
+    if (_showFavsOnly && !added) { applyFavFilter(true); }
+  }
+
+  function applyFavFilter(show) {
+    _showFavsOnly = show;
+    var btn = document.getElementById('iptv-fav-toggle');
+    if (btn) btn.classList.toggle('active', show);
+
+    var list = document.getElementById('iptv-channel-list');
+    if (!list) return;
+    if (_chanScrollHandler) {
+      list.removeEventListener('scroll', _chanScrollHandler);
+      _chanScrollHandler = null;
+    }
+    _channelOffset = 0;
+    list.innerHTML = '';
+
+    var display = getDisplayList();
+    if (!display.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">'
+        + (show ? 'No favourite channels yet — press ♥ RED while watching to add one.' : 'No channels found.')
+        + '</div>';
+      return;
+    }
+    appendChannelBatch();
+    if (display.length > CHANNEL_BATCH) {
+      _chanScrollHandler = function() {
+        if (list.scrollHeight - list.scrollTop - list.clientHeight < 300) appendChannelBatch();
+      };
+      list.addEventListener('scroll', _chanScrollHandler);
+    }
   }
 
   // ── Working-only filter ────────────────────────────────────
   function getDisplayList() {
+    if (_showFavsOnly && typeof NexPlayDB !== 'undefined') {
+      return _filtered.filter(function(ch) { return NexPlayDB.isFavourite(ch.id, 'channel'); });
+    }
     if (_showWorkingOnly) {
       return _filtered.filter(function(ch) { return getChStatus(ch.id) === 'ok'; });
     }
@@ -548,6 +890,11 @@
         var sr = list.getBoundingClientRect();
         if (er.bottom > sr.bottom - 40) list.scrollTop += er.bottom - sr.bottom + 60;
         else if (er.top < sr.top + 40)  list.scrollTop -= sr.top  - er.top   + 60;
+        // Tizen 3.0: programmatic scrollTop changes don't fire scroll events,
+        // so the scroll-based batch loader never triggers. Check manually.
+        if (list.scrollHeight - list.scrollTop - list.clientHeight < 400) {
+          appendChannelBatch();
+        }
       });
     });
   }
@@ -559,14 +906,25 @@
     if (!list || _channelOffset >= display.length) return;
     var batch = display.slice(_channelOffset, _channelOffset + CHANNEL_BATCH);
     _channelOffset += CHANNEL_BATCH;
+
+    // Pre-build favourite set once for this batch — avoids one localStorage read per card.
+    var favSet = {};
+    if (typeof NexPlayDB !== 'undefined') {
+      NexPlayDB.getFavourites(1000).forEach(function(f) {
+        if (f.type === 'channel') favSet[f.id] = true;
+      });
+    }
+
     batch.forEach(function(ch) {
       var tmp = document.createElement('div');
-      tmp.innerHTML = channelItem(ch, _activeChannel && _activeChannel.id === ch.id);
+      tmp.innerHTML = channelItem(ch, _activeChannel && _activeChannel.id === ch.id, favSet);
       var item = tmp.firstElementChild;
       if (item) { list.appendChild(item); bindChannelItems([item]); }
     });
-    // Background manifest check — test first 20 per batch (keeps XHR volume manageable)
-    testVisibleChannels(batch.slice(0, 20));
+
+    // Defer the XHR burst so the UI can paint before network requests start.
+    var batchCopy = batch.slice(0, 20);
+    setTimeout(function() { testVisibleChannels(batchCopy); }, 1200);
   }
 
   // ── Refresh filtered channel list ──────────────────────
@@ -599,6 +957,22 @@
       // Render first batch
       list.innerHTML = '';
       appendChannelBatch();
+
+      // Defer EPG prefetch — give the TV JS engine time to paint the channel list first
+      if (typeof EPGClient !== 'undefined') {
+        setTimeout(function() {
+          var ids = _filtered.slice(0, 30).map(function(ch) { return ch.id; });
+          EPGClient.prefetch(ids);
+        }, 3000);
+      }
+
+      // Update scan button label to reflect current list size
+      var unknownCount = _filtered.filter(function(ch) { return ch.url && getChStatus(ch.id) === 'unknown'; }).length;
+      if (unknownCount > SCAN_CAP) {
+        _updateScanBtn('large', unknownCount);
+      } else {
+        _updateScanBtn('idle');
+      }
 
       // Scroll-based loading for remaining batches
       if (getDisplayList().length > CHANNEL_BATCH) {
@@ -676,10 +1050,22 @@
               class="iptv-working-btn${_selCountry === 'GH' ? ' active' : ''}" style="margin-top:8px;">
               🇬🇭 Ghana Direct
             </button>
+            <button id="iptv-fav-toggle" data-nav tabindex="0"
+              class="iptv-working-btn${_showFavsOnly ? ' active' : ''}">
+              <span style="color:#f87171;font-size:13px;flex-shrink:0;">♥</span>
+              Favourites only
+            </button>
             <button id="iptv-working-toggle" data-nav tabindex="0"
               class="iptv-working-btn${_showWorkingOnly ? ' active' : ''}">
               <span class="ch-status ch-status-ok" style="position:static;width:9px;height:9px;display:inline-block;flex-shrink:0;"></span>
               Working channels only
+            </button>
+            <button id="iptv-scan-btn" data-nav tabindex="0"
+              class="iptv-working-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              Scan channels
             </button>
           </div>
 
@@ -715,6 +1101,9 @@
 
     Nav.reset(container);
 
+    // Start key listener immediately so RED works on channel cards without playing first
+    startKeyListener();
+
     // Wire initial empty dropdowns then rebuild with real data
     TVDropdown.mount('iptv-country', v => { _selCountry = v; refreshChannels(); });
     TVDropdown.mount('iptv-category', v => { _selCategory = v; refreshChannels(); });
@@ -726,6 +1115,18 @@
         _selCountry = _selCountry === 'GH' ? '' : 'GH';
         ghanaBtn.classList.toggle('active', _selCountry === 'GH');
         refreshChannels();
+      });
+    }
+
+    // Scan button
+    var scanBtn = document.getElementById('iptv-scan-btn');
+    if (scanBtn) scanBtn.addEventListener('click', function() { scanChannels(); });
+
+    // Favourites-only toggle
+    var favToggle = document.getElementById('iptv-fav-toggle');
+    if (favToggle) {
+      favToggle.addEventListener('click', function() {
+        applyFavFilter(!_showFavsOnly);
       });
     }
 
@@ -763,9 +1164,13 @@
     _chanScrollHandler  = null;
     _channelOffset      = 0;
     _showWorkingOnly    = false;
+    _showFavsOnly       = false;
+    _scanStop           = true;   // cancel any running scan
+    _scanActive         = false;
     _streamUrls         = [];
     _streamIdx          = 0;
     _reconnectCount     = 0;
+    _epgOpen            = false;
     resetStall();
   }
 

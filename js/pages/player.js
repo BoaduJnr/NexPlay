@@ -44,6 +44,10 @@
   let _qualityHeaders = null; // headers from the resolved stream — reused on quality change
   let _streamErrorRetries = 0; // re-resolution attempts before falling back to embed scraping
 
+  // ── Seek-bar scrub state ───────────────────────────────
+  var _seekMode    = false;  // true while user is scrubbing the progress bar
+  var _seekPreview = 0;      // target position (ms) being previewed
+
   function showPlayerUI() {
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.remove('player-ui-hidden');
@@ -65,9 +69,16 @@
   }
 
   function hidePlayerUI() {
+    // Never auto-hide while the user is scrubbing the progress bar
+    if (_seekMode) return;
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.add('player-ui-hidden');
     _uiHidden = true;
+  }
+
+  function resetHideTimer() {
+    if (_hideTimer) clearTimeout(_hideTimer);
+    _hideTimer = setTimeout(hidePlayerUI, 4000);
   }
 
   var PLAY_PATH  = 'M8 5v14l11-7z';
@@ -129,6 +140,43 @@
       setPlayerStatus('Seek not available for this stream');
       setTimeout(function() { setPlayerStatus(''); }, 2000);
     }
+  }
+
+  // ── Seek-bar scrub helpers ────────────────────────────
+  function getPlayDur() {
+    if (_durationMs > 0) return _durationMs;
+    try { if (typeof webapis !== 'undefined' && webapis.avplay) return webapis.avplay.getDuration(); } catch(e) {}
+    var vid = document.getElementById('web-video');
+    if (vid && vid.duration) return vid.duration * 1000;
+    return 0;
+  }
+
+  function updateSeekPreview(posMs) {
+    var dur = getPlayDur() || 1;
+    var pct = Math.min(100, Math.max(0, posMs / dur * 100)).toFixed(1);
+    var fill  = document.getElementById('progress-fill');
+    var time  = document.getElementById('player-time');
+    var track = document.getElementById('seek-track');
+    if (fill)  fill.style.width = pct + '%';
+    if (time)  time.textContent = '▶ ' + formatTime(posMs) + ' / ' + formatTime(dur);
+    if (track) track.classList.add('seeking');
+  }
+
+  function commitSeek() {
+    var target = _seekPreview;
+    _seekMode = false; _seekPreview = 0;
+    var track = document.getElementById('seek-track');
+    if (track) track.classList.remove('seeking');
+    var vid = document.getElementById('web-video');
+    if (vid) { vid.currentTime = target / 1000; return; }
+    try { if (typeof webapis !== 'undefined' && webapis.avplay) webapis.avplay.seekTo(Math.max(0, target)); }
+    catch(e) { setPlayerStatus('Seek not available'); setTimeout(function(){setPlayerStatus('');},2000); }
+  }
+
+  function cancelSeek() {
+    _seekMode = false; _seekPreview = 0;
+    var track = document.getElementById('seek-track');
+    if (track) track.classList.remove('seeking');
   }
 
   function goNextEpisode() {
@@ -199,14 +247,33 @@
         closePlayer(); return;
       }
 
-      // ── Seek via LEFT/RIGHT when progress track is focused ──────
+      // ── Seek-bar scrub (LEFT/RIGHT to preview, ENTER to commit) ─
       var focusedEl = document.querySelector('.nav-focused');
-      var onTrack = focusedEl && focusedEl.id === 'seek-track';
+      var onTrack   = focusedEl && focusedEl.id === 'seek-track';
+
+      // Cancel scrub mode if focus has left the seek track
+      if (_seekMode && !onTrack) cancelSeek();
+
       if (onTrack && (k === 37 || k === Config.KEYS.LEFT)) {
-        seekRelative(-15000); e.stopPropagation(); e.preventDefault(); return;
+        if (!_seekMode) { _seekMode = true; _seekPreview = capturePos() || 0; }
+        _seekPreview = Math.max(0, _seekPreview - 15000);
+        updateSeekPreview(_seekPreview);
+        resetHideTimer(); // keep UI visible while scrubbing
+        e.stopPropagation(); e.preventDefault(); return;
       }
       if (onTrack && (k === 39 || k === Config.KEYS.RIGHT)) {
-        seekRelative(15000); e.stopPropagation(); e.preventDefault(); return;
+        if (!_seekMode) { _seekMode = true; _seekPreview = capturePos() || 0; }
+        _seekPreview = Math.min(getPlayDur() || Infinity, _seekPreview + 15000);
+        updateSeekPreview(_seekPreview);
+        resetHideTimer(); // keep UI visible while scrubbing
+        e.stopPropagation(); e.preventDefault(); return;
+      }
+
+      // ── Enter: commit scrub seek if on seek track ──────────
+      if ((k === Config.KEYS.ENTER || k === 13) && _seekMode && onTrack) {
+        commitSeek();
+        showPlayerUI();
+        e.stopPropagation(); e.preventDefault(); return;
       }
 
       // ── Enter: allow on Back, control buttons and dropdown elements ─
@@ -566,14 +633,10 @@
       hls.on(Hls.Events.ERROR, function(ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          _streamErrorRetries++;
-          if (_streamErrorRetries <= 2) {
-            setPlayerStatus('Reconnecting...');
-            loadBestSource();
-          } else {
-            _streamErrorRetries = 0;
-            trySource(0);
-          }
+          // Skip loadBestSource retries for web — re-resolving gets the same broken CDN URL.
+          // Fall straight to embed iframe so the user doesn't wait 24+ extra seconds.
+          _streamErrorRetries = 0;
+          trySource(0);
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -791,7 +854,7 @@
 
     const seasonOptions = seasons.map(s => ({
       value: String(s.season_number),
-      label: `Season ${s.season_number}  (${s.episode_count} eps)`,
+      label: (s.season_number === _currentSeason ? '▶  ' : '') + `Season ${s.season_number}  (${s.episode_count} eps)`,
     }));
 
     panel.innerHTML = `
@@ -806,7 +869,7 @@
       _currentSeason  = parseInt(v);
       _currentEpisode = 1;
       loadEpisodes(_currentSeason);
-      loadBestSource();
+      // No loadBestSource() here — playback only starts when an episode is clicked
     });
 
     loadEpisodes(_currentSeason);
@@ -843,6 +906,18 @@
           _currentEpisode = parseInt(el.dataset.ep);
           list.querySelectorAll('[data-ep]').forEach(e => e.classList.remove('active'));
           el.classList.add('active');
+          // Sync the play icon in season dropdown to the now-playing season
+          document.querySelectorAll('[data-tdd-opt="season-dd"]').forEach(function(opt) {
+            var span = opt.querySelector('span');
+            if (!span) return;
+            var text = span.textContent.replace(/^▶\s+/, '');
+            span.textContent = (parseInt(opt.dataset.value) === _currentSeason) ? '▶  ' + text : text;
+          });
+          var trigLbl = document.getElementById('tdd-label-season-dd');
+          if (trigLbl) {
+            var txt = trigLbl.textContent.replace(/^▶\s+/, '');
+            trigLbl.textContent = '▶  ' + txt;
+          }
           loadBestSource();
         });
       });
@@ -979,6 +1054,8 @@
     _qualityHeaders      = null;
     _resumePos           = 0;
     _streamErrorRetries  = 0;
+    _seekMode            = false;
+    _seekPreview         = 0;
 
     const isTV = params.type === 'tv';
     const modal = document.getElementById('player-modal');
@@ -1039,7 +1116,7 @@
         </div>
       </div>
 
-      <div class="player-info-bar" style="${isTV ? 'margin-right:300px;' : 'margin-right:240px;'}">
+      <div class="player-info-bar" style="${isTV ? 'right:300px;' : 'right:240px;'}">
         <div style="-webkit-flex:1;flex:1;min-width:0;">
           <div class="player-title" id="player-title">Loading...</div>
           <div class="player-meta" id="player-meta"></div>

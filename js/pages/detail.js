@@ -7,7 +7,7 @@ const DetailPage = (() => {
       <div id="detail-page" style="min-height:1080px;position:relative;">
         <div id="detail-backdrop" style="position:absolute;top:0;left:0;right:0;height:540px;background:#111;z-index:0;">
           <div id="detail-backdrop-img" style="width:100%;height:100%;background-size:cover;background-position:center top;"></div>
-          <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,#09090f 100%);"></div>
+          <div class="detail-grad-overlay" style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,#09090f 100%);"></div>
         </div>
         <div style="position:relative;z-index:1;padding:320px 72px 60px;">
           <div id="detail-content" style="max-width:700px;">
@@ -49,7 +49,7 @@ const DetailPage = (() => {
       const isFav = NexPlayDB.isFavourite(id, type);
       const isWL  = NexPlayDB.isInWatchlist(id, type);
 
-      favBtn.innerHTML = isFav ? '&#9829; Favourited' : '&#9825; Favourite';
+      favBtn.innerHTML = isFav ? '&#9829; In Favourites' : '&#9825; Favourite';
       favBtn.style.color = isFav ? '#f87171' : '';
       wlBtn.innerHTML  = isWL  ? '&#10003; In Watchlist' : '+ Watchlist';
       wlBtn.style.color = isWL ? '#4ade80' : '';

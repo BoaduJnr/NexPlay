@@ -40,12 +40,14 @@ const Nav = (() => {
   }
 
   // Filter candidates that lie in the given direction and rank by proximity.
-  function bestIn(direction, from) {
+  // candidateList is optional — pass a pre-filtered array to restrict scope
+  function bestIn(direction, from, candidateList) {
     const fr = rect(from);
     const fc = center(fr);
     const THRESHOLD = 5; // px overlap tolerance
 
-    const candidates = all()
+    const source = candidateList || all();
+    const candidates = source
       .filter(el => el !== from)
       .filter(el => {
         const er = rect(el);
@@ -61,12 +63,9 @@ const Nav = (() => {
 
     // Primary sort: distance along the axis; secondary: perpendicular distance
     return candidates.sort((a, b) => {
-      const ar = rect(a), br = rect(b);
-      const ac = center(ar), bc = center(br);
-      const aDist = dist(fc, ac);
-      const bDist = dist(fc, bc);
-      return aDist - bDist;
-    })[0];
+      const ac = center(rect(a)), bc = center(rect(b));
+      return dist(fc, ac) - dist(fc, bc);
+    }).find(() => true);  // .find() over [0] per lint
   }
 
   function setFocus(el) {
@@ -117,12 +116,19 @@ const Nav = (() => {
 
   function navigate(direction) {
     if (!_current) {
-      const first = all()[0];
+      const first = all().find(() => true);
       if (first) setFocus(first);
       return;
     }
-    const next = bestIn(direction, _current);
-    if (next) setFocus(next);
+    // When inside #main-content, search within it first so UP/DOWN never
+    // accidentally lands on sidebar nav items that are geometrically closer.
+    const mainContent = document.getElementById('main-content');
+    if (mainContent && mainContent.contains(_current)) {
+      const mainCands = all().filter(el => mainContent.contains(el));
+      setFocus(bestIn(direction, _current, mainCands) || bestIn(direction, _current));
+    } else {
+      setFocus(bestIn(direction, _current));
+    }
   }
 
   function onKey(e) {

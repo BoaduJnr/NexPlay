@@ -41,12 +41,14 @@ var Nav = function () {
   }
 
   // Filter candidates that lie in the given direction and rank by proximity.
-  function bestIn(direction, from) {
+  // candidateList is optional — pass a pre-filtered array to restrict scope
+  function bestIn(direction, from, candidateList) {
     var fr = rect(from);
     var fc = center(fr);
     var THRESHOLD = 5; // px overlap tolerance
 
-    var candidates = all().filter(function (el) {
+    var source = candidateList || all();
+    var candidates = source.filter(function (el) {
       return el !== from;
     }).filter(function (el) {
       var er = rect(el);
@@ -65,14 +67,12 @@ var Nav = function () {
 
     // Primary sort: distance along the axis; secondary: perpendicular distance
     return candidates.sort(function (a, b) {
-      var ar = rect(a),
-        br = rect(b);
-      var ac = center(ar),
-        bc = center(br);
-      var aDist = dist(fc, ac);
-      var bDist = dist(fc, bc);
-      return aDist - bDist;
-    })[0];
+      var ac = center(rect(a)),
+        bc = center(rect(b));
+      return dist(fc, ac) - dist(fc, bc);
+    }).find(function () {
+      return true;
+    }); // .find() over [0] per lint
   }
   function setFocus(el) {
     if (!el) return;
@@ -123,12 +123,23 @@ var Nav = function () {
   }
   function navigate(direction) {
     if (!_current) {
-      var first = all()[0];
+      var first = all().find(function () {
+        return true;
+      });
       if (first) setFocus(first);
       return;
     }
-    var next = bestIn(direction, _current);
-    if (next) setFocus(next);
+    // When inside #main-content, search within it first so UP/DOWN never
+    // accidentally lands on sidebar nav items that are geometrically closer.
+    var mainContent = document.getElementById('main-content');
+    if (mainContent && mainContent.contains(_current)) {
+      var mainCands = all().filter(function (el) {
+        return mainContent.contains(el);
+      });
+      setFocus(bestIn(direction, _current, mainCands) || bestIn(direction, _current));
+    } else {
+      setFocus(bestIn(direction, _current));
+    }
   }
   function onKey(e) {
     switch (e.keyCode) {

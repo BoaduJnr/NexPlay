@@ -133,10 +133,11 @@ var HomePage = function () {
     var el = document.getElementById('hero-dots');
     if (!el) return;
     el.style.cssText = 'position:absolute;bottom:20px;right:40px;display:flex;gap:6px;';
+    var accentDot = document.body.classList.contains('theme-calm') ? '#58a6ff' : '#7c3aed';
     el.innerHTML = Array.from({
       length: total
     }, function (_, i) {
-      return "<div style=\"width:".concat(i === current ? 24 : 8, "px;height:8px;border-radius:4px;\n        background:").concat(i === current ? '#7c3aed' : 'rgba(255,255,255,0.3)', ";\n        transition:all 300ms ease;\"></div>");
+      return "<div style=\"width:".concat(i === current ? 24 : 8, "px;height:8px;border-radius:4px;\n        background:").concat(i === current ? accentDot : 'rgba(255,255,255,0.3)', ";\n        transition:all 300ms ease;\"></div>");
     }).join('');
   }
   function rotateHero() {

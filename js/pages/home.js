@@ -109,9 +109,10 @@
     const el = document.getElementById('hero-dots');
     if (!el) return;
     el.style.cssText = 'position:absolute;bottom:20px;right:40px;display:flex;gap:6px;';
+    const accentDot = document.body.classList.contains('theme-calm') ? '#58a6ff' : '#7c3aed';
     el.innerHTML = Array.from({ length: total }, (_, i) =>
       `<div style="width:${i === current ? 24 : 8}px;height:8px;border-radius:4px;
-        background:${i === current ? '#7c3aed' : 'rgba(255,255,255,0.3)'};
+        background:${i === current ? accentDot : 'rgba(255,255,255,0.3)'};
         transition:all 300ms ease;"></div>`
     ).join('');
   }

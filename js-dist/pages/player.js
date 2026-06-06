@@ -31,6 +31,8 @@ var PlayerPage = function () {
       _qualityHeaders = null;
       _resumePos = 0;
       _streamErrorRetries = 0;
+      _seekMode = false;
+      _seekPreview = 0;
       var isTV = params.type === 'tv';
       var modal = document.getElementById('player-modal');
       if (!modal) return Promise.resolve();
@@ -39,7 +41,7 @@ var PlayerPage = function () {
       modal.innerHTML = "\n      <div class=\"player-header\" style=\"".concat(isTV ? 'margin-right:300px;' : 'margin-right:240px;', "\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>", "\n      </div>\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"").concat(isTV ? 'right:300px;' : 'right:240px;', "\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"").concat(isTV ? 'margin-right:300px;' : 'margin-right:240px;', "\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"").concat(isTV ? 'right:300px;' : 'right:240px;', "\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
@@ -209,6 +211,18 @@ var PlayerPage = function () {
                 return e.classList.remove('active');
               });
               el.classList.add('active');
+              // Sync the play icon in season dropdown to the now-playing season
+              document.querySelectorAll('[data-tdd-opt="season-dd"]').forEach(function (opt) {
+                var span = opt.querySelector('span');
+                if (!span) return;
+                var text = span.textContent.replace(/^▶\s+/, '');
+                span.textContent = parseInt(opt.dataset.value) === _currentSeason ? '▶  ' + text : text;
+              });
+              var trigLbl = document.getElementById('tdd-label-season-dd');
+              if (trigLbl) {
+                var txt = trigLbl.textContent.replace(/^▶\s+/, '');
+                trigLbl.textContent = '▶  ' + txt;
+              }
               loadBestSource();
             });
           });
@@ -238,7 +252,7 @@ var PlayerPage = function () {
         var seasonOptions = seasons.map(function (s) {
           return {
             value: String(s.season_number),
-            label: "Season ".concat(s.season_number, "  (").concat(s.episode_count, " eps)")
+            label: (s.season_number === _currentSeason ? '▶  ' : '') + "Season ".concat(s.season_number, "  (").concat(s.episode_count, " eps)")
           };
         });
         panel.innerHTML = "\n      <div class=\"ep-panel-header\">\n        ".concat(TVDropdown.html('season-dd', seasonOptions, String(_currentSeason)), "\n      </div>\n      <div class=\"episode-list\" id=\"episode-list\" data-scroll>\n        <div style=\"padding:12px;text-align:center;color:rgba(240,240,248,0.45);\">Loading...</div>\n      </div>");
@@ -246,7 +260,7 @@ var PlayerPage = function () {
           _currentSeason = parseInt(v);
           _currentEpisode = 1;
           loadEpisodes(_currentSeason);
-          loadBestSource();
+          // No loadBestSource() here — playback only starts when an episode is clicked
         });
         loadEpisodes(_currentSeason);
       }
@@ -324,6 +338,10 @@ var PlayerPage = function () {
   var _qualityHeaders = null; // headers from the resolved stream — reused on quality change
   var _streamErrorRetries = 0; // re-resolution attempts before falling back to embed scraping
 
+  // ── Seek-bar scrub state ───────────────────────────────
+  var _seekMode = false; // true while user is scrubbing the progress bar
+  var _seekPreview = 0; // target position (ms) being previewed
+
   function showPlayerUI() {
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.remove('player-ui-hidden');
@@ -341,9 +359,15 @@ var PlayerPage = function () {
     }, 80);
   }
   function hidePlayerUI() {
+    // Never auto-hide while the user is scrubbing the progress bar
+    if (_seekMode) return;
     var modal = document.getElementById('player-modal');
     if (modal) modal.classList.add('player-ui-hidden');
     _uiHidden = true;
+  }
+  function resetHideTimer() {
+    if (_hideTimer) clearTimeout(_hideTimer);
+    _hideTimer = setTimeout(hidePlayerUI, 4000);
   }
   var PLAY_PATH = 'M8 5v14l11-7z';
   var PAUSE_PATH = 'M6 19h4V5H6v14zm8-14v14h4V5h-4z';
@@ -419,6 +443,53 @@ var PlayerPage = function () {
         setPlayerStatus('');
       }, 2000);
     }
+  }
+
+  // ── Seek-bar scrub helpers ────────────────────────────
+  function getPlayDur() {
+    if (_durationMs > 0) return _durationMs;
+    try {
+      if (typeof webapis !== 'undefined' && webapis.avplay) return webapis.avplay.getDuration();
+    } catch (e) {}
+    var vid = document.getElementById('web-video');
+    if (vid && vid.duration) return vid.duration * 1000;
+    return 0;
+  }
+  function updateSeekPreview(posMs) {
+    var dur = getPlayDur() || 1;
+    var pct = Math.min(100, Math.max(0, posMs / dur * 100)).toFixed(1);
+    var fill = document.getElementById('progress-fill');
+    var time = document.getElementById('player-time');
+    var track = document.getElementById('seek-track');
+    if (fill) fill.style.width = pct + '%';
+    if (time) time.textContent = '▶ ' + formatTime(posMs) + ' / ' + formatTime(dur);
+    if (track) track.classList.add('seeking');
+  }
+  function commitSeek() {
+    var target = _seekPreview;
+    _seekMode = false;
+    _seekPreview = 0;
+    var track = document.getElementById('seek-track');
+    if (track) track.classList.remove('seeking');
+    var vid = document.getElementById('web-video');
+    if (vid) {
+      vid.currentTime = target / 1000;
+      return;
+    }
+    try {
+      if (typeof webapis !== 'undefined' && webapis.avplay) webapis.avplay.seekTo(Math.max(0, target));
+    } catch (e) {
+      setPlayerStatus('Seek not available');
+      setTimeout(function () {
+        setPlayerStatus('');
+      }, 2000);
+    }
+  }
+  function cancelSeek() {
+    _seekMode = false;
+    _seekPreview = 0;
+    var track = document.getElementById('seek-track');
+    if (track) track.classList.remove('seeking');
   }
   function goNextEpisode() {
     if (_params.type !== 'tv') return;
@@ -499,17 +570,41 @@ var PlayerPage = function () {
         return;
       }
 
-      // ── Seek via LEFT/RIGHT when progress track is focused ──────
+      // ── Seek-bar scrub (LEFT/RIGHT to preview, ENTER to commit) ─
       var focusedEl = document.querySelector('.nav-focused');
       var onTrack = focusedEl && focusedEl.id === 'seek-track';
+
+      // Cancel scrub mode if focus has left the seek track
+      if (_seekMode && !onTrack) cancelSeek();
       if (onTrack && (k === 37 || k === Config.KEYS.LEFT)) {
-        seekRelative(-15000);
+        if (!_seekMode) {
+          _seekMode = true;
+          _seekPreview = capturePos() || 0;
+        }
+        _seekPreview = Math.max(0, _seekPreview - 15000);
+        updateSeekPreview(_seekPreview);
+        resetHideTimer(); // keep UI visible while scrubbing
         e.stopPropagation();
         e.preventDefault();
         return;
       }
       if (onTrack && (k === 39 || k === Config.KEYS.RIGHT)) {
-        seekRelative(15000);
+        if (!_seekMode) {
+          _seekMode = true;
+          _seekPreview = capturePos() || 0;
+        }
+        _seekPreview = Math.min(getPlayDur() || Infinity, _seekPreview + 15000);
+        updateSeekPreview(_seekPreview);
+        resetHideTimer(); // keep UI visible while scrubbing
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+
+      // ── Enter: commit scrub seek if on seek track ──────────
+      if ((k === Config.KEYS.ENTER || k === 13) && _seekMode && onTrack) {
+        commitSeek();
+        showPlayerUI();
         e.stopPropagation();
         e.preventDefault();
         return;
@@ -869,14 +964,10 @@ var PlayerPage = function () {
       hls.on(Hls.Events.ERROR, function (ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          _streamErrorRetries++;
-          if (_streamErrorRetries <= 2) {
-            setPlayerStatus('Reconnecting...');
-            loadBestSource();
-          } else {
-            _streamErrorRetries = 0;
-            trySource(0);
-          }
+          // Skip loadBestSource retries for web — re-resolving gets the same broken CDN URL.
+          // Fall straight to embed iframe so the user doesn't wait 24+ extra seconds.
+          _streamErrorRetries = 0;
+          trySource(0);
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {

@@ -168,7 +168,7 @@ body.theme-bright .channel-initial { color: rgba(10,10,32,0.45) !important; }
 /* Bright — working filter button */
 body.theme-bright .iptv-working-btn { background: rgba(10,10,32,0.06) !important; border-color: rgba(10,10,32,0.14) !important; color: rgba(10,10,32,0.70) !important; }
 body.theme-bright .iptv-working-btn:hover,
-body.theme-bright .iptv-working-btn.nav-focused { background: rgba(10,10,32,0.12) !important; border-color: rgba(74,222,128,0.50) !important; color: #0a0a20 !important; }
+body.theme-bright .iptv-working-btn.nav-focused { background: rgba(109,40,217,0.08) !important; border-color: #7c3aed !important; color: #0a0a20 !important; box-shadow: 0 0 0 1px rgba(109,40,217,0.20) !important; }
 body.theme-bright .iptv-working-btn.active { background: rgba(74,222,128,0.14) !important; border-color: #4ade80 !important; color: #166534 !important; }
 body.theme-bright #iptv-ghana-toggle.active { background: rgba(109,40,217,0.10) !important; border-color: #7c3aed !important; color: #7c3aed !important; }
 
@@ -204,9 +204,80 @@ body.theme-calm .channel-logo { background: rgba(255,255,255,0.05) !important; }
 body.theme-calm .channel-initial { color: rgba(201,209,217,0.40) !important; }
 body.theme-calm .iptv-working-btn { background: #1c2230 !important; border-color: rgba(88,166,255,0.12) !important; color: rgba(201,209,217,0.55) !important; }
 body.theme-calm .iptv-working-btn:hover,
-body.theme-calm .iptv-working-btn.nav-focused { background: #1f2a3a !important; border-color: rgba(74,222,128,0.45) !important; color: #c9d1d9 !important; }
+body.theme-calm .iptv-working-btn.nav-focused { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #c9d1d9 !important; box-shadow: 0 0 0 1px rgba(88,166,255,0.28) !important; }
 body.theme-calm .iptv-working-btn.active { background: rgba(74,222,128,0.12) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
 body.theme-calm #iptv-ghana-toggle.active { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #79c0ff !important; }
+
+/* Calm — filter pills (movies & series genre/tab selection) */
+body.theme-calm .pill.nav-focused {
+  color: #c9d1d9 !important;
+  background: #1c2230 !important;
+  border-color: rgba(88,166,255,0.45) !important;
+  box-shadow:         0 0 14px rgba(88,166,255,0.28) !important;
+}
+body.theme-calm .pill.active {
+  background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  color: #fff !important;
+  border-color: #58a6ff !important;
+  box-shadow:         0 0 18px rgba(88,166,255,0.42), 0 4px 12px rgba(88,166,255,0.28) !important;
+}
+body.theme-calm .pill.nav-focused.active {
+  background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 0 24px rgba(88,166,255,0.45) !important;
+}
+
+/* Calm — general dropdown (genre filter, not player modal) */
+body.theme-calm .tdd-trigger.nav-focused,
+body.theme-calm .tdd-wrapper.open .tdd-trigger {
+  border-color: #58a6ff;
+  box-shadow:         0 0 0 2px rgba(88,166,255,0.35), 0 0 16px rgba(88,166,255,0.20);
+}
+body.theme-calm .tdd-list         { border-color: #58a6ff; }
+body.theme-calm .tdd-option.selected { color: #79c0ff; background: rgba(88,166,255,0.15); }
+body.theme-calm .tdd-option.nav-focused { box-shadow: inset 3px 0 0 #58a6ff; color: #e6edf3; }
+body.theme-calm .tdd-check        { color: #79c0ff; }
+
+/* Calm — player modal dropdown: focused trigger and open trigger */
+body.theme-calm .player-modal .tdd-trigger.nav-focused,
+body.theme-calm .player-modal .tdd-wrapper.open .tdd-trigger {
+  border-color: #58a6ff !important;
+  box-shadow:         0 0 0 2px rgba(88,166,255,0.42), 0 0 16px rgba(88,166,255,0.22) !important;
+}
+
+/* ── Theme-aware primary buttons (Play Now / Play / Detail CTA) ─── */
+body.theme-calm .btn-primary {
+  background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
+  box-shadow:         0 4px 14px rgba(88,166,255,0.42) !important;
+}
+body.theme-calm .btn-primary:hover,
+body.theme-calm .btn-primary.nav-focused {
+  background:         linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%) !important;
+  box-shadow:         0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 0 22px rgba(88,166,255,0.50) !important;
+}
+body.theme-night .btn-primary {
+  background:         linear-gradient(135deg, #9333ea 0%, #6b21d8 100%) !important;
+  box-shadow:         0 4px 16px rgba(124,58,237,0.55) !important;
+}
+body.theme-night .btn-primary:hover,
+body.theme-night .btn-primary.nav-focused {
+  box-shadow:         0 0 0 2px #e8e8f0, 0 0 0 4px #9333ea, 0 0 28px rgba(124,58,237,0.62) !important;
+}
+
+/* ── Featured badge colour per theme ────────────────────────── */
+body.theme-calm  .hero-badge { background: #1d6ed8 !important; }
+body.theme-night .hero-badge { background: #9333ea !important; }
+body.theme-bright .hero-badge { background: #6d28d9 !important; }
+
+/* ── Sidebar separator line per theme ───────────────────────── */
+body.theme-calm .sidebar::after {
+  background:         linear-gradient(to bottom, transparent 0%, rgba(88,166,255,0.45) 30%, rgba(121,192,255,0.80) 52%, rgba(88,166,255,0.38) 72%, transparent 100%) !important;
+}
+body.theme-night .sidebar::after {
+  background:         linear-gradient(to bottom, transparent 0%, rgba(124,58,237,0.38) 30%, rgba(196,181,253,0.68) 52%, rgba(124,58,237,0.30) 72%, transparent 100%) !important;
+}
+body.theme-bright .sidebar::after {
+  background:         linear-gradient(to bottom, transparent 0%, rgba(10,10,32,0.10) 30%, rgba(10,10,32,0.22) 52%, rgba(10,10,32,0.10) 72%, transparent 100%) !important;
+}
 
 /* ── Card progress fill — CSS class so theme overrides work without inline var() ── */
 .card-prog-fill {
@@ -278,6 +349,55 @@ body.theme-bright .pcb-btn {
   border-color: rgba(255,255,255,0.38) !important;
 }
 body.theme-bright .player-status-overlay { color: rgba(255,255,255,0.78) !important; }
+/* Bright: back button — white text so it's readable over the always-dark player backdrop */
+body.theme-bright .player-back {
+  color: rgba(255,255,255,0.92) !important;
+  background: rgba(255,255,255,0.14) !important;
+  border: 1px solid rgba(255,255,255,0.32) !important;
+}
+body.theme-bright .player-back.nav-focused {
+  background: rgba(255,255,255,0.24) !important;
+  box-shadow: 0 0 0 2px #a78bfa !important;
+}
+
+/* Calm — quality/season dropdown accent (blue instead of purple) */
+body.theme-calm .player-modal .tdd-trigger { border-color: rgba(88,166,255,0.32) !important; }
+body.theme-calm .player-modal .tdd-option.selected { background: rgba(88,166,255,0.22) !important; color: #79c0ff !important; }
+body.theme-calm .player-modal .tdd-option:hover,
+body.theme-calm .player-modal .tdd-option.nav-focused { background: rgba(88,166,255,0.14) !important; color: #e6edf3 !important; }
+/* Calm — episode panel focus/active states */
+body.theme-calm .episode-item.active { background: rgba(88,166,255,0.14) !important; border-left-color: #58a6ff !important; }
+body.theme-calm .episode-item.nav-focused { box-shadow: inset 0 0 0 2px #58a6ff !important; }
+body.theme-calm .similar-item.nav-focused { box-shadow: inset 0 0 0 2px #58a6ff !important; }
+
+/* ── Always-dark side panels: force legible text regardless of body theme ── */
+/* Similar-panel (You Might Also Like / Watchlist) and episode-panel have fixed dark
+   backgrounds — use explicit light colours so they remain readable on bright theme  */
+.similar-panel .similar-header { color: rgba(240,240,248,0.88) !important; border-bottom-color: rgba(255,255,255,0.08) !important; font-size: 15px !important; letter-spacing: 0.2px !important; }
+.similar-panel .ep-title,
+.episode-panel .ep-title      { color: rgba(240,240,248,0.92) !important; }
+/* Allow title text to wrap in the similar panel so it's fully visible */
+.similar-panel .ep-title      { white-space: normal !important; line-height: 1.35 !important; font-size: 15px !important; }
+.similar-panel .ep-meta,
+.episode-panel .ep-meta       { color: rgba(240,240,248,0.58) !important; font-size: 13px !important; }
+
+/* ── Detail page — bright theme text colours ── */
+/* Gradient fades to page bg on bright theme; text below the dark backdrop must be dark */
+body.theme-bright .detail-grad-overlay {
+  background:         linear-gradient(to bottom, transparent 30%, #f0f0fa 100%) !important;
+}
+body.theme-bright #detail-backdrop { background: #c8d0e0 !important; }
+body.theme-bright #detail-genres   { color: #6d28d9 !important; }
+body.theme-bright #detail-title    { color: #0a0a20 !important; -webkit-text-fill-color: #0a0a20 !important; text-shadow: none !important; }
+body.theme-bright #detail-meta     { color: rgba(10,10,32,0.65) !important; }
+body.theme-bright #detail-overview { color: rgba(10,10,32,0.80) !important; }
+/* Calm — detail page text should stay readable on its dark-toned background */
+body.theme-calm #detail-title  { color: #c9d1d9 !important; -webkit-text-fill-color: #c9d1d9 !important; text-shadow: none !important; }
+body.theme-calm #detail-meta   { color: rgba(201,209,217,0.65) !important; }
+body.theme-calm #detail-overview { color: rgba(201,209,217,0.80) !important; }
+body.theme-calm .detail-grad-overlay {
+  background:         linear-gradient(to bottom, transparent 30%, #0d1117 100%) !important;
+}
 
 .ctrl-btn.ctrl-ep-prev,
 .ctrl-btn.ctrl-ep-next {
@@ -291,7 +411,7 @@ html, body {
   overflow: hidden;
   background: #0d1117;  /* calm default — overridden by theme class via applyTheme() */
   color: #c9d1d9;
-  font-family: 'Samsung Sharp Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'SamsungOne', 'Samsung Sharp Sans', 'SamsungSharpSans', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
   font-size: 20px;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
@@ -324,7 +444,7 @@ body.movie-avplay-on #avplay-area {
 /* ── Unified player control bar (2 rows) ─────────────── */
 .player-cbar {
   position: absolute;
-  bottom: 72px; left: 0; right: 0;
+  bottom: 108px; left: 0; right: 0;
   padding: 0 28px 12px;
   background: linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%);
   z-index: 20;
@@ -811,9 +931,10 @@ body.movie-avplay-on #avplay-area {
 
 .iptv-working-btn:hover,
 .iptv-working-btn.nav-focused {
-  background: #1f1f35;
-  border-color: rgba(74,222,128,0.45);
+  background: rgba(124, 58, 237, 0.15);
+  border-color: #a78bfa;
   color: #f0f0f8;
+  box-shadow:         0 0 0 1px rgba(124, 58, 237, 0.45);
 }
 
 .iptv-working-btn.active {
@@ -1234,6 +1355,7 @@ body.movie-avplay-on #avplay-area {
   cursor: pointer;
   outline: none;
   text-align: center;
+  position: relative; /* anchors ch-fav-badge absolute positioning */
   transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
@@ -1370,8 +1492,300 @@ body.movie-avplay-on #avplay-area {
 /* IPTV theme-aware text classes */
 .iptv-sidebar-title { font-size: 18px; font-weight: 800; color: #f0f0f8; }
 .iptv-idle-text     { font-size: 14px; color: rgba(240, 240, 248, 0.45); }
-.iptv-bar-name      { font-size: 18px; font-weight: 700; color: #f0f0f8; }
-.iptv-bar-meta      { font-size: 14px; color: rgba(240, 240, 248, 0.45); margin-top: 2px; }
+.iptv-bar-name      { font-size: 16px; font-weight: 700; color: #f0f0f8; }
+.iptv-bar-meta      { font-size: 13px; color: rgba(240, 240, 248, 0.45); margin-top: 2px; }
+
+/* ── Channel card — now-playing text ─────────────────── */
+.ch-name-wrap  { flex: 1; min-width: 0; }
+.ch-now-prog   {
+  font-size: 11px;
+  color: rgba(240,240,248,0.50);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+.channel-item.active .ch-now-prog { color: rgba(240,240,248,0.70); }
+
+/* ── Channel bar EPG content ─────────────────────────── */
+.iptv-channel-bar { align-items: flex-start; padding: 12px 20px; min-height: 64px; gap: 12px; }
+.iptv-bar-info    { flex: 1; min-width: 0; }
+.iptv-bar-prog    { display: flex; align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.iptv-prog-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #a78bfa;
+  background: rgba(124, 58, 237, 0.15);
+  padding: 2px 6px;
+  border-radius: 3px; flex-shrink: 0;
+}
+.iptv-prog-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(240,240,248,0.90);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; flex: 1;
+}
+.iptv-prog-time {
+  font-size: 11px;
+  color: rgba(240,240,248,0.50); flex-shrink: 0;
+}
+.iptv-prog-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.14);
+  border-radius: 2px;
+  margin: 4px 0 1px;
+  overflow: hidden;
+}
+.iptv-prog-fill {
+  height: 100%;
+  background: #a78bfa;
+  border-radius: 2px;
+}
+.iptv-bar-next .iptv-prog-label { color: rgba(240,240,248,0.55); background: rgba(255,255,255,0.08); }
+.iptv-bar-next .iptv-prog-title  { color: rgba(240,240,248,0.60); }
+
+/* ── Channel card favourite badge ───────────────────── */
+.ch-fav-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: 13px;
+  color: #f87171;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ── Channel bar action buttons row ──────────────────── */
+.iptv-bar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Favourite button in channel bar ────────────────── */
+.iptv-fav-btn {
+  display: inline-flex; align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(240,240,248,0.80);
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+}
+.iptv-fav-btn.active {
+  background: rgba(248,113,113,0.18);
+  border-color: #f87171;
+  color: #f87171;
+}
+.iptv-fav-btn.nav-focused {
+  border-color: #f87171;
+  background: rgba(248,113,113,0.18);
+  color: #fca5a5;
+  box-shadow:         0 0 0 2px rgba(248,113,113,0.35);
+}
+/* Calm theme: keep red heart regardless of blue accent */
+body.theme-calm .iptv-fav-btn.active     { background: rgba(248,113,113,0.18) !important; border-color: #f87171 !important; color: #f87171 !important; }
+body.theme-calm .iptv-fav-btn.nav-focused { border-color: #fca5a5 !important; box-shadow: 0 0 0 2px rgba(248,113,113,0.35) !important; }
+
+/* ── Guide button ────────────────────────────────────── */
+.iptv-guide-btn {
+  display: inline-flex; align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(240,240,248,0.80);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none; flex-shrink: 0; align-self: center;
+}
+.iptv-guide-btn.active {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: #a78bfa;
+  color: #a78bfa;
+}
+.iptv-guide-btn.nav-focused {
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.15);
+  color: #fff;
+  box-shadow:         0 0 0 2px rgba(124, 58, 237, 0.45);
+}
+/* Calm theme guide button */
+body.theme-calm .iptv-guide-btn.nav-focused {
+  border-color: #79c0ff !important;
+  background: rgba(88,166,255,0.15) !important;
+  box-shadow:         0 0 0 2px rgba(88,166,255,0.40) !important;
+}
+
+/* ── Night theme working button focus ──────────────────── */
+body.theme-night .iptv-working-btn:hover,
+body.theme-night .iptv-working-btn.nav-focused { background: rgba(167,139,250,0.15) !important; border-color: #a78bfa !important; color: #e8e8f0 !important; box-shadow: 0 0 0 1px rgba(167,139,250,0.30) !important; }
+
+/* ── Scan button — centred, bold, full-background progress ─ */
+#iptv-scan-btn {
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+  font-weight: 800;
+}
+#iptv-scan-btn.active {
+  border-color: #a78bfa !important;
+  color: #f0f0f8 !important;
+  background: #171728 !important; /* base — fill div provides the colour */
+}
+/* Full-height sweep fill — grows left-to-right showing progress */
+.scan-fill-bg {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: #7c3aed;
+  opacity: 0.32;
+  transition: width 0.4s ease;
+  pointer-events: none;
+}
+/* Text sits above the fill */
+.scan-fill-text {
+  position: relative;
+  z-index: 1;
+}
+body.theme-calm  .scan-fill-bg { background: #58a6ff !important; }
+body.theme-calm  #iptv-scan-btn.active { border-color: #58a6ff !important; color: #c9d1d9 !important; }
+body.theme-night .scan-fill-bg { background: #a78bfa !important; }
+body.theme-bright .scan-fill-bg { background: #6d28d9 !important; opacity: 0.55 !important; }
+body.theme-bright #iptv-scan-btn.active { border-color: #7c3aed !important; color: #fff !important; }
+
+/* ── EPG schedule panel ───────────────────────────────── */
+.iptv-epg-panel {
+  position: absolute;
+  top: 0; right: 0;
+  width: 380px;
+  height: 100%;
+  background: rgba(6,6,18,0.97);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  -webkit-animation: epg-fade 0.18s ease;
+  animation:         epg-fade 0.18s ease;
+}
+@-webkit-keyframes epg-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes epg-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.epg-panel-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(240,240,248,0.70); flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+.epg-panel-ch {
+  color: #a78bfa;
+  font-size: 12px;
+  max-width: 190px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.epg-list { flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #1f1f35 transparent;
+}
+.epg-list::-webkit-scrollbar { width: 3px; }
+.epg-list::-webkit-scrollbar-thumb { background: #1f1f35; border-radius: 2px; }
+
+.epg-item { display: flex;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  outline: none;
+}
+.epg-item.epg-past  { opacity: 0.38; }
+.epg-item.epg-current {
+  background: rgba(124, 58, 237, 0.15);
+  border-left: 3px solid #7c3aed;
+  padding-left: 9px;
+}
+.epg-item-time {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(240,240,248,0.55);
+  width: 42px; flex-shrink: 0;
+  padding-top: 1px;
+}
+.epg-item.epg-current .epg-item-time { color: #a78bfa; }
+.epg-item-body  { flex: 1; min-width: 0; }
+.epg-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(240,240,248,0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.epg-item.epg-current .epg-item-title { color: #fff; }
+.epg-item-dur {
+  font-size: 11px;
+  color: rgba(240,240,248,0.40);
+  margin-top: 1px;
+}
+.epg-item-desc {
+  font-size: 11px;
+  color: rgba(240,240,248,0.48);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.epg-item-prog-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.14);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.epg-item-prog-fill {
+  height: 100%;
+  background: #a78bfa;
+  border-radius: 2px;
+}
+.epg-no-data {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(240,240,248,0.40);
+  line-height: 1.7;
+}
+/* Calm theme: blue EPG accents */
+body.theme-calm .epg-item.epg-current     { background: rgba(88,166,255,0.14) !important; border-left-color: #58a6ff !important; }
+body.theme-calm .epg-item-time             { color: rgba(201,209,217,0.55) !important; }
+body.theme-calm .epg-item.epg-current .epg-item-time  { color: #79c0ff !important; }
+body.theme-calm .epg-item.epg-current .epg-item-title { color: #e6edf3 !important; }
+body.theme-calm .epg-item-prog-fill        { background: #79c0ff !important; }
+body.theme-calm .iptv-prog-label           { color: #79c0ff !important; background: rgba(88,166,255,0.15) !important; }
+body.theme-calm .iptv-prog-fill            { background: #79c0ff !important; }
+body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
 
 .live-badge {
   display: inline-flex;
@@ -1917,7 +2331,7 @@ body.movie-avplay-on #avplay-area {
   position: absolute;
   bottom: 0; left: 0;
   right: 300px; /* leave room for episode panel */
-  padding: 20px 28px 20px;
+  padding: 20px 28px 32px; /* 32px bottom = overscan-safe, clears cbar bottom */
   background: linear-gradient(to top, rgba(0,0,0,0.92), transparent);
   display: flex;
   align-items: flex-end;
@@ -2179,6 +2593,27 @@ body.theme-night  .home-hint-label { color: rgba(240,240,248,0.32) !important; }
   animation: focus-pulse 2s ease infinite;
 }
 
+/* ── Seek-bar scrub mode — yellow fill, expanded track ─── */
+.player-cbar-track.seeking {
+  height: 7px !important;
+  background: rgba(250,204,21,0.22) !important;
+  outline: 2px solid rgba(250,204,21,0.70) !important;
+  border-radius: 4px !important;
+  -webkit-animation: none !important;
+  animation: none !important;
+}
+.player-cbar-track.seeking .player-cbar-fill,
+.player-cbar-track.seeking + #progress-fill,
+.player-cbar-track.seeking #progress-fill {
+  background:         linear-gradient(to right, #facc15, #fde68a) !important;
+  transition: width 0.12s ease !important;
+}
+/* Time display during scrub — yellow tint to match */
+.player-cbar-track.seeking ~ .player-cbar-time,
+.player-cbar-row1:has(.seeking) .player-cbar-time {
+  color: #facc15 !important;
+}
+
 /* Nav-item sidebar — slightly richer focused state */
 .nav-item.nav-focused {
   background:         linear-gradient(to right, rgba(167,139,250,0.26) 0%, rgba(167,139,250,0.10) 100%);
@@ -2323,7 +2758,7 @@ body.theme-night .channel-initial { color: rgba(232,232,240,0.35) !important; }
 /* Night — working filter button */
 body.theme-night .iptv-working-btn { background: #0c0c16 !important; border-color: rgba(167,139,250,0.15) !important; color: rgba(232,232,240,0.50) !important; }
 body.theme-night .iptv-working-btn:hover,
-body.theme-night .iptv-working-btn.nav-focused { background: #111120 !important; border-color: rgba(74,222,128,0.45) !important; color: #e8e8f0 !important; }
+body.theme-night .iptv-working-btn.nav-focused { background: rgba(167,139,250,0.15) !important; border-color: #a78bfa !important; color: #e8e8f0 !important; box-shadow: 0 0 0 1px rgba(167,139,250,0.30) !important; }
 body.theme-night .iptv-working-btn.active { background: rgba(74,222,128,0.10) !important; border-color: #4ade80 !important; color: #4ade80 !important; }
 body.theme-night #iptv-ghana-toggle.active { background: rgba(167,139,250,0.10) !important; border-color: #a78bfa !important; color: #a78bfa !important; }
 
