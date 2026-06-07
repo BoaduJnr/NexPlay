@@ -34,6 +34,7 @@ var MoviesPage = function () {
         }
         var searchInput = document.getElementById('movie-search-input');
         var _searchTimer = null;
+        var _isTv = !document.body.classList.contains('is-web') && !document.body.classList.contains('is-mobile');
         if (searchInput) {
           searchInput.addEventListener('keydown', function (e) {
             e.stopPropagation(); // prevent D-pad nav while typing
@@ -41,8 +42,17 @@ var MoviesPage = function () {
               clearTimeout(_searchTimer);
               _activeSearch = searchInput.value.trim();
               _page = 1;
+              if (!_activeSearch) {
+                deactivateSearch(false);
+                return;
+              }
               loadMovies(true);
-              if (!_activeSearch) deactivateSearch(false);
+              // TV: blur input after Enter so D-pad can navigate results without clearing search
+              if (_isTv) searchInput.blur();
+            } else if (e.keyCode === 40 && _isTv) {
+              // TV: Down arrow while in search → move focus to results
+              e.preventDefault();
+              searchInput.blur();
             } else if (e.keyCode === 27 || e.keyCode === Config.KEYS.BACK) {
               deactivateSearch(true);
             }
@@ -68,7 +78,7 @@ var MoviesPage = function () {
         });
       }
       _activeGenre = params.genre ? parseInt(params.genre) : null;
-      container.innerHTML = "\n      <div id=\"movies-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">Movies</h1>\n          <p class=\"page-subtitle\">Explore thousands of movies by genre, year, and more</p>\n        </div>\n\n        <div style=\"padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;gap:16px;\">\n          <!-- Search trigger button \u2014 sits in the nav flow -->\n          <button id=\"movie-search-btn\" class=\"search-pill-btn\" data-nav tabindex=\"0\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"\n                 stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"20\" height=\"20\">\n              <circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n            </svg>\n            <span>Search movies...</span>\n          </button>\n          <!-- Active search input \u2014 hidden until button is pressed -->\n          <div id=\"movie-search-wrap\" style=\"display:none;-webkit-align-items:center;align-items:center;gap:8px;\">\n            <input type=\"text\" id=\"movie-search-input\" class=\"search-active-input\"\n                   placeholder=\"Type to search...\" autocomplete=\"off\">\n            <button id=\"movie-search-close\" class=\"search-close-btn\" tabindex=\"-1\">&#x2715;</button>\n          </div>\n        </div>\n\n        <div style=\"padding:0 72px 0;display:-webkit-flex;display:flex;align-items:center;gap:16px;flex-wrap:wrap;\">\n          <span class=\"filter-label\">Sort by</span>\n          ".concat(sortSelect(), "\n          <span class=\"filter-label\" style=\"margin-left:8px;\">Year</span>\n          ").concat(yearSelect(), "\n        </div>\n\n        <div style=\"padding:16px 0 8px;\">\n          <div class=\"filter-bar\" data-scroll id=\"genre-bar\">\n            ").concat(_genres.length ? genrePills() : '<div class="pill skeleton" style="width:60px;"></div>'.repeat(8), "\n          </div>\n        </div>\n\n        <div class=\"movie-grid\" id=\"movies-grid\"></div>\n      </div>");
+      container.innerHTML = "\n      <div id=\"movies-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">Movies</h1>\n          <p class=\"page-subtitle\">Explore thousands of movies by genre, year, and more</p>\n        </div>\n\n        <div style=\"padding:".concat(window.innerWidth < 1024 ? '12px 16px 8px' : '20px 72px 8px', ";display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:12px;").concat(window.innerWidth >= 1024 ? 'max-width:520px;' : '', "min-width:0;\">\n          <!-- Search trigger button \u2014 sits in the nav flow -->\n          <button id=\"movie-search-btn\" class=\"search-pill-btn\" data-nav tabindex=\"0\" style=\"-webkit-flex:1;flex:1;\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"\n                 stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"20\" height=\"20\">\n              <circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n            </svg>\n            <span>Search movies...</span>\n          </button>\n          <!-- Active search input \u2014 hidden until button is pressed -->\n          <div id=\"movie-search-wrap\" style=\"display:none;-webkit-align-items:center;align-items:center;gap:8px;-webkit-flex:1;flex:1;min-width:0;\">\n            <input type=\"text\" id=\"movie-search-input\" class=\"search-active-input\"\n                   placeholder=\"Type to search...\" autocomplete=\"off\">\n            <button id=\"movie-search-close\" class=\"search-close-btn\">&#x2715;</button>\n          </div>\n        </div>\n\n        <div style=\"padding:").concat(window.innerWidth < 1024 ? '4px 16px 0' : '0 72px 0', ";display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:").concat(window.innerWidth < 1024 ? '6px' : '16px', ";flex-wrap:").concat(window.innerWidth < 1024 ? 'nowrap' : 'wrap', ";\">\n          <span class=\"filter-label\" style=\"").concat(window.innerWidth < 1024 ? 'display:none' : '', "\">Sort by</span>\n          ").concat(sortSelect(), "\n          <span class=\"filter-label\" style=\"margin-left:").concat(window.innerWidth < 1024 ? '0' : '8px', ";").concat(window.innerWidth < 1024 ? 'display:none' : '', "\">Year</span>\n          ").concat(yearSelect(), "\n        </div>\n\n        <div style=\"padding:16px 0 8px;\">\n          <div class=\"filter-bar\" data-scroll id=\"genre-bar\">\n            ").concat(_genres.length ? genrePills() : '<div class="pill skeleton" style="width:60px;"></div>'.repeat(8), "\n          </div>\n        </div>\n\n        <div class=\"movie-grid\" id=\"movies-grid\"></div>\n      </div>");
 
       // Genres
       var _temp6 = function () {
@@ -119,13 +129,32 @@ var MoviesPage = function () {
           }
           bindCardClicks(grid);
           UX.fillProgressBars(grid);
-          if (replace) Nav.reset(document.getElementById('movies-page'));
+          if (replace) {
+            var _si = document.getElementById('movie-search-input');
+            var _sw = document.getElementById('movie-search-wrap');
+            if (document.activeElement !== _si) {
+              Nav.reset(document.getElementById('movies-page'));
+              var _tvSearchActive = !document.body.classList.contains('is-web') && !document.body.classList.contains('is-mobile') && _sw && _sw.style.display !== 'none';
+              if (_tvSearchActive) {
+                var firstCard = document.querySelector('#movies-grid [data-nav]');
+                if (firstCard) Nav.focusEl(firstCard);
+              }
+            }
+          }
         }
         var data;
         var _temp = function () {
           if (_activeSearch) {
             return Promise.resolve(TMDB.search(_activeSearch, _page)).then(function (_TMDB$search) {
               data = _TMDB$search;
+              if (_activeGenre) {
+                data = {
+                  results: data.results.filter(function (r) {
+                    return r.genre_ids && r.genre_ids.indexOf(_activeGenre) !== -1;
+                  }),
+                  total_results: data.total_results
+                };
+              }
             });
           } else {
             var params = {
@@ -164,6 +193,7 @@ var MoviesPage = function () {
   var _page = 1;
   var _loading = false;
   var _scrollHandler = null;
+  var _scrollObserver = null;
   var _keyHandler = null;
   var SORT_OPTIONS = [{
     value: 'popularity.desc',
@@ -244,30 +274,73 @@ var MoviesPage = function () {
     return TVDropdown.html('movies-year', YEAR_OPTIONS, _activeYear);
   }
   function setupScrollPaging() {
-    var content = document.getElementById('main-content');
-    if (!content) return;
-    if (_scrollHandler) content.removeEventListener('scroll', _scrollHandler);
-    _scrollHandler = function _scrollHandler() {
-      if (_loading) return;
-      var nearBottom = content.scrollHeight - content.scrollTop - content.clientHeight < 500;
-      if (nearBottom) {
-        _page++;
-        loadMovies(false);
-      }
-    };
-    content.addEventListener('scroll', _scrollHandler);
+    teardownScrollPaging();
+    var grid = document.getElementById('movies-grid');
+    if (!grid) return;
+
+    // Sentinel sits AFTER the grid so card appends don't push it around
+    var sentinel = document.createElement('div');
+    sentinel.id = 'nexplay-pg-sentinel';
+    sentinel.style.height = '4px';
+    grid.insertAdjacentElement('afterend', sentinel);
+    if (typeof IntersectionObserver !== 'undefined') {
+      // Mobile / modern browser: observe sentinel against the viewport.
+      // TV with IntersectionObserver: observe against #main-content container.
+      var isMobile = window.innerWidth < 1024;
+      _scrollObserver = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting && !_loading) {
+          _page++;
+          loadMovies(false);
+        }
+      }, {
+        root: isMobile ? null : document.getElementById('main-content'),
+        rootMargin: '0px 0px 600px 0px'
+      });
+      _scrollObserver.observe(sentinel);
+    } else {
+      // Tizen / old browser: scroll event on #main-content
+      var mc = document.getElementById('main-content');
+      if (!mc) return;
+      _scrollHandler = function _scrollHandler() {
+        if (_loading) return;
+        if (mc.scrollHeight - mc.scrollTop - mc.clientHeight < 400) {
+          _page++;
+          loadMovies(false);
+        }
+      };
+      mc.addEventListener('scroll', _scrollHandler);
+    }
   }
   function teardownScrollPaging() {
-    var content = document.getElementById('main-content');
-    if (content && _scrollHandler) content.removeEventListener('scroll', _scrollHandler);
-    _scrollHandler = null;
+    if (_scrollObserver) {
+      _scrollObserver.disconnect();
+      _scrollObserver = null;
+    }
+    if (_scrollHandler) {
+      var mc = document.getElementById('main-content');
+      if (mc) mc.removeEventListener('scroll', _scrollHandler);
+      window.removeEventListener('scroll', _scrollHandler);
+      _scrollHandler = null;
+    }
+    var s = document.getElementById('nexplay-pg-sentinel');
+    if (s && s.parentNode) s.parentNode.removeChild(s);
   }
 
-  // ── Remote key handler (GREEN = fav, INFO = watchlist) ──
+  // ── Remote key handler ─────────────────────────────────
   function bindRemoteKeys() {
     _keyHandler = function _keyHandler(e) {
+      // TV Back key: if search is active, re-focus input (first Back) or clear (second Back)
+      if (e.keyCode === Config.KEYS.BACK || e.keyCode === 10009) {
+        var wrap = document.getElementById('movie-search-wrap');
+        var inp = document.getElementById('movie-search-input');
+        if (wrap && wrap.style.display !== 'none' && document.activeElement !== inp) {
+          e.preventDefault();
+          e.stopPropagation();
+          inp.focus();
+          return;
+        }
+      }
       if (typeof NexPlayDB === 'undefined') return;
-      // Fallback to CSS-class in case Samsung INFO key briefly clears Nav focus
       var focused = Nav.current() || document.querySelector('[data-nav].nav-focused[data-movie-id]');
       if (!focused || !focused.dataset.movieId) return;
       var movieId = focused.dataset.movieId;

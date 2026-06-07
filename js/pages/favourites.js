@@ -58,7 +58,9 @@ const FavouritesPage = (() => {
   }
 
   function render(container) {
-    var items = typeof NexPlayDB !== 'undefined' ? NexPlayDB.getFavourites() : [];
+    var items = typeof NexPlayDB !== 'undefined'
+      ? NexPlayDB.getFavourites().filter(function(f) { return f.type !== 'channel'; })
+      : [];
 
     container.innerHTML = `
       <div id="favourites-page">

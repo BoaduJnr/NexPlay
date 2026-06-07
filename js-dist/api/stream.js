@@ -95,8 +95,8 @@ var StreamResolver = function () {
   // ── Videasy ────────────────────────────────────────────
   // Live endpoints only (verified 2026-06-05 — mb-flix, cdn, hdmovie, lamovie respond;
   // moviebox/1movies=404, m4uhd/meine/superflix=500 → removed to cut resolve time).
-  var VIDEASY_ENDPOINTS = ['https://api.videasy.net/mb-flix/sources-with-title', 'https://api.videasy.net/cdn/sources-with-title', 'https://api.videasy.net/hdmovie/sources-with-title', 'https://api.videasy.net/lamovie/sources-with-title'];
-  var VIDEASY_ORIGIN = 'https://cineby.sc';
+  var VIDEASY_ENDPOINTS = ['https://api.videasy.to/mb-flix/sources-with-title', 'https://api.videasy.to/cdn/sources-with-title', 'https://api.videasy.to/hdmovie/sources-with-title', 'https://api.videasy.to/lamovie/sources-with-title'];
+  var VIDEASY_ORIGIN = 'https://player.videasy.to';
   var BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
   function resolveVideasy(tmdbId, type, title, year, season, episode) {
     // Title must be double-encoded per Videasy API requirement
@@ -213,16 +213,14 @@ var StreamResolver = function () {
     });
   }
   function resolveVidrock(tmdbId, type, season, episode) {
+    // crypto.subtle needed for token encryption — skip on environments that lack it
     if (typeof crypto === 'undefined' || !crypto.subtle) return Promise.resolve(null);
     var itemId = type === 'tv' ? tmdbId + '_' + (season || 1) + '_' + (episode || 1) : String(tmdbId);
     var apiType = type === 'tv' ? 'tv' : 'movie';
-    var VIDROCK_ORIGIN = 'https://vidrock.net';
+    // vidrock.net 301-redirects to vidrock.ru — use .ru directly to avoid redirect issues on Tizen
+    var VIDROCK_ORIGIN = 'https://vidrock.ru';
     return encryptVidrock(itemId).then(function (token) {
       if (!token) return null;
-
-      // Vidrock changed CORS policy — route through proxy to avoid CORS block
-      // Call Vidrock API directly — CORS is open (*) and residential IPs get
-      // live CDN URLs. Routing through the CF Worker gives dead BunnyCDN URLs.
       var apiUrl = VIDROCK_ORIGIN + '/api/' + apiType + '/' + token;
       var vdrHeaders = {
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -245,13 +243,9 @@ var StreamResolver = function () {
           var entry = data[key];
           if (!entry || !entry.url) return;
           var url = entry.url;
-
-          // Unwrap proxy.vidrock.store prefix
           if (url.indexOf(PROXY_PREFIX) === 0) {
             url = decodeURIComponent(url.slice(PROXY_PREFIX.length).replace(/\+/g, '%2B'));
           }
-
-          // Queue hls2.vdrk.site for async indirection follow (returns [{resolution, url}])
           if (url.indexOf('hls2.vdrk.site') !== -1) {
             vdrkIndirect.push(url);
             return;
@@ -279,15 +273,15 @@ var StreamResolver = function () {
         });
       }
 
-      // Try direct first (works on TV where CORS is not enforced).
-      // Browser CORS blocks vidrock.net — fall back to CF Worker proxy.
-      return xhrGet(apiUrl, 10000, vdrHeaders).then(parseVidrock).catch(function () {
+      // TV (Tizen): direct XHR — no CORS restriction, residential IP passes Vidrock check.
+      // Browser: direct first, CF Worker proxy as CORS fallback.
+      return xhrGet(apiUrl, 12000, vdrHeaders).then(parseVidrock).catch(function () {
         var hdrsB64 = btoa(JSON.stringify({
           'Referer': VIDROCK_ORIGIN + '/',
           'Origin': VIDROCK_ORIGIN
         }));
         var proxyUrl = PROXY_URL + '/?url=' + encodeURIComponent(apiUrl) + '&headers=' + encodeURIComponent(hdrsB64);
-        return xhrGet(proxyUrl, 10000).then(parseVidrock).catch(function () {
+        return xhrGet(proxyUrl, 12000).then(parseVidrock).catch(function () {
           return null;
         });
       });
@@ -376,14 +370,23 @@ var StreamResolver = function () {
   // Embed scraping is useless on TV (AVPlay can't play iframe embeds) — skip it
   var _isTV = typeof webapis !== 'undefined' && !!webapis.avplay;
   function resolveMovie(tmdbId, title, year) {
-    console.log('[StreamResolver] resolveMovie', tmdbId, title);
-    return resolveVideasy(tmdbId, 'movie', title, year, null, null).then(function (result) {
-      if (result) return result;
-      console.log('[StreamResolver] Videasy failed, trying Vidrock...');
+    console.log('[StreamResolver] resolveMovie', tmdbId, title, _isTV ? '(TV)' : '(web)');
+    // TV: Vidrock first — direct XHR works from residential IP, CDN proxiable.
+    //     Videasy CDN blocks CF Worker datacenter IPs so it always fails on TV.
+    // Web: Videasy first — CDN accessible from browser; Vidrock as fallback.
+    var step1 = _isTV ? resolveVidrock(tmdbId, 'movie', null, null) : resolveVideasy(tmdbId, 'movie', title, year, null, null);
+    var step2 = _isTV ? function () {
+      return resolveVideasy(tmdbId, 'movie', title, year, null, null);
+    } : function () {
       return resolveVidrock(tmdbId, 'movie', null, null);
+    };
+    return step1.then(function (result) {
+      if (result) return result;
+      console.log('[StreamResolver] step1 failed, trying step2...');
+      return step2();
     }).then(function (result) {
       if (result || _isTV) return result;
-      console.log('[StreamResolver] Vidrock failed, scraping embeds...');
+      console.log('[StreamResolver] step2 failed, scraping embeds...');
       return tryScrapeUrls(['https://vidsrc.me/embed/movie?tmdb=' + tmdbId, 'https://multiembed.mov/?video_id=' + tmdbId + '&tmdb=1']);
     }).catch(function (e) {
       console.log('[StreamResolver] resolveMovie error:', e.message);
@@ -391,14 +394,20 @@ var StreamResolver = function () {
     });
   }
   function resolveTVEpisode(tmdbId, title, season, episode) {
-    console.log('[StreamResolver] resolveTVEpisode', tmdbId, 'S' + season + 'E' + episode);
-    return resolveVideasy(tmdbId, 'tv', title, null, season, episode).then(function (result) {
-      if (result) return result;
-      console.log('[StreamResolver] Videasy failed, trying Vidrock...');
+    console.log('[StreamResolver] resolveTVEpisode', tmdbId, 'S' + season + 'E' + episode, _isTV ? '(TV)' : '(web)');
+    var step1 = _isTV ? resolveVidrock(tmdbId, 'tv', season, episode) : resolveVideasy(tmdbId, 'tv', title, null, season, episode);
+    var step2 = _isTV ? function () {
+      return resolveVideasy(tmdbId, 'tv', title, null, season, episode);
+    } : function () {
       return resolveVidrock(tmdbId, 'tv', season, episode);
+    };
+    return step1.then(function (result) {
+      if (result) return result;
+      console.log('[StreamResolver] step1 failed, trying step2...');
+      return step2();
     }).then(function (result) {
       if (result || _isTV) return result;
-      console.log('[StreamResolver] Vidrock failed, scraping embeds...');
+      console.log('[StreamResolver] step2 failed, scraping embeds...');
       return tryScrapeUrls(['https://vidsrc.xyz/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode, 'https://vidsrc.me/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode]);
     }).catch(function (e) {
       console.log('[StreamResolver] resolveTVEpisode error:', e.message);

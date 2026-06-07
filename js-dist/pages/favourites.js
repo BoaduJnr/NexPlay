@@ -48,7 +48,9 @@ var FavouritesPage = function () {
     _keyHandler = null;
   }
   function render(container) {
-    var items = typeof NexPlayDB !== 'undefined' ? NexPlayDB.getFavourites() : [];
+    var items = typeof NexPlayDB !== 'undefined' ? NexPlayDB.getFavourites().filter(function (f) {
+      return f.type !== 'channel';
+    }) : [];
     container.innerHTML = "\n      <div id=\"favourites-page\">\n        <div class=\"page-header\">\n          <h1 class=\"page-title\">Favourites</h1>\n        </div>\n        ".concat(items.length === 0 ? "<div class=\"list-empty-state\">\n               <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" width=\"64\" height=\"64\" style=\"opacity:0.25;margin-bottom:20px;\">\n                 <path d=\"M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z\"/>\n               </svg>\n               <p>No favourites yet.</p>\n               <p style=\"font-size:16px;opacity:0.55;margin-top:8px;\">Press RED on any movie or series card to save it here.</p>\n             </div>" : "<div class=\"movie-grid\" id=\"favourites-grid\">\n               ".concat(items.map(function (item, i) {
       return itemCard(item, i === 0);
     }).join(''), "\n             </div>"), "\n      </div>");

@@ -138,10 +138,33 @@ body.theme-bright .key-hint { color: rgba(10,10,32,0.45) !important; }
 /* Card progress track on bright theme (dark track on white card) */
 body.theme-bright .card-prog { background: rgba(10,10,32,0.12) !important; }
 
-/* Search */
-body.theme-bright .search-pill-btn { background: rgba(10,10,32,0.07) !important; border-color: rgba(10,10,32,0.18) !important; color: rgba(10,10,32,0.55) !important; }
-body.theme-bright .search-pill-btn.nav-focused { background: rgba(124,58,237,0.10) !important; border-color: #7c3aed !important; color: #0a0a20 !important; }
-body.theme-bright .search-active-input { background: #fff !important; color: #0a0a20 !important; border-color: #7c3aed !important; }
+/* Search — Bright */
+body.theme-bright .search-pill-btn { background: rgba(10,10,32,0.06) !important; border-color: rgba(109,40,217,0.25) !important; color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .search-pill-btn:hover,
+body.theme-bright .search-pill-btn.nav-focused { background: rgba(109,40,217,0.08) !important; border-color: #6d28d9 !important; color: #0a0a20 !important; box-shadow: 0 0 0 2px rgba(109,40,217,0.12) !important; }
+body.theme-bright .search-active-input { background: #fff !important; color: #0a0a20 !important; border-color: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(109,40,217,0.12) !important; }
+body.theme-bright .search-active-input::-webkit-input-placeholder { color: rgba(10,10,32,0.35) !important; }
+body.theme-bright .search-active-input::placeholder { color: rgba(10,10,32,0.35) !important; }
+body.theme-bright .search-close-btn { background: rgba(10,10,32,0.06) !important; border-color: rgba(10,10,32,0.22) !important; color: rgba(10,10,32,0.50) !important; }
+body.theme-bright .search-close-btn:hover { background: rgba(220,38,38,0.10) !important; border-color: rgba(220,38,38,0.35) !important; color: #dc2626 !important; }
+
+/* Search — Calm (blue accent) */
+body.theme-calm .search-pill-btn { background: rgba(88,166,255,0.05) !important; border-color: rgba(88,166,255,0.22) !important; color: rgba(201,209,217,0.65) !important; }
+body.theme-calm .search-pill-btn:hover,
+body.theme-calm .search-pill-btn.nav-focused { background: rgba(88,166,255,0.12) !important; border-color: #58a6ff !important; color: #c9d1d9 !important; box-shadow: 0 0 0 2px rgba(88,166,255,0.20) !important; }
+body.theme-calm .search-active-input { border-color: #58a6ff !important; box-shadow: 0 0 0 3px rgba(88,166,255,0.15) !important; }
+
+/* Search — Night (lavender accent) */
+body.theme-night .search-pill-btn { background: rgba(167,139,250,0.06) !important; border-color: rgba(167,139,250,0.22) !important; color: rgba(232,232,240,0.65) !important; }
+body.theme-night .search-pill-btn:hover,
+body.theme-night .search-pill-btn.nav-focused { background: rgba(167,139,250,0.18) !important; border-color: #a78bfa !important; color: #e8e8f0 !important; box-shadow: 0 0 0 2px rgba(167,139,250,0.25) !important; }
+body.theme-night .search-active-input { border-color: #a78bfa !important; box-shadow: 0 0 0 3px rgba(167,139,250,0.18) !important; }
+
+body.theme-calm .search-close-btn { background: rgba(88,166,255,0.06) !important; border-color: rgba(88,166,255,0.24) !important; color: rgba(201,209,217,0.60) !important; }
+body.theme-calm .search-close-btn:hover { background: rgba(248,113,113,0.14) !important; border-color: rgba(248,113,113,0.45) !important; color: #f87171 !important; }
+
+body.theme-night .search-close-btn { background: rgba(167,139,250,0.06) !important; border-color: rgba(167,139,250,0.22) !important; color: rgba(232,232,240,0.55) !important; }
+body.theme-night .search-close-btn:hover { background: rgba(248,113,113,0.14) !important; border-color: rgba(248,113,113,0.45) !important; color: #f87171 !important; }
 
 /* Logo & accent */
 body.theme-bright .logo-mark { box-shadow: 0 0 20px rgba(124,58,237,0.30) !important; }
@@ -298,6 +321,10 @@ body.is-web .card-action-btn {
 body.is-web .card-action-btn.fav-active { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
 body.is-web .card-action-btn.wl-active  { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
 body.is-web .card-mobile-actions { gap: 6px; position: absolute; bottom: 36px; right: 5px; z-index: 6; flex-direction: column; }
+/* Hidden by default — only shown on web (body.is-web) and mobile (@media).
+   Tizen TV never sets is-web so the button stays hidden there; RED key is used instead. */
+.ch-fav-btn { display: none; }
+
 /* Channel fav button on desktop web */
 body.is-web .ch-fav-btn {
   position: absolute; top: 5px; right: 5px;
@@ -586,13 +613,13 @@ body.movie-avplay-on #avplay-area {
 
 /* ── Player UI auto-hide ─────────────────────────────── */
 .player-header, .player-info-bar, .player-cbar,
-.episode-panel, #similar-panel, #similar-slot {
+.episode-panel:not(.episode-panel-mobile), #similar-panel, #similar-slot {
   transition: opacity 0.4s ease;
 }
 .player-modal.player-ui-hidden .player-header,
 .player-modal.player-ui-hidden .player-info-bar,
 .player-modal.player-ui-hidden .player-cbar,
-.player-modal.player-ui-hidden .episode-panel,
+.player-modal.player-ui-hidden .episode-panel:not(.episode-panel-mobile),
 .player-modal.player-ui-hidden #similar-panel,
 .player-modal.player-ui-hidden #similar-slot {
   opacity: 0;
@@ -690,6 +717,7 @@ body.movie-avplay-on #avplay-area {
   align-items: center;
   gap: 16px;
   padding: 16px 18px;
+  touch-action: manipulation;
   color: rgba(240, 240, 248, 0.45);
   cursor: pointer;
   border-radius: 0;
@@ -962,6 +990,7 @@ body.movie-avplay-on #avplay-area {
   outline: none;
   border-radius: 0;
   background: linear-gradient(135deg,#131322 0%,#1a1a2e 100%);
+  touch-action: manipulation;
   border: 1px solid rgba(167,139,250,0.15);
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
@@ -1235,7 +1264,7 @@ body.movie-avplay-on #avplay-area {
   position: fixed;
   top: 0; right: 0; bottom: 0; left: 0;
   background: #000;
-  z-index: 1000;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
 }
@@ -1257,9 +1286,11 @@ body.movie-avplay-on #avplay-area {
   pointer-events: all !important;
 }
 
-/* Mobile: hide the bottom tab bar while the movie player is open */
+/* Mobile: hide the bottom tab bar while the movie player is open.
+   JS adds body.player-open as fallback for browsers without :has() support (Samsung A10 etc.). */
 @media (max-width: 1023px) {
-  body:has(#player-modal:not(.hidden)) .sidebar { display: none !important; }
+  body:has(#player-modal:not(.hidden)) .sidebar,
+  body.player-open .sidebar { display: none !important; }
   /* Also hide when IPTV goes full-screen (channel playing, sidebar collapsed) */
   body.iptv-fullscreen .sidebar { display: none !important; }
 }
@@ -1418,6 +1449,16 @@ body.movie-avplay-on #avplay-area {
 .iptv-filters {
   padding: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+/* Toggle button hidden on TV/web — mobile shows it */
+.iptv-filter-toggle-btn {
+  display: none;
+}
+
+.iptv-filter-chevron {
+  transition: transform 0.25s ease;
   flex-shrink: 0;
 }
 
@@ -1588,6 +1629,11 @@ body.movie-avplay-on #avplay-area {
 
 .iptv-placeholder svg { width: 64px; height: 64px; opacity: 0.3; }
 .iptv-placeholder p { font-size: 18px; font-weight: 600; }
+.iptv-idle-hint {
+  font-size: 13px;
+  color: rgba(240,240,248,0.35);
+  margin-top: -8px;
+}
 
 /* ── Movie player status — same design as IPTV placeholder ─────────────── */
 /* Centred text, no pill, muted on dark background — matches .iptv-placeholder aesthetic */
@@ -2155,12 +2201,24 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   border-bottom-right-radius: 0;
 }
 
-.player-cbar .tdd-list {
-  top: auto;
-  bottom: 100%;
-  border-radius: 12px 12px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: none;
+/* Quality dropdown (cbar) and season dropdown (mobile episode panel) both open upward */
+.player-cbar .tdd-list,
+.episode-panel-mobile .tdd-list {
+  top: auto !important;
+  bottom: 100% !important;
+  border-radius: 12px 12px 0 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: none !important;
+  max-height: 260px !important;
+}
+
+/* Trigger corners flip when opening upward — flat top, rounded bottom */
+.episode-panel-mobile .tdd-wrapper.open .tdd-trigger {
+  border-radius: 0 0 8px 8px !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-left-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
 }
 
 .tdd-list {
@@ -2292,6 +2350,43 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   z-index: 5;
 }
 
+/* Mobile: episode panel becomes a horizontal scroll strip below the player */
+.episode-panel-mobile {
+  width: 100% !important;
+  height: 160px !important;
+  border-left: none !important;
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important; /* allow season dropdown to escape upward */
+}
+.episode-panel-mobile .episode-list {
+  flex-direction: row !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  display: flex !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+}
+.episode-panel-mobile .episode-item {
+  flex-direction: column !important;
+  flex-shrink: 0 !important;
+  width: 100px !important;
+  padding: 6px !important;
+  gap: 4px !important;
+}
+.episode-panel-mobile .ep-thumb {
+  width: 100% !important;
+  height: 56px !important;
+}
+.episode-panel-mobile .ep-title {
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  width: 100% !important;
+}
+.episode-panel-mobile .ep-meta { display: none !important; }
+
 .ep-panel-header {
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -2318,6 +2413,7 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   cursor: pointer;
   outline: none;
   margin-bottom: 4px;
+  touch-action: manipulation;
   transition: background 200ms ease;
 }
 
@@ -2474,9 +2570,11 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
 
 /* ── Search pill button ────────────────────────────────────────────────── */
 .search-pill-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 12px;
+  white-space: nowrap;
+  overflow: hidden;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.15);
   color: rgba(240,240,248,0.55);
@@ -2504,27 +2602,36 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   font-size: 18px;
   padding: 10px 18px;
   border-radius: 8px;
-  width: 360px;
+  min-width: 0;
+  flex: 1;
   outline: none;
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
 }
 
 .search-close-btn {
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(240, 240, 248, 0.70);
-  font-size: 18px;
-  width: 40px; height: 40px;
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(255,255,255,0.22);
+  color: rgba(240,240,248,0.60);
+  font-size: 15px;
+  width: 44px;
+  align-self: stretch;
+  flex-shrink: 0;
   border-radius: 8px;
   cursor: pointer;
   outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 200ms ease;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
 }
 
-.search-close-btn:hover { background: rgba(255,255,255,0.18); }
+.search-close-btn:hover {
+  background: rgba(248,113,113,0.18);
+  border-color: rgba(248,113,113,0.50);
+  color: #f87171;
+}
+
+body:not(.is-web):not(.is-mobile) .search-close-btn { display: none; }
 
 .filter-label {
   font-size: 16px;
@@ -3071,6 +3178,15 @@ body.theme-bright .card.nav-focused {
   .card-row { padding: 0 16px !important; gap: 10px !important; }
   .card { width: 248px !important; }
   .card-poster { height: calc(248px * 1.5) !important; }
+  /* Home horizontal rows: wider cards so the next one peeks to signal scrollability */
+  .card-row .card { width: 62vw !important; }
+  .card-row .card-poster { height: calc(62vw * 1.5) !important; }
+  /* Movies/Series filter row: dropdowns share the row equally */
+  #movies-page .tdd-wrapper { flex: 1; min-width: 0; }
+  #movies-page .tdd-trigger { width: 100% !important; box-sizing: border-box; }
+  /* Series sort — same compact style as movies filter row */
+  #series-page .tdd-wrapper { flex: 1; min-width: 0; }
+  #series-page .tdd-trigger { width: 100% !important; box-sizing: border-box; }
 
   /* ── Filter pills ── */
   .pill { font-size: 13px !important; padding: 8px 16px !important; }
@@ -3120,7 +3236,7 @@ body.theme-bright .card.nav-focused {
   .iptv-sidebar {
     width: 100% !important;
     min-width: 0 !important;
-    height: 480px !important; /* filter area ~250px + channel list ~230px */
+    height: 580px !important; /* filter area + more channel list space */
     border-right: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
     overflow: hidden !important; /* channel-list scrolls internally */
@@ -3143,19 +3259,40 @@ body.theme-bright .card.nav-focused {
     background: rgba(0,0,0,0.70) !important;
     padding: 8px 14px 68px !important;
   }
-  /* Compact filter section so channel list gets enough room */
-  .iptv-sidebar > div:first-child {
-    padding: 12px 14px 8px !important;
+  /* Filter toggle button — visible on mobile */
+  .iptv-filter-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(240,240,248,0.60);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
   }
+
+  /* Compact filter section so channel list gets enough room */
+  #iptv-filter-header { padding: 10px 14px 8px !important; }
+  #iptv-filter-body > div { padding: 0 14px 10px !important; }
   .iptv-filter-label { font-size: 11px !important; margin-bottom: 4px !important; margin-top: 8px !important; }
   .iptv-working-btn  { padding: 7px 12px !important; font-size: 12px !important; margin-top: 6px !important; }
   /* Make the country/category dropdowns more compact */
   .iptv-sidebar .tdd-trigger { padding: 8px 12px !important; font-size: 13px !important; min-width: 0 !important; }
 
-  .iptv-player { flex: 1 !important; min-height: 200px !important; }
-  .iptv-player-area { min-height: 180px !important; }
+  .iptv-player { flex: 1 !important; min-height: 100px !important; }
+  .iptv-player-area { min-height: 80px !important; }
   /* Channel bar: bottom padding clears the fixed 58px bottom tab bar */
   .iptv-channel-bar { min-height: auto !important; padding: 10px 14px 68px !important; }
+  /* Idle state: compact icon + smaller text */
+  .iptv-placeholder--idle svg.iptv-idle-icon { width: 28px !important; height: 28px !important; opacity: 0.25 !important; }
+  .iptv-placeholder--idle p { font-size: 13px !important; }
+  .iptv-idle-hint { display: none; }
 
   /* ── Detail page ── */
   #detail-page { min-height: calc(100vh - 58px) !important; }

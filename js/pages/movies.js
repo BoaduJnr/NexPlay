@@ -7,6 +7,7 @@ const MoviesPage = (() => {
   let _page = 1;
   let _loading = false;
   let _scrollHandler = null;
+  let _scrollObserver = null;
   let _keyHandler = null;
 
   const SORT_OPTIONS = [
@@ -98,6 +99,9 @@ const MoviesPage = (() => {
       let data;
       if (_activeSearch) {
         data = await TMDB.search(_activeSearch, _page);
+        if (_activeGenre) {
+          data = { results: data.results.filter(function(r) { return r.genre_ids && r.genre_ids.indexOf(_activeGenre) !== -1; }), total_results: data.total_results };
+        }
       } else {
         const params = { sort_by: _activeSort, page: _page };
         if (_activeGenre) params.with_genres = _activeGenre;
@@ -120,7 +124,20 @@ const MoviesPage = (() => {
       }
       bindCardClicks(grid);
       UX.fillProgressBars(grid);
-      if (replace) Nav.reset(document.getElementById('movies-page'));
+      if (replace) {
+        var _si  = document.getElementById('movie-search-input');
+        var _sw  = document.getElementById('movie-search-wrap');
+        if (document.activeElement !== _si) {
+          Nav.reset(document.getElementById('movies-page'));
+          var _tvSearchActive = !document.body.classList.contains('is-web') &&
+                                !document.body.classList.contains('is-mobile') &&
+                                _sw && _sw.style.display !== 'none';
+          if (_tvSearchActive) {
+            var firstCard = document.querySelector('#movies-grid [data-nav]');
+            if (firstCard) Nav.focusEl(firstCard);
+          }
+        }
+      }
     } catch (err) {
       console.error('Movies load error:', err);
     }
@@ -129,28 +146,72 @@ const MoviesPage = (() => {
 
   // ── Scroll-based pagination ─────────────────────────────
   function setupScrollPaging() {
-    const content = document.getElementById('main-content');
-    if (!content) return;
-    if (_scrollHandler) content.removeEventListener('scroll', _scrollHandler);
-    _scrollHandler = function() {
-      if (_loading) return;
-      const nearBottom = content.scrollHeight - content.scrollTop - content.clientHeight < 500;
-      if (nearBottom) { _page++; loadMovies(false); }
-    };
-    content.addEventListener('scroll', _scrollHandler);
+    teardownScrollPaging();
+    var grid = document.getElementById('movies-grid');
+    if (!grid) return;
+
+    // Sentinel sits AFTER the grid so card appends don't push it around
+    var sentinel = document.createElement('div');
+    sentinel.id = 'nexplay-pg-sentinel';
+    sentinel.style.height = '4px';
+    grid.insertAdjacentElement('afterend', sentinel);
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      // Mobile / modern browser: observe sentinel against the viewport.
+      // TV with IntersectionObserver: observe against #main-content container.
+      var isMobile = window.innerWidth < 1024;
+      _scrollObserver = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !_loading) {
+          _page++;
+          loadMovies(false);
+        }
+      }, {
+        root: isMobile ? null : document.getElementById('main-content'),
+        rootMargin: '0px 0px 600px 0px',
+      });
+      _scrollObserver.observe(sentinel);
+    } else {
+      // Tizen / old browser: scroll event on #main-content
+      var mc = document.getElementById('main-content');
+      if (!mc) return;
+      _scrollHandler = function() {
+        if (_loading) return;
+        if (mc.scrollHeight - mc.scrollTop - mc.clientHeight < 400) {
+          _page++;
+          loadMovies(false);
+        }
+      };
+      mc.addEventListener('scroll', _scrollHandler);
+    }
   }
 
   function teardownScrollPaging() {
-    const content = document.getElementById('main-content');
-    if (content && _scrollHandler) content.removeEventListener('scroll', _scrollHandler);
-    _scrollHandler = null;
+    if (_scrollObserver) { _scrollObserver.disconnect(); _scrollObserver = null; }
+    if (_scrollHandler) {
+      var mc = document.getElementById('main-content');
+      if (mc) mc.removeEventListener('scroll', _scrollHandler);
+      window.removeEventListener('scroll', _scrollHandler);
+      _scrollHandler = null;
+    }
+    var s = document.getElementById('nexplay-pg-sentinel');
+    if (s && s.parentNode) s.parentNode.removeChild(s);
   }
 
-  // ── Remote key handler (GREEN = fav, INFO = watchlist) ──
+  // ── Remote key handler ─────────────────────────────────
   function bindRemoteKeys() {
     _keyHandler = function(e) {
+      // TV Back key: if search is active, re-focus input (first Back) or clear (second Back)
+      if (e.keyCode === Config.KEYS.BACK || e.keyCode === 10009) {
+        var wrap = document.getElementById('movie-search-wrap');
+        var inp  = document.getElementById('movie-search-input');
+        if (wrap && wrap.style.display !== 'none' && document.activeElement !== inp) {
+          e.preventDefault(); e.stopPropagation();
+          inp.focus();
+          return;
+        }
+      }
+
       if (typeof NexPlayDB === 'undefined') return;
-      // Fallback to CSS-class in case Samsung INFO key briefly clears Nav focus
       const focused = Nav.current() ||
         document.querySelector('[data-nav].nav-focused[data-movie-id]');
       if (!focused || !focused.dataset.movieId) return;
@@ -233,9 +294,9 @@ const MoviesPage = (() => {
           <p class="page-subtitle">Explore thousands of movies by genre, year, and more</p>
         </div>
 
-        <div style="padding:20px 72px 8px;display:-webkit-flex;display:flex;align-items:center;gap:16px;">
+        <div style="padding:${window.innerWidth < 1024 ? '12px 16px 8px' : '20px 72px 8px'};display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:12px;${window.innerWidth >= 1024 ? 'max-width:520px;' : ''}min-width:0;">
           <!-- Search trigger button — sits in the nav flow -->
-          <button id="movie-search-btn" class="search-pill-btn" data-nav tabindex="0">
+          <button id="movie-search-btn" class="search-pill-btn" data-nav tabindex="0" style="-webkit-flex:1;flex:1;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -243,17 +304,17 @@ const MoviesPage = (() => {
             <span>Search movies...</span>
           </button>
           <!-- Active search input — hidden until button is pressed -->
-          <div id="movie-search-wrap" style="display:none;-webkit-align-items:center;align-items:center;gap:8px;">
+          <div id="movie-search-wrap" style="display:none;-webkit-align-items:center;align-items:center;gap:8px;-webkit-flex:1;flex:1;min-width:0;">
             <input type="text" id="movie-search-input" class="search-active-input"
                    placeholder="Type to search..." autocomplete="off">
-            <button id="movie-search-close" class="search-close-btn" tabindex="-1">&#x2715;</button>
+            <button id="movie-search-close" class="search-close-btn">&#x2715;</button>
           </div>
         </div>
 
-        <div style="padding:0 72px 0;display:-webkit-flex;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <span class="filter-label">Sort by</span>
+        <div style="padding:${window.innerWidth < 1024 ? '4px 16px 0' : '0 72px 0'};display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:${window.innerWidth < 1024 ? '6px' : '16px'};flex-wrap:${window.innerWidth < 1024 ? 'nowrap' : 'wrap'};">
+          <span class="filter-label" style="${window.innerWidth < 1024 ? 'display:none' : ''}">Sort by</span>
           ${sortSelect()}
-          <span class="filter-label" style="margin-left:8px;">Year</span>
+          <span class="filter-label" style="margin-left:${window.innerWidth < 1024 ? '0' : '8px'};${window.innerWidth < 1024 ? 'display:none' : ''}">Year</span>
           ${yearSelect()}
         </div>
 
@@ -291,6 +352,7 @@ const MoviesPage = (() => {
     // Search input — captures all keystrokes while active
     const searchInput = document.getElementById('movie-search-input');
     let _searchTimer = null;
+    var _isTv = !document.body.classList.contains('is-web') && !document.body.classList.contains('is-mobile');
     if (searchInput) {
       searchInput.addEventListener('keydown', function(e) {
         e.stopPropagation(); // prevent D-pad nav while typing
@@ -298,8 +360,14 @@ const MoviesPage = (() => {
           clearTimeout(_searchTimer);
           _activeSearch = searchInput.value.trim();
           _page = 1;
+          if (!_activeSearch) { deactivateSearch(false); return; }
           loadMovies(true);
-          if (!_activeSearch) deactivateSearch(false);
+          // TV: blur input after Enter so D-pad can navigate results without clearing search
+          if (_isTv) searchInput.blur();
+        } else if (e.keyCode === 40 && _isTv) {
+          // TV: Down arrow while in search → move focus to results
+          e.preventDefault();
+          searchInput.blur();
         } else if (e.keyCode === 27 || e.keyCode === Config.KEYS.BACK) {
           deactivateSearch(true);
         }

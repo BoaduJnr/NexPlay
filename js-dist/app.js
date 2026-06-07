@@ -44,6 +44,16 @@ var App = function () {
 
         // Start on Home
         navigateFull('home');
+
+        // Dismiss splash screen once the first page has rendered
+        var splash = document.getElementById('nexplay-splash');
+        if (splash) {
+          splash.style.transition = 'opacity 0.35s ease';
+          splash.style.opacity = '0';
+          setTimeout(function () {
+            if (splash.parentNode) splash.parentNode.removeChild(splash);
+          }, 380);
+        }
       }
       scaleApp();
       window.addEventListener('resize', scaleApp);
@@ -392,8 +402,13 @@ var App = function () {
     document.title = "NexPlay \u2014 ".concat(def.label);
   }
 
-  // Special case: player opens as a modal overlay
+  // Special case: player opens as a modal overlay.
+  // Still call onLeave for the current page so IPTV audio stops, scan halts, etc.
   function navigatePlayer(params) {
+    if (_currentPage && PAGES[_currentPage]) {
+      var mod = PAGES[_currentPage].module();
+      if (mod.onLeave) mod.onLeave();
+    }
     PlayerPage.render(document.getElementById('main-content'), params);
   }
 

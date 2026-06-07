@@ -2,16 +2,22 @@
 
   const SOURCES = [
     {
-      id: '2embed',
-      label: 'Source 1',
-      movieUrl: id       => `https://www.2embed.cc/embed/${id}`,
-      tvUrl:  (id, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
+      id: 'videasy',
+      label: 'Videasy',
+      movieUrl: id       => `https://player.videasy.to/movie/${id}`,
+      tvUrl:  (id, s, e) => `https://player.videasy.to/tv/${id}/${s}/${e}`,
     },
     {
       id: 'vsembed',
-      label: 'Source 2',
+      label: 'Source 1',
       movieUrl: id       => `${Config.VSEMBED_BASE}/embed/movie?tmdb=${id}`,
       tvUrl:  (id, s, e) => `${Config.VSEMBED_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+    },
+    {
+      id: '2embed',
+      label: 'Source 2',
+      movieUrl: id       => `https://www.2embed.cc/embed/${id}`,
+      tvUrl:  (id, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
     },
     {
       id: 'vidsrc-me',
@@ -482,7 +488,7 @@
     if (_pModal) _pModal.classList.add('player-embed-mode');
 
     // Friendly source names for display
-    var SOURCE_NAMES = { '2embed': '2Embed', 'vsembed': 'VSEmbed', 'vidsrc-me': 'VidSrc', 'vidsrc': 'VidSrc.to' };
+    var SOURCE_NAMES = { 'videasy': 'Videasy', '2embed': '2Embed', 'vsembed': 'VSEmbed', 'vidsrc-me': 'VidSrc', 'vidsrc': 'VidSrc.to' };
     var srcObj   = _embedSourceList[_embedSourceIdx] || {};
     var srcName  = SOURCE_NAMES[srcObj.id] || srcObj.label || 'Embed Player';
     var hasNext  = _embedSourceIdx < _embedSourceList.length - 1;
@@ -577,7 +583,6 @@
     }
   }
 
-  // Single proxy for both web and TV "" Cloudflare Worker handles CORS + Referer.
   var PROXY_BASE = 'https://nexplay-proxy.pielly16.workers.dev';
 
   function buildProxyUrl(streamUrl, headers) {
@@ -668,8 +673,6 @@
       hls.on(Hls.Events.ERROR, function(ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          // Skip loadBestSource retries for web — re-resolving gets the same broken CDN URL.
-          // Fall straight to embed iframe so the user doesn't wait 24+ extra seconds.
           _streamErrorRetries = 0;
           trySource(0);
         }
@@ -687,20 +690,16 @@
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
 
-    // TV always proxies (TLS compat). Browser only proxies when headers are needed.
-    // VidLink on TV uses a Deno proxy (x-via-deno flag) instead of the CF Worker
-    // because VidLink CDN is on Cloudflare (CF→CF blocked) and uses TLS 1.3.
-    // Always proxy: TV needs TLS 1.2 compat; web needs CORS bypass
-    // (hls.js also needs segment URLs rewritten through the proxy).
-    var needsProxy = true;
-    var playUrl    = buildProxyUrl(url, headers);
+    // TV always proxies (TLS compat + Referer injection).
+    // Browser proxies for CORS and segment URL rewriting.
+    var playUrl = buildProxyUrl(url, headers);
 
     if (typeof webapis === 'undefined' || !webapis.avplay) {
       playWithHlsJs(playUrl, headers);
       return;
     }
 
-    // TV: AVPlay always via proxy (TLS compat)
+    // TV: AVPlay via proxy
     console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     // Restore controls in case we're retrying after an iframe embed
     _removeEmbedFocusToast();
@@ -742,8 +741,27 @@
         },
       });
 
+      // Hard timeout — avoids "Loading..." forever when CDN returns a bad response
+      var _avplayTimeout = setTimeout(function() {
+        var _m = document.getElementById('player-modal');
+        if (!_m || _m.classList.contains('hidden')) return;
+        console.warn('[Player] AVPlay prepareAsync timeout');
+        try { webapis.avplay.stop(); } catch(e) {}
+        try { webapis.avplay.close(); } catch(e) {}
+        document.body.classList.remove('movie-avplay-on');
+        _streamErrorRetries++;
+        if (_streamErrorRetries <= 2) {
+          setPlayerStatus('Reconnecting...');
+          loadBestSource();
+        } else {
+          _streamErrorRetries = 0;
+          trySource(0);
+        }
+      }, 15000);
+
       webapis.avplay.prepareAsync(
         function() {
+          clearTimeout(_avplayTimeout);
           console.log('[Player] prepareAsync success');
           _streamErrorRetries = 0;
           webapis.avplay.play();
@@ -786,6 +804,7 @@
           }, 3000);
         },
         function(e) {
+          clearTimeout(_avplayTimeout);
           console.error('[Player] prepareAsync error:', e);
           document.body.classList.remove('movie-avplay-on');
           // Re-resolve to get fresh CDN URLs (same as onerror retry)
@@ -813,6 +832,7 @@
     }
   }
 
+  // ── Torrent source (web/mobile only — WebRTC required) ──────────────────
   function loadBestSource() {
     if (typeof StreamResolver === 'undefined') { trySource(0); return; }
 
@@ -845,11 +865,9 @@
       .then(function(result) {
         if (result && result.url) {
           _availableQualities = result.qualities || [];
-          _qualityHeaders = result.headers || null; // keep for quality switching
+          _qualityHeaders = result.headers || null;
           console.log('[Player] stream resolved:', result.url.slice(0, 60));
           setPlayerStatus('Starting playback...');
-          // Start at saved quality preference when the stream offers it
-          // Only use saved quality on first load — on retry the saved URL may be stale/expired
           var _savedPrefLabel = '';
           if (_streamErrorRetries === 0) {
             try { _savedPrefLabel = localStorage.getItem('np_pref_quality') || ''; } catch(e) {}
@@ -896,11 +914,13 @@
       label: (s.season_number === _currentSeason ? '▶  ' : '') + `Season ${s.season_number}  (${s.episode_count} eps)`,
     }));
 
+    const isMobilePanel = panel.classList.contains('episode-panel-mobile');
     panel.innerHTML = `
-      <div class="ep-panel-header">
+      <div class="ep-panel-header"${isMobilePanel ? ' style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);"' : ''}>
         ${TVDropdown.html('season-dd', seasonOptions, String(_currentSeason))}
       </div>
-      <div class="episode-list" id="episode-list" data-scroll>
+      <div class="episode-list" id="episode-list" data-scroll
+        ${isMobilePanel ? 'style="display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:8px;padding:8px 12px;flex:1;"' : ''}>
         <div style="padding:12px;text-align:center;color:rgba(240,240,248,0.45);">Loading...</div>
       </div>`;
 
@@ -922,20 +942,28 @@
       const season = await TMDB.tvSeason(_params.id, seasonNumber);
       const episodes = season.episodes || [];
 
+      const isMobileList = !!(list.closest('.episode-panel-mobile'));
+      const itemStyle = isMobileList
+        ? 'style="flex-shrink:0;width:100px;flex-direction:column;padding:6px;gap:4px;align-items:flex-start;"'
+        : '';
+      const thumbStyle = isMobileList ? 'style="width:100%;height:56px;"' : '';
+      const titleStyle = isMobileList
+        ? 'style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;"'
+        : '';
       list.innerHTML = episodes.map(ep => {
         const still = ep.still_path ? TMDB.img(ep.still_path, Config.IMG.POSTER_SM) : '';
         const active = ep.episode_number === _currentEpisode ? 'active' : '';
         return `
-          <div class="episode-item ${active}" data-nav data-ep="${ep.episode_number}" tabindex="0">
-            <div class="ep-thumb">
+          <div class="episode-item ${active}" data-nav data-ep="${ep.episode_number}" tabindex="0" ${itemStyle}>
+            <div class="ep-thumb" ${thumbStyle}>
               ${still
                 ? `<img src="${still}" alt="Ep ${ep.episode_number}" loading="lazy">`
                 : `<div class="ep-thumb-placeholder">></div>`}
               <div class="ep-num-badge">${ep.episode_number}</div>
             </div>
             <div class="ep-info">
-              <div class="ep-title">${ep.name || `Episode ${ep.episode_number}`}</div>
-              <div class="ep-meta">${ep.runtime ? ep.runtime + 'm' : ''}</div>
+              <div class="ep-title" ${titleStyle}>${ep.name || `Episode ${ep.episode_number}`}</div>
+              ${!isMobileList ? `<div class="ep-meta">${ep.runtime ? ep.runtime + 'm' : ''}</div>` : ''}
             </div>
           </div>`;
       }).join('');
@@ -1096,15 +1124,18 @@
     _seekMode            = false;
     _seekPreview         = 0;
 
-    const isTV = params.type === 'tv';
+    const isTV     = params.type === 'tv';
+    const isMobile = window.innerWidth < 1024;
+    const rightPad = isMobile ? 0 : (isTV ? 300 : 240);
     const modal = document.getElementById('player-modal');
     if (!modal) return;
 
     stopAvPlay();
     modal.classList.remove('hidden');
+    document.body.classList.add('player-open');
 
     modal.innerHTML = `
-      <div class="player-header" style="${isTV ? 'margin-right:300px;' : 'margin-right:240px;'}">
+      <div class="player-header" style="margin-right:${rightPad}px;">
         <button class="player-back btn btn-secondary" data-nav tabindex="0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
@@ -1117,12 +1148,15 @@
         <div id="avplay-area" style="-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;">
           <div id="player-status" class="player-status-overlay">Loading...</div>
         </div>
-        ${isTV
-          ? `<div id="episode-panel" class="episode-panel"></div>`
-          : `<div id="similar-slot"></div>`}
+        ${!isMobile ? (isTV ? `<div id="episode-panel" class="episode-panel"></div>` : `<div id="similar-slot"></div>`) : ''}
       </div>
 
-      <div class="player-cbar" id="player-cbar" style="${isTV ? 'right:300px;' : 'right:240px;'}">
+      ${isMobile && isTV
+        ? `<div id="episode-panel" class="episode-panel episode-panel-mobile"
+             style="width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);"></div>`
+        : ''}
+
+      <div class="player-cbar" id="player-cbar" style="right:${rightPad}px;">
         <!-- Row 1 (top): controls centered + quality far right -->
         <div class="player-cbar-row2">
           <div class="player-cbar-btns">
@@ -1155,7 +1189,7 @@
         </div>
       </div>
 
-      <div class="player-info-bar" style="${isTV ? 'right:300px;' : 'right:240px;'}">
+      <div class="player-info-bar" style="right:${rightPad}px;">
         <div style="-webkit-flex:1;flex:1;min-width:0;">
           <div class="player-title" id="player-title">Loading...</div>
           <div class="player-meta" id="player-meta"></div>
@@ -1267,6 +1301,7 @@
     stopAutoHide();
     stopMediaKeys();
     stopAvPlay();
+    document.body.classList.remove('player-open');
     const modal = document.getElementById('player-modal');
     if (modal) {
       modal.classList.add('hidden');

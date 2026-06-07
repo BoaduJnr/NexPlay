@@ -34,14 +34,17 @@ var PlayerPage = function () {
       _seekMode = false;
       _seekPreview = 0;
       var isTV = params.type === 'tv';
+      var isMobile = window.innerWidth < 1024;
+      var rightPad = isMobile ? 0 : isTV ? 300 : 240;
       var modal = document.getElementById('player-modal');
       if (!modal) return Promise.resolve();
       stopAvPlay();
       modal.classList.remove('hidden');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"".concat(isTV ? 'margin-right:300px;' : 'margin-right:240px;', "\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>", "\n      </div>\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"").concat(isTV ? 'right:300px;' : 'right:240px;', "\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      document.body.classList.add('player-open');
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"").concat(isTV ? 'right:300px;' : 'right:240px;', "\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
@@ -199,10 +202,14 @@ var PlayerPage = function () {
       var _temp3 = _catch(function () {
         return Promise.resolve(TMDB.tvSeason(_params.id, seasonNumber)).then(function (season) {
           var episodes = season.episodes || [];
+          var isMobileList = !!list.closest('.episode-panel-mobile');
+          var itemStyle = isMobileList ? 'style="flex-shrink:0;width:100px;flex-direction:column;padding:6px;gap:4px;align-items:flex-start;"' : '';
+          var thumbStyle = isMobileList ? 'style="width:100%;height:56px;"' : '';
+          var titleStyle = isMobileList ? 'style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;"' : '';
           list.innerHTML = episodes.map(function (ep) {
             var still = ep.still_path ? TMDB.img(ep.still_path, Config.IMG.POSTER_SM) : '';
             var active = ep.episode_number === _currentEpisode ? 'active' : '';
-            return "\n          <div class=\"episode-item ".concat(active, "\" data-nav data-ep=\"").concat(ep.episode_number, "\" tabindex=\"0\">\n            <div class=\"ep-thumb\">\n              ").concat(still ? "<img src=\"".concat(still, "\" alt=\"Ep ").concat(ep.episode_number, "\" loading=\"lazy\">") : "<div class=\"ep-thumb-placeholder\">></div>", "\n              <div class=\"ep-num-badge\">").concat(ep.episode_number, "</div>\n            </div>\n            <div class=\"ep-info\">\n              <div class=\"ep-title\">").concat(ep.name || "Episode ".concat(ep.episode_number), "</div>\n              <div class=\"ep-meta\">").concat(ep.runtime ? ep.runtime + 'm' : '', "</div>\n            </div>\n          </div>");
+            return "\n          <div class=\"episode-item ".concat(active, "\" data-nav data-ep=\"").concat(ep.episode_number, "\" tabindex=\"0\" ").concat(itemStyle, ">\n            <div class=\"ep-thumb\" ").concat(thumbStyle, ">\n              ").concat(still ? "<img src=\"".concat(still, "\" alt=\"Ep ").concat(ep.episode_number, "\" loading=\"lazy\">") : "<div class=\"ep-thumb-placeholder\">></div>", "\n              <div class=\"ep-num-badge\">").concat(ep.episode_number, "</div>\n            </div>\n            <div class=\"ep-info\">\n              <div class=\"ep-title\" ").concat(titleStyle, ">").concat(ep.name || "Episode ".concat(ep.episode_number), "</div>\n              ").concat(!isMobileList ? "<div class=\"ep-meta\">".concat(ep.runtime ? ep.runtime + 'm' : '', "</div>") : '', "\n            </div>\n          </div>");
           }).join('');
           list.querySelectorAll('[data-ep]').forEach(function (el) {
             el.addEventListener('click', function () {
@@ -255,7 +262,8 @@ var PlayerPage = function () {
             label: (s.season_number === _currentSeason ? '▶  ' : '') + "Season ".concat(s.season_number, "  (").concat(s.episode_count, " eps)")
           };
         });
-        panel.innerHTML = "\n      <div class=\"ep-panel-header\">\n        ".concat(TVDropdown.html('season-dd', seasonOptions, String(_currentSeason)), "\n      </div>\n      <div class=\"episode-list\" id=\"episode-list\" data-scroll>\n        <div style=\"padding:12px;text-align:center;color:rgba(240,240,248,0.45);\">Loading...</div>\n      </div>");
+        var isMobilePanel = panel.classList.contains('episode-panel-mobile');
+        panel.innerHTML = "\n      <div class=\"ep-panel-header\"".concat(isMobilePanel ? ' style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);"' : '', ">\n        ").concat(TVDropdown.html('season-dd', seasonOptions, String(_currentSeason)), "\n      </div>\n      <div class=\"episode-list\" id=\"episode-list\" data-scroll\n        ").concat(isMobilePanel ? 'style="display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:8px;padding:8px 12px;flex:1;"' : '', ">\n        <div style=\"padding:12px;text-align:center;color:rgba(240,240,248,0.45);\">Loading...</div>\n      </div>");
         TVDropdown.mount('season-dd', function (v) {
           _currentSeason = parseInt(v);
           _currentEpisode = 1;
@@ -280,22 +288,31 @@ var PlayerPage = function () {
     }
   };
   var SOURCES = [{
-    id: '2embed',
-    label: 'Source 1',
+    id: 'videasy',
+    label: 'Videasy',
     movieUrl: function movieUrl(id) {
-      return "https://www.2embed.cc/embed/".concat(id);
+      return "https://player.videasy.to/movie/".concat(id);
     },
     tvUrl: function tvUrl(id, s, e) {
-      return "https://www.2embed.cc/embedtv/".concat(id, "&s=").concat(s, "&e=").concat(e);
+      return "https://player.videasy.to/tv/".concat(id, "/").concat(s, "/").concat(e);
     }
   }, {
     id: 'vsembed',
-    label: 'Source 2',
+    label: 'Source 1',
     movieUrl: function movieUrl(id) {
       return "".concat(Config.VSEMBED_BASE, "/embed/movie?tmdb=").concat(id);
     },
     tvUrl: function tvUrl(id, s, e) {
       return "".concat(Config.VSEMBED_BASE, "/embed/tv?tmdb=").concat(id, "&season=").concat(s, "&episode=").concat(e);
+    }
+  }, {
+    id: '2embed',
+    label: 'Source 2',
+    movieUrl: function movieUrl(id) {
+      return "https://www.2embed.cc/embed/".concat(id);
+    },
+    tvUrl: function tvUrl(id, s, e) {
+      return "https://www.2embed.cc/embedtv/".concat(id, "&s=").concat(s, "&e=").concat(e);
     }
   }, {
     id: 'vidsrc-me',
@@ -843,6 +860,7 @@ var PlayerPage = function () {
 
     // Friendly source names for display
     var SOURCE_NAMES = {
+      'videasy': 'Videasy',
       '2embed': '2Embed',
       'vsembed': 'VSEmbed',
       'vidsrc-me': 'VidSrc',
@@ -916,8 +934,6 @@ var PlayerPage = function () {
       trySource(idx + 1);
     }
   }
-
-  // Single proxy for both web and TV "" Cloudflare Worker handles CORS + Referer.
   var PROXY_BASE = 'https://nexplay-proxy.pielly16.workers.dev';
   function buildProxyUrl(streamUrl, headers) {
     var h = '';
@@ -1017,8 +1033,6 @@ var PlayerPage = function () {
       hls.on(Hls.Events.ERROR, function (ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          // Skip loadBestSource retries for web — re-resolving gets the same broken CDN URL.
-          // Fall straight to embed iframe so the user doesn't wait 24+ extra seconds.
           _streamErrorRetries = 0;
           trySource(0);
         }
@@ -1037,19 +1051,15 @@ var PlayerPage = function () {
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
 
-    // TV always proxies (TLS compat). Browser only proxies when headers are needed.
-    // VidLink on TV uses a Deno proxy (x-via-deno flag) instead of the CF Worker
-    // because VidLink CDN is on Cloudflare (CF→CF blocked) and uses TLS 1.3.
-    // Always proxy: TV needs TLS 1.2 compat; web needs CORS bypass
-    // (hls.js also needs segment URLs rewritten through the proxy).
-    var needsProxy = true;
+    // TV always proxies (TLS compat + Referer injection).
+    // Browser proxies for CORS and segment URL rewriting.
     var playUrl = buildProxyUrl(url, headers);
     if (typeof webapis === 'undefined' || !webapis.avplay) {
       playWithHlsJs(playUrl, headers);
       return;
     }
 
-    // TV: AVPlay always via proxy (TLS compat)
+    // TV: AVPlay via proxy
     console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     // Restore controls in case we're retrying after an iframe embed
     _removeEmbedFocusToast();
@@ -1092,7 +1102,30 @@ var PlayerPage = function () {
           }
         }
       });
+
+      // Hard timeout — avoids "Loading..." forever when CDN returns a bad response
+      var _avplayTimeout = setTimeout(function () {
+        var _m = document.getElementById('player-modal');
+        if (!_m || _m.classList.contains('hidden')) return;
+        console.warn('[Player] AVPlay prepareAsync timeout');
+        try {
+          webapis.avplay.stop();
+        } catch (e) {}
+        try {
+          webapis.avplay.close();
+        } catch (e) {}
+        document.body.classList.remove('movie-avplay-on');
+        _streamErrorRetries++;
+        if (_streamErrorRetries <= 2) {
+          setPlayerStatus('Reconnecting...');
+          loadBestSource();
+        } else {
+          _streamErrorRetries = 0;
+          trySource(0);
+        }
+      }, 15000);
       webapis.avplay.prepareAsync(function () {
+        clearTimeout(_avplayTimeout);
         console.log('[Player] prepareAsync success');
         _streamErrorRetries = 0;
         webapis.avplay.play();
@@ -1136,6 +1169,7 @@ var PlayerPage = function () {
           }
         }, 3000);
       }, function (e) {
+        clearTimeout(_avplayTimeout);
         console.error('[Player] prepareAsync error:', e);
         document.body.classList.remove('movie-avplay-on');
         // Re-resolve to get fresh CDN URLs (same as onerror retry)
@@ -1161,6 +1195,8 @@ var PlayerPage = function () {
       }
     }
   }
+
+  // ── Torrent source (web/mobile only — WebRTC required) ──────────────────
   function loadBestSource() {
     if (typeof StreamResolver === 'undefined') {
       trySource(0);
@@ -1194,11 +1230,9 @@ var PlayerPage = function () {
     }).then(function (result) {
       if (result && result.url) {
         _availableQualities = result.qualities || [];
-        _qualityHeaders = result.headers || null; // keep for quality switching
+        _qualityHeaders = result.headers || null;
         console.log('[Player] stream resolved:', result.url.slice(0, 60));
         setPlayerStatus('Starting playback...');
-        // Start at saved quality preference when the stream offers it
-        // Only use saved quality on first load — on retry the saved URL may be stale/expired
         var _savedPrefLabel = '';
         if (_streamErrorRetries === 0) {
           try {
@@ -1333,6 +1367,7 @@ var PlayerPage = function () {
     stopAutoHide();
     stopMediaKeys();
     stopAvPlay();
+    document.body.classList.remove('player-open');
     var modal = document.getElementById('player-modal');
     if (modal) {
       modal.classList.add('hidden');
