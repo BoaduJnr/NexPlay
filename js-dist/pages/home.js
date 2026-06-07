@@ -24,7 +24,7 @@ var HomePage = function () {
       function _temp2() {
         bindRemoteKeys();
       }
-      container.innerHTML = "\n      <div id=\"home-page\">\n        <div id=\"hero-wrapper\">\n          <div class=\"hero\">\n            <div class=\"hero-backdrop skeleton\" style=\"height:100%\"></div>\n          </div>\n        </div>\n\n        <div class=\"home-key-hints\">\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-green\"></span>\n            <span class=\"home-hint-label\">Change Theme</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-red\"></span>\n            <span class=\"home-hint-label\">Add to Favourite</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-blue\"></span>\n            <span class=\"home-hint-label\">Add to Watchlist</span>\n          </span>\n          <span class=\"home-hint-item\">\n            <span class=\"home-color-btn home-color-yellow\"></span>\n            <span class=\"home-hint-label\">More Info</span>\n          </span>\n        </div>\n\n        ".concat(renderRow('trending', 'Trending', 'This Week'), "\n        ").concat(renderRow('popular', 'Popular', 'Movies'), "\n        ").concat(renderRow('top-rated', 'Top Rated'), "\n        ").concat(renderRow('now-playing', 'Now Playing', 'In Theaters'), "\n      </div>");
+      container.innerHTML = "\n      <div id=\"home-page\">\n        <div id=\"hero-wrapper\">\n          <div class=\"hero\">\n            <div class=\"hero-backdrop skeleton\" style=\"height:100%\"></div>\n          </div>\n        </div>\n\n        <!-- TV: colour-key hints (remote buttons) -->\n        <div class=\"home-key-hints\">\n          <span class=\"home-hint-item\"><span class=\"home-color-btn home-color-green\"></span><span class=\"home-hint-label\">Change Theme</span></span>\n          <span class=\"home-hint-item\"><span class=\"home-color-btn home-color-red\"></span><span class=\"home-hint-label\">Add to Favourite</span></span>\n          <span class=\"home-hint-item\"><span class=\"home-color-btn home-color-blue\"></span><span class=\"home-hint-label\">Add to Watchlist</span></span>\n          <span class=\"home-hint-item\"><span class=\"home-color-btn home-color-yellow\"></span><span class=\"home-hint-label\">More Info</span></span>\n        </div>\n        <!-- Web/mobile: icon + label hints (same style as TV colour hints, but tappable) -->\n        <div class=\"home-icon-hints\" id=\"home-icon-hints\">\n          <span class=\"home-hint-item home-icon-hint\" id=\"hib-fav\">\n            <span class=\"hib-fav-icon home-icon-glyph\">\u2661</span>\n            <span class=\"home-hint-label\">Add to Favourite</span>\n          </span>\n          <span class=\"home-hint-item home-icon-hint\" id=\"hib-wl\">\n            <svg class=\"home-icon-glyph\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"14\" height=\"14\"><path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg>\n            <span class=\"home-hint-label\">Add to Watchlist</span>\n          </span>\n        </div>\n\n        ".concat(renderRow('trending', 'Trending', 'This Week'), "\n        ").concat(renderRow('popular', 'Popular', 'Movies'), "\n        ").concat(renderRow('top-rated', 'Top Rated'), "\n        ").concat(renderRow('now-playing', 'Now Playing', 'In Theaters'), "\n      </div>");
       Nav.reset(container);
 
       // Load all data in parallel
@@ -103,7 +103,7 @@ var HomePage = function () {
     var extraClass = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
     var poster = movie.poster_path ? TMDB.img(movie.poster_path, Config.IMG.POSTER_MD) : '';
     var rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
-    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(UX.badgesHTML(movie.id, 'movie'), "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\" data-type=\"movie\"></div>\n        </div>\n      </div>");
+    return "\n      <div class=\"card ".concat(extraClass, "\" data-nav data-movie-id=\"").concat(movie.id, "\"\n           data-movie-title=\"").concat((movie.title || '').replace(/"/g, '&quot;'), "\"\n           data-movie-poster=\"").concat(poster, "\"\n           tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster ? "<img src=\"".concat(poster, "\" alt=\"").concat(movie.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">\uD83C\uDFAC</div>", "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"card-badges\" id=\"badges-").concat(movie.id, "\">\n            ").concat(UX.badgesHTML(movie.id, 'movie'), "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\">\n              <path d=\"M8 5v14l11-7z\"/>\n            </svg>\n          </div>\n          <div class=\"card-mobile-actions\">\n            <button class=\"card-action-btn").concat(typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie') ? ' fav-active' : '', "\" data-action=\"fav\" title=\"Favourite\">").concat(typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(movie.id, 'movie') ? '♥' : '♡', "</button>\n            <button class=\"card-action-btn").concat(typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(movie.id, 'movie') ? ' wl-active' : '', "\" data-action=\"wl\" title=\"Watchlist\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"11\" height=\"11\"><path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg></button>\n          </div>\n          <div class=\"card-prog\" id=\"cprog-").concat(movie.id, "\" data-type=\"movie\"></div>\n        </div>\n      </div>");
   }
   function skeletonRow() {
     var count = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 6;
@@ -173,6 +173,7 @@ var HomePage = function () {
     });
   }
   function bindHeroButtons(container) {
+    // More Info
     var moreBtn = container && container.querySelector('[data-more-info]');
     if (moreBtn) {
       moreBtn.addEventListener('click', function () {
@@ -180,6 +181,31 @@ var HomePage = function () {
           id: moreBtn.dataset.moreInfo,
           type: moreBtn.dataset.type || 'movie'
         });
+      });
+    }
+    // Icon-hint action buttons (web/mobile only — wired here so they know the current hero movie)
+    var heroId = container && container.querySelector('[data-movie-id]') ? container.querySelector('[data-movie-id]').dataset.movieId : null;
+    var heroTitle = container && container.querySelector('.hero-title') ? container.querySelector('.hero-title').textContent : '';
+    var hibFav = document.getElementById('hib-fav');
+    var hibWL = document.getElementById('hib-wl');
+    if (hibFav && heroId && typeof NexPlayDB !== 'undefined') {
+      var isFavNow = NexPlayDB.isFavourite(heroId, 'movie');
+      var favIcon = hibFav.querySelector('.hib-fav-icon');
+      if (favIcon) favIcon.textContent = isFavNow ? '♥' : '♡';
+      hibFav.classList.toggle('hib-active', isFavNow);
+      hibFav.addEventListener('click', function () {
+        var added = NexPlayDB.toggleFavourite(heroId, 'movie', heroTitle, '');
+        if (favIcon) favIcon.textContent = added ? '♥' : '♡';
+        hibFav.classList.toggle('hib-active', added);
+        App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
+      });
+    }
+    if (hibWL && heroId && typeof NexPlayDB !== 'undefined') {
+      hibWL.classList.toggle('hib-active', NexPlayDB.isInWatchlist(heroId, 'movie'));
+      hibWL.addEventListener('click', function () {
+        var added = NexPlayDB.toggleWatchlist(heroId, 'movie', heroTitle, '');
+        hibWL.classList.toggle('hib-active', added);
+        App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
       });
     }
   }

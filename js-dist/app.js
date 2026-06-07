@@ -50,6 +50,94 @@ var App = function () {
       buildSidebar();
       Nav.init();
 
+      // Long-press on logo cycles theme — works on both mobile (touch) and web (mouse)
+      // 600ms hold triggers one theme cycle; releasing early cancels it.
+      (function wireLongPressLogo() {
+        var _lpTimer = null;
+        var _lpFired = false;
+        var logo = document.querySelector('.sidebar-logo, .logo-mark');
+        if (!logo) return;
+        function startHold(e) {
+          _lpFired = false;
+          _lpTimer = setTimeout(function () {
+            _lpFired = true;
+            cycleTheme();
+            // Visual pulse feedback
+            var lm = document.querySelector('.logo-mark');
+            if (lm) {
+              lm.style.transform = 'scale(1.2)';
+              setTimeout(function () {
+                lm.style.transform = '';
+              }, 300);
+            }
+          }, 600);
+        }
+        function cancelHold() {
+          if (_lpTimer) {
+            clearTimeout(_lpTimer);
+            _lpTimer = null;
+          }
+        }
+        function endHold(e) {
+          cancelHold();
+          // Prevent click from also firing on touch if hold was triggered
+          if (_lpFired) {
+            e.preventDefault && e.preventDefault();
+          }
+        }
+        logo.addEventListener('mousedown', startHold, {
+          passive: false
+        });
+        logo.addEventListener('touchstart', startHold, {
+          passive: false
+        });
+        logo.addEventListener('mouseup', endHold);
+        logo.addEventListener('mouseleave', cancelHold);
+        logo.addEventListener('touchend', endHold, {
+          passive: false
+        });
+        logo.addEventListener('touchcancel', cancelHold);
+      })();
+
+      // Long-press the ACTIVE nav tab (mobile) — cycles theme.
+      // Only fires on the tab that is already selected, so browsing tabs works normally.
+      // Uses touch events so it only runs on touch-capable devices (not desktop web).
+      (function wireLongPressNavTab() {
+        var _tabTimer = null;
+        var _tabFired = false;
+        document.addEventListener('touchstart', function (e) {
+          var navItem = e.target.closest('.nav-item[data-nav-page]');
+          if (!navItem || !navItem.classList.contains('active')) return;
+          _tabFired = false;
+          _tabTimer = setTimeout(function () {
+            _tabFired = true;
+            cycleTheme();
+            navItem.style.transform = 'scale(0.88)';
+            setTimeout(function () {
+              navItem.style.transform = '';
+            }, 200);
+          }, 600);
+        }, {
+          passive: true
+        });
+        document.addEventListener('touchend', function () {
+          if (_tabTimer) {
+            clearTimeout(_tabTimer);
+            _tabTimer = null;
+          }
+        }, {
+          passive: true
+        });
+        document.addEventListener('touchcancel', function () {
+          if (_tabTimer) {
+            clearTimeout(_tabTimer);
+            _tabTimer = null;
+          }
+        }, {
+          passive: true
+        });
+      })();
+
       // Pre-load genres into the map for HomePage hero
       var _temp = _catch(function () {
         return Promise.resolve(TMDB.genres()).then(function (gData) {

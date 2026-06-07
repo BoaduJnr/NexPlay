@@ -39,7 +39,7 @@ const MoviesPage = (() => {
       <div class="card" data-nav data-movie-id="${movie.id}"
            data-movie-title="${(movie.title || '').replace(/"/g, '&quot;')}"
            data-movie-poster="${poster}"
-           tabindex="0" style="width:220px">
+           tabindex="0">
         <div class="card-poster">
           ${poster
             ? `<img src="${poster}" alt="${movie.title}" loading="lazy">`
@@ -51,6 +51,10 @@ const MoviesPage = (() => {
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div class="card-mobile-actions">
+            <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?'♥':'♡'}</button>
+            <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(movie.id,'movie')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           </div>
           <div class="card-prog" id="cprog-${movie.id}" data-type="movie"></div>
         </div>

@@ -279,6 +279,81 @@ body.theme-bright .sidebar::after {
   background:         linear-gradient(to bottom, transparent 0%, rgba(10,10,32,0.10) 30%, rgba(10,10,32,0.22) 52%, rgba(10,10,32,0.10) 72%, transparent 100%) !important;
 }
 
+/* ── Mobile card action buttons (fav + watchlist) ───────────────────────────── */
+/* Hidden on TV (Tizen). Shown on mobile AND desktop web (body.is-web set by main.js). */
+.card-mobile-actions { display: none; }
+/* Desktop web: show on all screen sizes when not on Tizen */
+body.is-web .card-mobile-actions { display: flex; }
+body.is-web .card-action-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.82);
+  border: 1.5px solid rgba(255,255,255,0.55); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; outline: none; padding: 0;
+  font-size: 15px;
+  color: rgba(255,255,255,0.90); transition: all 0.15s ease;
+  line-height: 1;
+  box-shadow:         0 2px 6px rgba(0,0,0,0.50);
+}
+body.is-web .card-action-btn.fav-active { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
+body.is-web .card-action-btn.wl-active  { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
+body.is-web .card-mobile-actions { gap: 6px; position: absolute; bottom: 36px; right: 5px; z-index: 6; flex-direction: column; }
+/* Channel fav button on desktop web */
+body.is-web .ch-fav-btn {
+  position: absolute; top: 5px; right: 5px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; outline: none; padding: 0;
+  font-size: 12px; color: rgba(255,255,255,0.85); z-index: 4;
+}
+body.is-web .ch-fav-btn.active { color: #f87171; border-color: rgba(248,113,113,0.70); }
+/* Hide old TV-style read-only badge icons on web — action buttons are the indicator */
+body.is-web .card-badges { display: none !important; }
+
+@media (max-width: 1023px) {
+  /* Hide old TV-style read-only badge icons on mobile — action buttons are the indicator */
+  .card-badges { display: none !important; }
+
+  .card-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: absolute;
+    bottom: 36px; right: 5px;   /* above progress bar */
+    z-index: 6;
+  }
+  .card-action-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.82);
+    border: 1.5px solid rgba(255,255,255,0.55); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; outline: none; padding: 0;
+    font-size: 15px;
+    color: rgba(255,255,255,0.90);
+    transition: all 0.15s ease;
+    line-height: 1;
+    box-shadow:         0 2px 6px rgba(0,0,0,0.50);
+  }
+  .card-action-btn.fav-active  { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
+  .card-action-btn.wl-active   { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
+
+  /* Channel card fav button */
+  .ch-fav-btn {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.65);
+    border: 1px solid rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; outline: none; padding: 0;
+    font-size: 11px;
+    color: rgba(255,255,255,0.40);
+    z-index: 4;
+    transition: all 0.15s ease;
+  }
+  .ch-fav-btn.active { color: #f87171; border-color: rgba(248,113,113,0.55); }
+}
+
 /* ── Card progress fill — CSS class so theme overrides work without inline var() ── */
 .card-prog-fill {
   height: 100%; border-radius: 0 2px 0 0;
@@ -1170,6 +1245,24 @@ body.movie-avplay-on #avplay-area {
 /* Iframe embed mode — hide controls that don't work on cross-origin iframes */
 .player-modal.player-embed-mode .player-cbar,
 .player-modal.player-embed-mode .player-info-bar { display: none !important; }
+/* Back button never auto-hides in embed mode — user must be able to exit at any time */
+.player-modal.player-embed-mode.player-ui-hidden .player-header {
+  opacity: 1 !important;
+  pointer-events: all !important;
+}
+/* Keep the Back button visible and above the embed overlay */
+.player-modal.player-embed-mode .player-header {
+  display: flex !important;
+  z-index: 50 !important;
+  pointer-events: all !important;
+}
+
+/* Mobile: hide the bottom tab bar while the movie player is open */
+@media (max-width: 1023px) {
+  body:has(#player-modal:not(.hidden)) .sidebar { display: none !important; }
+  /* Also hide when IPTV goes full-screen (channel playing, sidebar collapsed) */
+  body.iptv-fullscreen .sidebar { display: none !important; }
+}
 
 /* Embed launch overlay */
 .embed-launch-overlay {
@@ -1180,7 +1273,7 @@ body.movie-avplay-on #avplay-area {
   justify-content: center;
   background: rgba(0,0,0,0.55);
   cursor: pointer;
-  z-index: 10;
+  z-index: 8; /* below player-header (z-index:10) so Back button stays on top */
 }
 .embed-launch-card {
   background: rgba(15,15,28,0.92);
@@ -2522,6 +2615,45 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   text-align: center;
 }
 
+/* ── Home icon-action bar (web & mobile — replaces colour hints) ─────────── */
+/* Hidden on TV; shown on web (body.is-web) and mobile (<1024px) */
+/* Matches .home-key-hints layout exactly — right-aligned, same padding */
+.home-icon-hints {
+  display: none;
+  padding: 10px 72px 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap;
+}
+body.is-web .home-icon-hints { display: flex; }
+body.is-web .home-key-hints  { display: none !important; }
+@media (max-width: 1023px) {
+  .home-icon-hints { display: flex !important; }
+  .home-key-hints  { display: none !important; }
+}
+/* Inherits .home-key-hints / .home-hint-item styling — no extra box, just icon + label */
+.home-icon-hint {
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+}
+.home-icon-hint:hover .home-hint-label,
+.home-icon-hint:active .home-hint-label { color: #f0f0f8 !important; }
+/* Icon glyphs and labels — boosted opacity so they show on all theme backgrounds */
+.home-icon-glyph { font-size: 14px; vertical-align: middle; color: rgba(240,240,248,0.80); }
+.home-icon-hint .home-hint-label { color: rgba(240,240,248,0.80) !important; }
+/* Bright theme: dark text on light page background */
+body.theme-bright .home-icon-glyph                { color: rgba(10,10,32,0.72) !important; }
+body.theme-bright .home-icon-hint .home-hint-label { color: rgba(10,10,32,0.72) !important; }
+/* Night theme: slightly brighter for deep-black background */
+body.theme-night .home-icon-glyph                { color: rgba(232,232,240,0.82) !important; }
+body.theme-night .home-icon-hint .home-hint-label { color: rgba(232,232,240,0.82) !important; }
+/* Calm theme */
+body.theme-calm .home-icon-glyph                { color: rgba(201,209,217,0.80) !important; }
+body.theme-calm .home-icon-hint .home-hint-label { color: rgba(201,209,217,0.80) !important; }
+/* Active state: red regardless of theme */
+.home-icon-hint.hib-active .home-icon-glyph { color: #f87171 !important; }
+.home-icon-hint.hib-active .home-hint-label  { color: #f87171 !important; }
+
+/* Long-press logo cursor hint */
+.sidebar-logo { cursor: pointer; }
+
 /* ── Home page color-button row ────────────────────────────────────────── */
 .home-key-hints {
   padding: 10px 72px 8px;
@@ -2831,6 +2963,14 @@ body.theme-bright .card.nav-focused {
     --fs-hero: 26px;
   }
 
+  /* ── Body/html: enable natural page scroll on mobile ── */
+  html, body {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: auto !important;
+    overflow-x: hidden !important;
+  }
+
   /* ── App shell ── */
   #app {
     width: 100vw !important;
@@ -2842,7 +2982,7 @@ body.theme-bright .card.nav-focused {
     top: 0 !important;
     flex-direction: column !important;
     overflow-x: hidden !important;
-    overflow-y: hidden !important;
+    overflow-y: visible !important; /* let body handle vertical scroll */
   }
 
   /* ── Main content ── */
@@ -2851,8 +2991,7 @@ body.theme-bright .card.nav-focused {
     height: auto !important;
     min-height: calc(100vh - 58px) !important;
     max-height: none !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    overflow: visible !important; /* body scrolls — not this container */
     padding-bottom: 68px !important; flex: 1 !important;
   }
 
@@ -2878,10 +3017,10 @@ body.theme-bright .card.nav-focused {
     background:         linear-gradient(to right, transparent 0%, #a78bfa 40%, #a78bfa 60%, transparent 100%) !important;
   }
   .sidebar-logo { display: none !important; }
-  .sidebar-nav { display: flex !important; flex-direction: row !important;
+  .sidebar-nav { display: flex !important; flex-direction: row !important; justify-content: space-evenly !important; align-items: stretch !important;
     width: 100% !important; padding: 0 !important; overflow: visible !important;
   }
-  .nav-item { flex: 1 !important; flex-direction: column !important;
+  .nav-item { flex: 1 1 0 !important; flex-direction: column !important;
     gap: 2px !important;
     padding: 5px 2px 4px !important;
     font-size: 9px !important; align-items: center !important; justify-content: center !important;
@@ -2891,12 +3030,31 @@ body.theme-bright .card.nav-focused {
   }
   .nav-item::before { display: none !important; }
   .nav-item svg { width: 20px !important; height: 20px !important; }
-  .nav-item .nav-label { font-size: 9px !important; margin-top: 1px !important; }
+  /* Nav labels: always visible on bottom tab bar (opacity:0 default hides them on TV) */
+  .nav-item .nav-label {
+    font-size: 9px !important;
+    margin-top: 1px !important;
+    opacity: 1 !important;
+    color: rgba(240,240,248,0.75) !important; /* visible on dark sidebar */
+  }
+  /* Per-theme nav label colours */
+  body.theme-bright .nav-item .nav-label { color: rgba(10,10,32,0.65) !important; }
+  body.theme-calm   .nav-item .nav-label { color: rgba(201,209,217,0.75) !important; }
+  body.theme-night  .nav-item .nav-label { color: rgba(232,232,240,0.70) !important; }
+  /* Active/focused tab label is brighter */
+  .nav-item.active    .nav-label { opacity: 1 !important; color: #a78bfa !important; }
+  .nav-item.nav-focused .nav-label { opacity: 1 !important; }
 
-  /* ── Hero ── */
-  .hero { height: 540px !important; }
-  .hero-content { padding: 20px 72px !important; }
-  .hero-title { font-size: 22px !important; line-height: 1.2 !important; }
+  /* ── Hero — explicit px so CSS var resolution issues don't affect layout ── */
+  .hero { height: 260px !important; }
+  .hero-content {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 72px !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .hero-title { font-size: 20px !important; line-height: 1.2 !important; }
   .hero-overview { display: none !important; }
   .hero-badge { font-size: 11px !important; padding: 5px 10px !important; margin-bottom: 8px !important; }
   .hero-meta { font-size: 13px !important; }
@@ -2906,35 +3064,40 @@ body.theme-bright .card.nav-focused {
   /* ── Buttons ── */
   .btn { font-size: 15px !important; padding: 12px 20px !important; }
 
-  /* ── Section rows ── */
+  /* ── Section rows — explicit px ── */
   .section { padding: 20px 0 4px !important; }
-  .section-header { padding: 0 72px !important; margin-bottom: 10px !important; }
+  .section-header { padding: 0 16px !important; margin-bottom: 10px !important; }
   .section-title { font-size: 18px !important; }
-  .card-row { padding: 0 72px !important; gap: 32px !important; }
+  .card-row { padding: 0 16px !important; gap: 10px !important; }
   .card { width: 248px !important; }
   .card-poster { height: calc(248px * 1.5) !important; }
 
   /* ── Filter pills ── */
   .pill { font-size: 13px !important; padding: 8px 16px !important; }
 
-  /* ── Page titles ── */
+  /* ── Page titles — use explicit px to avoid var() resolution issues ── */
   .page-title { font-size: 22px !important; }
   .page-subtitle { font-size: 13px !important; }
+  /* Page header/content padding overrides */
+  .page-header,
+  .movies-header,
+  .series-header { padding: 20px 16px 0 !important; }
+  .filters-section { padding: 0 16px !important; }
 
-  /* ── Movies / Series grid ── */
-  .movies-grid,
-  .series-grid {
-    padding: 72px !important;
+  /* ── Movies / Series grid — explicit grid layout ── */
+  .movie-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    padding: 16px !important;
     gap: 12px !important;
   }
-  .movies-grid .card,
-  .series-grid .card {
+  .movie-grid .card {
     width: calc(50% - 6px) !important;
     height: auto !important;
-    style: none;
+    flex-shrink: 0 !important;
+    margin: 0 !important; /* override TV 24px right margin so two cards fit per row */
   }
-  .movies-grid .card-poster,
-  .series-grid .card-poster { height: calc((50vw - 22px) * 1.5) !important; }
+  .movie-grid .card-poster { height: calc((50vw - 22px) * 1.5) !important; }
 
   /* ── Player ── */
   #player-modal { z-index: 8000 !important; }
@@ -2957,13 +3120,42 @@ body.theme-bright .card.nav-focused {
   .iptv-sidebar {
     width: 100% !important;
     min-width: 0 !important;
-    height: 280px !important;
+    height: 480px !important; /* filter area ~250px + channel list ~230px */
     border-right: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    overflow: hidden !important; /* channel-list scrolls internally */
+    transition: height 0.35s ease;
   }
-  .iptv-player { flex: 1 !important; min-height: 250px !important; }
-  .iptv-player-area { min-height: 200px !important; }
-  .iptv-channel-bar { min-height: auto !important; padding: 10px 14px !important; }
+
+  /* ── Mobile full-screen watching mode ─────────────────── */
+  /* Triggered by JS class .iptv-watching when stream confirms playing */
+  #iptv-page.iptv-watching .iptv-sidebar {
+    height: 0 !important;
+    border-bottom: none !important;
+    overflow: hidden !important;
+  }
+  /* Player fills all remaining space (sidebar is 0) */
+  #iptv-page.iptv-watching .iptv-player {
+    flex: 1 !important;
+  }
+  /* Channel bar stays visible as a minimal "now watching" strip */
+  #iptv-page.iptv-watching .iptv-channel-bar {
+    background: rgba(0,0,0,0.70) !important;
+    padding: 8px 14px 68px !important;
+  }
+  /* Compact filter section so channel list gets enough room */
+  .iptv-sidebar > div:first-child {
+    padding: 12px 14px 8px !important;
+  }
+  .iptv-filter-label { font-size: 11px !important; margin-bottom: 4px !important; margin-top: 8px !important; }
+  .iptv-working-btn  { padding: 7px 12px !important; font-size: 12px !important; margin-top: 6px !important; }
+  /* Make the country/category dropdowns more compact */
+  .iptv-sidebar .tdd-trigger { padding: 8px 12px !important; font-size: 13px !important; min-width: 0 !important; }
+
+  .iptv-player { flex: 1 !important; min-height: 200px !important; }
+  .iptv-player-area { min-height: 180px !important; }
+  /* Channel bar: bottom padding clears the fixed 58px bottom tab bar */
+  .iptv-channel-bar { min-height: auto !important; padding: 10px 14px 68px !important; }
 
   /* ── Detail page ── */
   #detail-page { min-height: calc(100vh - 58px) !important; }
@@ -2974,17 +3166,20 @@ body.theme-bright .card.nav-focused {
 
 }
 
+/* Hide TV remote colour-button hints on mobile — irrelevant for touch users */
+@media (max-width: 1023px) {
+  .home-key-hints,
+  .key-hints,
+  .key-hint-bar { display: none !important; }
+}
+
 /* Extra-small phones */
 @media (max-width: 480px) {
-  :root {
-    --card-w:   130px;
-    --hero-h:   220px;
-  }
+  .hero { height: 220px !important; }
+  .hero-content { bottom: 60px !important; }
   .hero-title { font-size: 18px !important; }
   .nav-item { font-size: 8px !important; }
   .nav-item svg { width: 18px !important; height: 18px !important; }
-  .movies-grid .card-poster,
-  .series-grid .card-poster { height: calc((50vw - 22px) * 1.5) !important; }
 }
 
 

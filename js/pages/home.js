@@ -29,6 +29,10 @@
               <path d="M8 5v14l11-7z"/>
             </svg>
           </div>
+          <div class="card-mobile-actions">
+            <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?'♥':'♡'}</button>
+            <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(movie.id,'movie')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          </div>
           <div class="card-prog" id="cprog-${movie.id}" data-type="movie"></div>
         </div>
       </div>`;
@@ -153,12 +157,42 @@
   }
 
   function bindHeroButtons(container) {
+    // More Info
     const moreBtn = container && container.querySelector('[data-more-info]');
     if (moreBtn) {
       moreBtn.addEventListener('click', function() {
         App.navigate('detail', { id: moreBtn.dataset.moreInfo, type: moreBtn.dataset.type || 'movie' });
       });
     }
+    // Icon-hint action buttons (web/mobile only — wired here so they know the current hero movie)
+    const heroId    = container && container.querySelector('[data-movie-id]') ? container.querySelector('[data-movie-id]').dataset.movieId : null;
+    const heroTitle = container && container.querySelector('.hero-title')      ? container.querySelector('.hero-title').textContent : '';
+
+    const hibFav   = document.getElementById('hib-fav');
+    const hibWL    = document.getElementById('hib-wl');
+
+    if (hibFav && heroId && typeof NexPlayDB !== 'undefined') {
+      var isFavNow = NexPlayDB.isFavourite(heroId, 'movie');
+      var favIcon  = hibFav.querySelector('.hib-fav-icon');
+      if (favIcon) favIcon.textContent = isFavNow ? '♥' : '♡';
+      hibFav.classList.toggle('hib-active', isFavNow);
+      hibFav.addEventListener('click', function() {
+        var added = NexPlayDB.toggleFavourite(heroId, 'movie', heroTitle, '');
+        if (favIcon) favIcon.textContent = added ? '♥' : '♡';
+        hibFav.classList.toggle('hib-active', added);
+        App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
+      });
+    }
+
+    if (hibWL && heroId && typeof NexPlayDB !== 'undefined') {
+      hibWL.classList.toggle('hib-active', NexPlayDB.isInWatchlist(heroId, 'movie'));
+      hibWL.addEventListener('click', function() {
+        var added = NexPlayDB.toggleWatchlist(heroId, 'movie', heroTitle, '');
+        hibWL.classList.toggle('hib-active', added);
+        App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
+      });
+    }
+
   }
 
   function updateCardBadge(movieId) {
@@ -209,22 +243,22 @@
           </div>
         </div>
 
+        <!-- TV: colour-key hints (remote buttons) -->
         <div class="home-key-hints">
-          <span class="home-hint-item">
-            <span class="home-color-btn home-color-green"></span>
-            <span class="home-hint-label">Change Theme</span>
-          </span>
-          <span class="home-hint-item">
-            <span class="home-color-btn home-color-red"></span>
+          <span class="home-hint-item"><span class="home-color-btn home-color-green"></span><span class="home-hint-label">Change Theme</span></span>
+          <span class="home-hint-item"><span class="home-color-btn home-color-red"></span><span class="home-hint-label">Add to Favourite</span></span>
+          <span class="home-hint-item"><span class="home-color-btn home-color-blue"></span><span class="home-hint-label">Add to Watchlist</span></span>
+          <span class="home-hint-item"><span class="home-color-btn home-color-yellow"></span><span class="home-hint-label">More Info</span></span>
+        </div>
+        <!-- Web/mobile: icon + label hints (same style as TV colour hints, but tappable) -->
+        <div class="home-icon-hints" id="home-icon-hints">
+          <span class="home-hint-item home-icon-hint" id="hib-fav">
+            <span class="hib-fav-icon home-icon-glyph">♡</span>
             <span class="home-hint-label">Add to Favourite</span>
           </span>
-          <span class="home-hint-item">
-            <span class="home-color-btn home-color-blue"></span>
+          <span class="home-hint-item home-icon-hint" id="hib-wl">
+            <svg class="home-icon-glyph" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span class="home-hint-label">Add to Watchlist</span>
-          </span>
-          <span class="home-hint-item">
-            <span class="home-color-btn home-color-yellow"></span>
-            <span class="home-hint-label">More Info</span>
           </span>
         </div>
 

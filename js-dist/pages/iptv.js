@@ -206,6 +206,19 @@ var IPTVPage = function () {
         scanChannels();
       });
 
+      // Mobile: tap on player area shows sidebar then re-hides
+      var playerArea = document.getElementById('iptv-player-area');
+      if (playerArea) {
+        playerArea.addEventListener('touchstart', function () {
+          onPlayerAreaTouch();
+        }, {
+          passive: true
+        });
+        playerArea.addEventListener('click', function () {
+          onPlayerAreaTouch();
+        });
+      }
+
       // Favourites-only toggle
       var favToggle = document.getElementById('iptv-fav-toggle');
       if (favToggle) {
@@ -234,7 +247,7 @@ var IPTVPage = function () {
   // ── Build category TVDropdown ──────────────────────────
   var buildCategoryOptions = function buildCategoryOptions() {
     try {
-      function _temp9() {
+      function _temp8() {
         var catOpts = _categories.length ? _categories.filter(function (c) {
           return c.id !== 'xxx';
         }).map(function (c) {
@@ -263,14 +276,14 @@ var IPTVPage = function () {
           });
         }
       }
-      var _temp8 = _catch(function () {
+      var _temp7 = _catch(function () {
         return Promise.resolve(IPTV.getCategories()).then(function (_IPTV$getCategories) {
           _categories = _IPTV$getCategories;
         });
       }, function () {
         _categories = [];
       });
-      return Promise.resolve(_temp8 && _temp8.then ? _temp8.then(_temp9) : _temp9(_temp8));
+      return Promise.resolve(_temp7 && _temp7.then ? _temp7.then(_temp8) : _temp8(_temp7));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -278,7 +291,7 @@ var IPTVPage = function () {
   // ── Build country TVDropdown ───────────────────────────
   var buildCountryOptions = function buildCountryOptions() {
     try {
-      function _temp7() {
+      function _temp6() {
         var opts = [{
           value: '',
           label: 'All Countries'
@@ -297,14 +310,14 @@ var IPTVPage = function () {
           });
         }
       }
-      var _temp6 = _catch(function () {
+      var _temp5 = _catch(function () {
         return Promise.resolve(IPTV.getCountries()).then(function (_IPTV$getCountries) {
           _countries = _IPTV$getCountries;
         });
       }, function () {
         _countries = [];
       });
-      return Promise.resolve(_temp6 && _temp6.then ? _temp6.then(_temp7) : _temp7(_temp6));
+      return Promise.resolve(_temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -375,6 +388,8 @@ var IPTVPage = function () {
   var playChannel = function playChannel(channel) {
     try {
       _activeChannel = channel;
+      // Cancel any pending mobile full-screen mode on channel switch
+      cancelMobileWatching();
 
       // Reset status to unknown immediately so user sees it's being retried
       setChStatus(channel.id, 'unknown');
@@ -454,7 +469,7 @@ var IPTVPage = function () {
   var scanChannels = function scanChannels() {
     try {
       var _interrupt = false;
-      function _temp5() {
+      function _temp4() {
         _scanActive = false;
         _scanStop = false;
         var working = _filtered.filter(function (ch) {
@@ -489,33 +504,23 @@ var IPTVPage = function () {
       var done = 0;
       var CONCURRENT = 3;
       var BATCH_GAP = 400;
-      console.log('[SCAN] starting ' + total + ' channels CONCURRENT=' + CONCURRENT);
       var i = 0;
-      var _temp4 = _for(function () {
+      var _temp3 = _for(function () {
         return !_interrupt && i < toTest.length;
       }, function () {
         return !!(i += CONCURRENT);
       }, function () {
         if (_scanStop) {
-          console.log('[SCAN] stopped at ' + done + '/' + total);
           _interrupt = true;
           return;
         }
         var chunk = toTest.slice(i, i + CONCURRENT);
-        console.log('[SCAN] batch i=' + i + ' ids=' + chunk.map(function (c) {
-          return c.id;
-        }).join(','));
         return Promise.resolve(Promise.all(chunk.map(function (ch) {
           return testChannelManifest(ch.id, ch.url).then(function () {
             done++;
-            console.log('[SCAN] batch progress ' + done + '/' + total);
             _updateScanBtn('progress', done, total);
           });
         }))).then(function () {
-          function _temp3() {
-            console.log('[SCAN] gap done, next batch');
-          }
-          console.log('[SCAN] batch complete i=' + i + ' done=' + done + ' waiting ' + BATCH_GAP + 'ms');
           var _temp2 = function () {
             if (!_scanStop) {
               return Promise.resolve(new Promise(function (r) {
@@ -523,10 +528,10 @@ var IPTVPage = function () {
               })).then(function () {});
             }
           }();
-          return _temp2 && _temp2.then ? _temp2.then(_temp3) : _temp3(_temp2);
+          if (_temp2 && _temp2.then) return _temp2.then(function () {});
         });
       });
-      return Promise.resolve(_temp4 && _temp4.then ? _temp4.then(_temp5) : _temp5(_temp4));
+      return Promise.resolve(_temp3 && _temp3.then ? _temp3.then(_temp4) : _temp4(_temp3));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -575,6 +580,49 @@ var IPTVPage = function () {
   // Background channel scan state
   var _scanActive = false;
   var _scanStop = false;
+
+  // Mobile full-screen watching mode
+  var _mobileHideTimer = null;
+  var _mobileWatchActive = false;
+  function _isMobile() {
+    return window.innerWidth < 1024;
+  }
+  function enterMobileWatching() {
+    if (!_isMobile() || !_activeChannel) return;
+    _mobileWatchActive = true;
+    var page = document.getElementById('iptv-page');
+    if (page) page.classList.add('iptv-watching');
+    // Also hide the bottom nav bar so video fills the full screen
+    document.body.classList.add('iptv-fullscreen');
+  }
+  function exitMobileWatching() {
+    _mobileWatchActive = false;
+    var page = document.getElementById('iptv-page');
+    if (page) page.classList.remove('iptv-watching');
+    document.body.classList.remove('iptv-fullscreen');
+  }
+  function scheduleMobileWatching(delayMs) {
+    if (!_isMobile()) return;
+    if (_mobileHideTimer) clearTimeout(_mobileHideTimer);
+    _mobileHideTimer = setTimeout(function () {
+      _mobileHideTimer = null;
+      if (_activeChannel) enterMobileWatching();
+    }, delayMs || 4000);
+  }
+  function cancelMobileWatching() {
+    if (_mobileHideTimer) {
+      clearTimeout(_mobileHideTimer);
+      _mobileHideTimer = null;
+    }
+    exitMobileWatching();
+  }
+  function onPlayerAreaTouch() {
+    // User tapped the video — show sidebar briefly then re-hide
+    if (_mobileWatchActive) {
+      exitMobileWatching();
+      scheduleMobileWatching(4000);
+    }
+  }
 
   // P2: multi-stream state
   var _streamUrls = [];
@@ -701,24 +749,20 @@ var IPTVPage = function () {
     return new Promise(function (resolve) {
       var stored = getChStatus(channelId);
       if (stored === 'ok' || stored === 'fail') {
-        console.log('[SCAN] skip ' + channelId + ' already=' + stored);
         resolve();
         return;
       }
-      console.log('[SCAN] testing ' + channelId + ' url=' + (streamUrl || '').slice(0, 60));
       var settled = false;
-      function done(reason) {
+      function done() {
         if (!settled) {
           settled = true;
-          console.log('[SCAN] done ' + channelId + ' reason=' + reason + ' status=' + getChStatus(channelId));
           resolve();
         }
       }
 
-      // Step 1 — direct (manual timeout because Tizen 3.0 xhr.timeout is unreliable)
+      // Step 1 — direct (manual timeout: Tizen 3.0 xhr.timeout is unreliable)
       var direct = new XMLHttpRequest();
       var directTimer = setTimeout(function () {
-        console.log('[SCAN] direct TIMEOUT ' + channelId + ' → proxy');
         try {
           direct.abort();
         } catch (e) {}
@@ -727,34 +771,28 @@ var IPTVPage = function () {
       try {
         direct.open('GET', streamUrl);
       } catch (e) {
-        console.log('[SCAN] direct open ERROR ' + channelId + ': ' + e.message);
         clearTimeout(directTimer);
         tryViaProxy();
         return;
       }
       direct.onload = function () {
         clearTimeout(directTimer);
-        console.log('[SCAN] direct onload ' + channelId + ' status=' + direct.status + ' hls=' + isHLS(direct.responseText));
         if (direct.status >= 200 && direct.status < 400 && isHLS(direct.responseText)) {
           setChStatus(channelId, 'ok');
           updateChannelCard(channelId, 'ok');
-          done('direct-ok');
+          done();
         } else {
           tryViaProxy();
         }
       };
-      direct.onerror = function (e) {
+      direct.onerror = function () {
         clearTimeout(directTimer);
-        console.log('[SCAN] direct onerror ' + channelId);
         tryViaProxy();
       };
-      direct.onabort = function () {
-        console.log('[SCAN] direct onabort ' + channelId);
-      };
+      direct.onabort = function () {};
       try {
         direct.send();
       } catch (e) {
-        console.log('[SCAN] direct send ERROR ' + channelId + ': ' + e.message);
         clearTimeout(directTimer);
         tryViaProxy();
       }
@@ -763,26 +801,22 @@ var IPTVPage = function () {
       function tryViaProxy() {
         if (settled) return;
         var proxyUrl = PROXY_BASE + '/?url=' + encodeURIComponent(streamUrl);
-        console.log('[SCAN] proxy start ' + channelId);
         var xhr = new XMLHttpRequest();
         var proxyTimer = setTimeout(function () {
-          console.log('[SCAN] proxy TIMEOUT ' + channelId);
           try {
             xhr.abort();
           } catch (e) {}
-          done('proxy-timeout');
+          done();
         }, 8000);
         try {
           xhr.open('GET', proxyUrl);
         } catch (e) {
-          console.log('[SCAN] proxy open ERROR ' + channelId + ': ' + e.message);
           clearTimeout(proxyTimer);
-          done('proxy-open-err');
+          done();
           return;
         }
         xhr.onload = function () {
           clearTimeout(proxyTimer);
-          console.log('[SCAN] proxy onload ' + channelId + ' status=' + xhr.status + ' hls=' + isHLS(xhr.responseText));
           if (xhr.status >= 200 && xhr.status < 400) {
             if (isHLS(xhr.responseText)) {
               setChStatus(channelId, 'ok');
@@ -792,23 +826,20 @@ var IPTVPage = function () {
             setChStatus(channelId, 'fail');
             updateChannelCard(channelId, 'fail');
           }
-          done('proxy-load');
+          done();
         };
         xhr.onerror = function () {
           clearTimeout(proxyTimer);
-          console.log('[SCAN] proxy onerror ' + channelId);
-          done('proxy-err');
+          done();
         };
         xhr.onabort = function () {
-          console.log('[SCAN] proxy onabort ' + channelId);
-          done('proxy-abort');
+          done();
         };
         try {
           xhr.send();
         } catch (e) {
-          console.log('[SCAN] proxy send ERROR ' + channelId + ': ' + e.message);
           clearTimeout(proxyTimer);
-          done('proxy-send-err');
+          done();
         }
       }
     });
@@ -948,7 +979,7 @@ var IPTVPage = function () {
     var nowProg = typeof EPGClient !== 'undefined' ? EPGClient.getCurrent(ch.id) : null;
     // Use pre-built favSet when available (avoids per-card localStorage read)
     var isFav = favSet ? !!favSet[ch.id] : typeof NexPlayDB !== 'undefined' ? NexPlayDB.isFavourite(ch.id, 'channel') : false;
-    return "\n      <div class=\"channel-item ".concat(isActive ? 'active' : '', "\"\n        data-nav data-channel-id=\"").concat(ch.id, "\" tabindex=\"0\">\n        <div class=\"channel-logo\">\n          <span class=\"channel-initial\">").concat(initial, "</span>\n          ").concat(logoSrc ? "<img src=\"".concat(logoSrc, "\" alt=\"").concat(ch.name, "\" loading=\"eager\" onerror=\"this.style.display='none'\">") : '', "\n          <span class=\"ch-status ch-status-").concat(status, "\"></span>\n        </div>\n        <div class=\"ch-name-wrap\">\n          <div class=\"channel-name\">").concat(ch.name || '', "</div>\n          ").concat(nowProg ? "<div class=\"ch-now-prog\">".concat(nowProg.title, "</div>") : '', "\n        </div>\n        ").concat(isFav ? '<span class="ch-fav-badge">&#9829;</span>' : '', "\n      </div>");
+    return "\n      <div class=\"channel-item ".concat(isActive ? 'active' : '', "\"\n        data-nav data-channel-id=\"").concat(ch.id, "\" tabindex=\"0\">\n        <div class=\"channel-logo\">\n          <span class=\"channel-initial\">").concat(initial, "</span>\n          ").concat(logoSrc ? "<img src=\"".concat(logoSrc, "\" alt=\"").concat(ch.name, "\" loading=\"eager\" onerror=\"this.style.display='none'\">") : '', "\n          <span class=\"ch-status ch-status-").concat(status, "\"></span>\n        </div>\n        <div class=\"ch-name-wrap\">\n          <div class=\"channel-name\">").concat(ch.name || '', "</div>\n          ").concat(nowProg ? "<div class=\"ch-now-prog\">".concat(nowProg.title, "</div>") : '', "\n        </div>\n        ").concat(isFav ? '<span class="ch-fav-badge">&#9829;</span>' : '', "\n        <button class=\"ch-fav-btn").concat(isFav ? ' active' : '', "\" data-ch-fav=\"").concat(ch.id, "\" title=\"").concat(isFav ? 'Remove favourite' : 'Add favourite', "\">").concat(isFav ? '♥' : '♡', "</button>\n      </div>");
   }
 
   // ── AVPlay helpers ─────────────────────────────────────
@@ -975,6 +1006,8 @@ var IPTVPage = function () {
         setChStatus(_activeChannel.id, 'ok');
         updateChannelCard(_activeChannel.id, 'ok');
       }
+      // Mobile: schedule full-screen watching mode after stream confirms playing
+      scheduleMobileWatching(2000);
     }
     function onFail() {
       if (_activeChannel) {
@@ -1099,6 +1132,7 @@ var IPTVPage = function () {
           webapis.avplay.play();
           startKeyListener();
           resetHideTimer();
+          scheduleMobileWatching(2000);
         } catch (e) {
           if (_activeChannel) {
             setChStatus(_activeChannel.id, 'fail');
@@ -1281,7 +1315,23 @@ var IPTVPage = function () {
   // ── Bind click + vertical scroll-into-view on channel cards ─
   function bindChannelItems(els) {
     els.forEach(function (el) {
-      el.addEventListener('click', function () {
+      el.addEventListener('click', function (e) {
+        // Mobile ♥ fav button — toggle without starting the channel
+        if (e.target.closest('.ch-fav-btn')) {
+          e.stopPropagation();
+          var btn = e.target.closest('.ch-fav-btn');
+          var ch = _filtered.find(function (c) {
+            return c.id === btn.dataset.chFav;
+          });
+          if (ch) {
+            toggleChannelFavourite(ch);
+            // Update button state immediately
+            var isFavNow = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(ch.id, 'channel');
+            btn.classList.toggle('active', isFavNow);
+            btn.textContent = isFavNow ? '♥' : '♡';
+          }
+          return;
+        }
         var ch = _filtered.find(function (c) {
           return c.id === el.dataset.channelId;
         });
@@ -1355,6 +1405,7 @@ var IPTVPage = function () {
     _showFavsOnly = false;
     _scanStop = true; // cancel any running scan
     _scanActive = false;
+    cancelMobileWatching();
     _streamUrls = [];
     _streamIdx = 0;
     _reconnectCount = 0;

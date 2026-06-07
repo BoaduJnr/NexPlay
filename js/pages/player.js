@@ -55,7 +55,7 @@
     _embedFocusHandler = function() {
       // User switched back to this tab — confirm embed is still running
       if (typeof App !== 'undefined') {
-        App.showToast('Movie still playing below ↓');
+        App.showToast('Movie still playing above ↑');
       }
     };
     window.addEventListener('focus', _embedFocusHandler);
@@ -419,6 +419,16 @@
       try { _hlsInstance.destroy(); } catch(e) {}
       _hlsInstance = null;
     }
+    // Explicitly stop the web video element — hls.js destroy alone doesn't always halt buffered audio
+    try {
+      var _wv2 = document.getElementById('web-video');
+      if (_wv2) { _wv2.pause(); _wv2.src = ''; _wv2.load(); }
+    } catch(e) {}
+    // Unload any iframe embed — setting about:blank stops audio/video inside cross-origin frames
+    try {
+      var _ef = document.getElementById('embed-frame');
+      if (_ef) { _ef.src = 'about:blank'; }
+    } catch(e) {}
     if (typeof NexPlayDB !== 'undefined' && typeof webapis !== 'undefined' && webapis.avplay) {
       try {
         var pos = webapis.avplay.getCurrentTime();

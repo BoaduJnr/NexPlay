@@ -67,5 +67,39 @@ var UX = (function() {
     }).join('');
   }
 
+  // ── Mobile card action buttons — delegated handler ───────────────────────────
+  // Capture phase fires before the card's own click (which navigates to player).
+  // Handles ♥ fav and 🔖 watchlist buttons on movie/series cards on touch/web.
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.card-action-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    if (typeof NexPlayDB === 'undefined') return;
+
+    var card   = btn.closest('[data-movie-id],[data-show-id]');
+    if (!card) return;
+    var isShow = !!card.dataset.showId;
+    var id     = isShow ? card.dataset.showId    : card.dataset.movieId;
+    var type   = isShow ? 'tv'                   : 'movie';
+    var title  = isShow ? (card.dataset.showTitle  || '') : (card.dataset.movieTitle || '');
+    var poster = isShow ? (card.dataset.showPoster || '') : (card.dataset.moviePoster || '');
+    var action = btn.dataset.action;
+
+    if (action === 'fav') {
+      var added = NexPlayDB.toggleFavourite(id, type, title, poster);
+      btn.classList.toggle('fav-active', added);
+      btn.textContent = added ? '♥' : '♡';
+      if (typeof App !== 'undefined') App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
+      var b = document.getElementById('badges-' + id);
+      if (b) b.innerHTML = badgesHTML(id, type);
+    } else if (action === 'wl') {
+      var addedWL = NexPlayDB.toggleWatchlist(id, type, title, poster);
+      btn.classList.toggle('wl-active', addedWL);
+      if (typeof App !== 'undefined') App.showToast(addedWL ? '+ Added to Watchlist' : 'Removed from Watchlist');
+      var b2 = document.getElementById('badges-' + id);
+      if (b2) b2.innerHTML = badgesHTML(id, type);
+    }
+  }, true); // capture phase
+
   return { fillProgressBars: fillProgressBars, badgesHTML: badgesHTML, skeletonCards: skeletonCards };
 })();

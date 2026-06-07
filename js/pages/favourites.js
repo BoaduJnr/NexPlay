@@ -9,7 +9,7 @@ const FavouritesPage = (() => {
       <div class="card" data-nav data-item-id="${item.id}" data-item-type="${item.type}"
            data-item-title="${(item.title || '').replace(/"/g, '&quot;')}"
            data-item-poster="${item.poster || ''}"
-           ${isFirst ? 'data-nav-default' : ''} tabindex="0" style="width:220px">
+           ${isFirst ? 'data-nav-default' : ''} tabindex="0">
         <div class="card-poster">
           ${poster}
           <div class="card-overlay"></div>

@@ -90,6 +90,10 @@ window.onload = function () {
   } catch (e) {
     // Running outside Tizen (e.g., browser dev) — ignore
   }
+  // Mark body as web (non-Tizen) so CSS can show touch-friendly UI
+  if (typeof webapis === 'undefined' || !webapis.avplay) {
+    document.body.classList.add('is-web');
+  }
   // Green button cycles theme
   document.addEventListener('keydown', function(e) {
     if (e.keyCode === 404 && typeof App !== 'undefined') { // Green
