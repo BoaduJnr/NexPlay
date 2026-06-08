@@ -2631,7 +2631,12 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   color: #f87171;
 }
 
-body:not(.is-web):not(.is-mobile) .search-close-btn { display: none; }
+.search-close-btn.nav-focused {
+  background: rgba(248,113,113,0.18) !important;
+  border-color: rgba(248,113,113,0.50) !important;
+  color: #f87171 !important;
+  box-shadow: 0 0 0 2px rgba(248,113,113,0.35);
+}
 
 .filter-label {
   font-size: 16px;

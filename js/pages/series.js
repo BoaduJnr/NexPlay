@@ -261,7 +261,7 @@
           <div id="series-search-wrap" style="display:none;-webkit-align-items:center;align-items:center;gap:8px;-webkit-flex:1;flex:1;min-width:0;">
             <input type="text" id="series-search-input" class="search-active-input"
                    placeholder="Type to search..." autocomplete="off">
-            <button id="series-search-close" class="search-close-btn">&#x2715;</button>
+            <button id="series-search-close" class="search-close-btn" data-nav tabindex="0">&#x2715;</button>
           </div>
         </div>
 
