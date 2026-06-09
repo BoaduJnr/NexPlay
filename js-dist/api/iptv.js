@@ -77,7 +77,7 @@ var IPTVClient = /*#__PURE__*/function () {
       try {
         var _this3 = this;
         if (_this3._allChannels) return Promise.resolve(_this3._allChannels);
-        var cached = IPTVClient._readCache('np_iptv_m3u_v2', 12 * 60 * 60 * 1000); // 12h; v2 = country+category fix
+        var cached = IPTVClient._readCache('np_iptv_m3u_v3', 12 * 60 * 60 * 1000); // 12h; v2 = country+category fix
         if (cached) {
           _this3._allChannels = cached;
           return Promise.resolve(cached);
@@ -87,7 +87,7 @@ var IPTVClient = /*#__PURE__*/function () {
           return Promise.resolve(res.text()).then(function (text) {
             var entries = IPTVClient.parseM3U(text);
             var channels = IPTVClient.groupM3UChannels(entries);
-            IPTVClient._writeCache('np_iptv_m3u_v2', channels);
+            IPTVClient._writeCache('np_iptv_m3u_v3', channels);
             _this3._allChannels = channels;
             return channels;
           });
@@ -168,6 +168,11 @@ var IPTVClient = /*#__PURE__*/function () {
           // Split semicolon-separated group-titles into individual categories
           var cats = meta['group-title'] ? meta['group-title'].split(';').map(function (c) {
             return c.trim().toLowerCase().replace(/\s+/g, '-');
+          }).filter(function (c) {
+            return c && c !== 'undefined';
+          }) : [];
+          var langs = meta['tvg-language'] ? meta['tvg-language'].split(';').map(function (l) {
+            return l.trim().toLowerCase();
           }).filter(Boolean) : [];
           entries.push({
             id: baseId,
@@ -175,6 +180,7 @@ var IPTVClient = /*#__PURE__*/function () {
             logo: meta['tvg-logo'] || '',
             country: country,
             categories: cats,
+            languages: langs,
             is_nsfw: false,
             url: line
           });

@@ -177,7 +177,7 @@ var IPTVPage = function () {
       }], ''), "\n\n                <div class=\"iptv-filter-label\" style=\"margin-top:12px;\">Category</div>\n                ").concat(TVDropdown.html('iptv-category', [{
         value: '',
         label: 'All Categories'
-      }], ''), "\n\n                <button id=\"iptv-ghana-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_selCountry === 'GH' ? ' active' : '', "\" style=\"margin-top:8px;\">\n                  \uD83C\uDDEC\uD83C\uDDED Ghana Direct\n                </button>\n                <button id=\"iptv-fav-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_showFavsOnly ? ' active' : '', "\">\n                  <span style=\"color:#f87171;font-size:13px;flex-shrink:0;\">\u2665</span>\n                  Favourites only\n                </button>\n                <button id=\"iptv-working-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_showWorkingOnly ? ' active' : '', "\">\n                  <span class=\"ch-status ch-status-ok\" style=\"position:static;width:9px;height:9px;display:inline-block;flex-shrink:0;\"></span>\n                  Working channels only\n                </button>\n                <button id=\"iptv-scan-btn\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn\">\n                  <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"11\" height=\"11\" style=\"flex-shrink:0;\">\n                    <circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"M21 21l-4.35-4.35\"/>\n                  </svg>\n                  Scan channels\n                </button>\n              </div>\n            </div>\n\n          </div>\n\n          <div class=\"channel-list\" id=\"iptv-channel-list\" data-scroll>\n            ").concat(Array.from({
+      }], ''), "\n\n                <button id=\"iptv-ghana-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_selCountry === 'GH' ? ' active' : '', "\" style=\"margin-top:8px;\">\n                  \uD83C\uDDEC\uD83C\uDDED Ghana Direct\n                </button>\n                <button id=\"iptv-fav-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_showFavsOnly ? ' active' : '', "\">\n                  <span style=\"color:#f87171;font-size:13px;flex-shrink:0;\">\u2665</span>\n                  Favourites only\n                </button>\n                <button id=\"iptv-working-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_showWorkingOnly ? ' active' : '', "\">\n                  <span class=\"ch-status ch-status-ok\" style=\"position:static;width:9px;height:9px;display:inline-block;flex-shrink:0;\"></span>\n                  Working channels only\n                </button>\n                <button id=\"iptv-english-toggle\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn").concat(_showEnglishOnly ? ' active' : '', "\">\n                  \uD83C\uDDEC\uD83C\uDDE7 English channels\n                </button>\n                <button id=\"iptv-scan-btn\" data-nav tabindex=\"0\"\n                  class=\"iptv-working-btn\">\n                  <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"11\" height=\"11\" style=\"flex-shrink:0;\">\n                    <circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"M21 21l-4.35-4.35\"/>\n                  </svg>\n                  Scan channels\n                </button>\n              </div>\n            </div>\n\n          </div>\n\n          <div class=\"channel-list\" id=\"iptv-channel-list\" data-scroll>\n            ").concat(Array.from({
         length: 8
       }, function () {
         return "\n              <div class=\"channel-item\">\n                <div class=\"channel-logo skeleton\" style=\"width:44px;height:44px;\"></div>\n                <div style=\"flex:1;\">\n                  <div class=\"skeleton\" style=\"height:13px;width:75%;border-radius:3px;margin-bottom:6px;\"></div>\n                  <div class=\"skeleton\" style=\"height:10px;width:45%;border-radius:3px;\"></div>\n                </div>\n              </div>";
@@ -252,6 +252,14 @@ var IPTVPage = function () {
       if (workingBtn) {
         workingBtn.addEventListener('click', function () {
           applyWorkingFilter(!_showWorkingOnly);
+        });
+      }
+
+      // English filter
+      var englishBtn = document.getElementById('iptv-english-toggle');
+      if (englishBtn) {
+        englishBtn.addEventListener('click', function () {
+          applyEnglishFilter(!_showEnglishOnly);
         });
       }
 
@@ -604,6 +612,7 @@ var IPTVPage = function () {
   var _chanScrollHandler = null;
   var _showWorkingOnly = false;
   var _showFavsOnly = false;
+  var _showEnglishOnly = false;
   // In-memory fav set — authoritative for badge rendering within a session.
   // Supplements localStorage which can lag on Tizen 3.0 async reads.
   var _favChannelIds = {};
@@ -1010,7 +1019,17 @@ var IPTVPage = function () {
     var nowProg = typeof EPGClient !== 'undefined' ? EPGClient.getCurrent(ch.id) : null;
     // Use pre-built favSet when available (avoids per-card localStorage read)
     var isFav = favSet ? !!favSet[ch.id] : typeof NexPlayDB !== 'undefined' ? NexPlayDB.isFavourite(ch.id, 'channel') : false;
-    return "\n      <div class=\"channel-item ".concat(isActive ? 'active' : '', "\"\n        data-nav data-channel-id=\"").concat(ch.id, "\" tabindex=\"0\">\n        <div class=\"channel-logo\">\n          <span class=\"channel-initial\">").concat(initial, "</span>\n          ").concat(logoSrc ? "<img src=\"".concat(logoSrc, "\" alt=\"").concat(ch.name, "\" loading=\"eager\" onerror=\"this.style.display='none'\">") : '', "\n          <span class=\"ch-status ch-status-").concat(status, "\"></span>\n        </div>\n        <div class=\"ch-name-wrap\">\n          <div class=\"channel-name\">").concat(ch.name || '', "</div>\n          ").concat(nowProg ? "<div class=\"ch-now-prog\">".concat(nowProg.title, "</div>") : '', "\n        </div>\n        ").concat(isFav ? '<span class="ch-fav-badge">&#9829;</span>' : '', "\n        <button class=\"ch-fav-btn").concat(isFav ? ' active' : '', "\" data-ch-fav=\"").concat(ch.id, "\" title=\"").concat(isFav ? 'Remove favourite' : 'Add favourite', "\">").concat(isFav ? '♥' : '♡', "</button>\n      </div>");
+
+    // Subtitle: EPG now-playing when available, else country · category
+    var subParts = [];
+    if (ch.country) subParts.push(ch.country);
+    if (ch.categories && ch.categories.length && ch.categories[0]) {
+      var cat0 = ch.categories[0];
+      var catLabel = CATEGORY_LABELS[cat0] || cat0;
+      if (catLabel) subParts.push(catLabel);
+    }
+    var subtitle = nowProg ? "<div class=\"ch-now-prog\">".concat(nowProg.title, "</div>") : subParts.length ? "<div class=\"ch-now-prog\">".concat(subParts.join(' · '), "</div>") : '';
+    return "\n      <div class=\"channel-item ".concat(isActive ? 'active' : '', "\"\n        data-nav data-channel-id=\"").concat(ch.id, "\" tabindex=\"0\">\n        <div class=\"channel-logo\">\n          <span class=\"channel-initial\">").concat(initial, "</span>\n          ").concat(logoSrc ? "<img src=\"".concat(logoSrc, "\" alt=\"").concat(ch.name, "\" loading=\"eager\" onerror=\"this.style.display='none'\">") : '', "\n          <span class=\"ch-status ch-status-").concat(status, "\"></span>\n        </div>\n        <div class=\"ch-name-wrap\">\n          <div class=\"channel-name\">").concat(ch.name || '', "</div>\n          ").concat(subtitle, "\n        </div>\n        ").concat(isFav ? '<span class="ch-fav-badge">&#9829;</span>' : '', "\n        <button class=\"ch-fav-btn").concat(isFav ? ' active' : '', "\" data-ch-fav=\"").concat(ch.id, "\" title=\"").concat(isFav ? 'Remove favourite' : 'Add favourite', "\">").concat(isFav ? '♥' : '♡', "</button>\n      </div>");
   }
 
   // ── AVPlay helpers ─────────────────────────────────────
@@ -1197,9 +1216,12 @@ var IPTVPage = function () {
     var cur = epg ? EPGClient.getCurrent(channel.id) : null;
     var next = epg ? EPGClient.getNext(channel.id) : null;
     var pct = epg ? EPGClient.currentProgress(channel.id) : 0;
-    var cats = (channel.categories || []).map(function (c) {
+    var catLabels = (channel.categories || []).map(function (c) {
       return CATEGORY_LABELS[c] || c;
+    }).filter(function (c) {
+      return c && c !== 'undefined';
     }).join(' · ');
+    var cats = [channel.country, catLabels].filter(Boolean).join(' · ');
     bar.innerHTML = "\n      <div class=\"live-badge\"><div class=\"live-dot\"></div> LIVE</div>\n      <div class=\"channel-logo\" style=\"width:36px;height:36px;flex-shrink:0;\">\n        ".concat(channel.logo ? "<img src=\"".concat(channel.logo, "\" style=\"width:100%;height:100%;object-fit:contain;padding:2px;\" onerror=\"this.style.display='none'\">") : '', "\n      </div>\n      <div class=\"iptv-bar-info\">\n        <div class=\"iptv-bar-name\">").concat(channel.name, "</div>\n        ").concat(cur ? "\n          <div class=\"iptv-bar-prog\">\n            <span class=\"iptv-prog-label\">NOW</span>\n            <span class=\"iptv-prog-title\">".concat(cur.title, "</span>\n            <span class=\"iptv-prog-time\">").concat(EPGClient.formatTime(cur.start), "&ndash;").concat(EPGClient.formatTime(cur.stop), "</span>\n          </div>\n          <div class=\"iptv-prog-bar\"><div class=\"iptv-prog-fill\" style=\"width:").concat(pct.toFixed(1), "%\"></div></div>\n          ").concat(next ? "<div class=\"iptv-bar-prog iptv-bar-next\">\n            <span class=\"iptv-prog-label\">NEXT</span>\n            <span class=\"iptv-prog-title\">".concat(next.title, "</span>\n            <span class=\"iptv-prog-time\">").concat(EPGClient.formatTime(next.start), "</span>\n          </div>") : '', "\n        ") : "<div class=\"iptv-bar-meta\">".concat(cats || '', "</div>"), "\n      </div>\n      <button class=\"iptv-guide-btn").concat(_epgOpen ? ' active' : '', "\" id=\"iptv-guide-btn\" data-nav tabindex=\"0\">\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n          <rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/>\n          <path d=\"M7 8h10M7 12h6M7 16h4\"/>\n        </svg>\n        Guide\n      </button>");
     var guideBtn = document.getElementById('iptv-guide-btn');
     if (guideBtn) guideBtn.addEventListener('click', function () {
@@ -1306,19 +1328,30 @@ var IPTVPage = function () {
     }
   }
 
-  // ── Working-only filter ────────────────────────────────────
+  // ── English-channel helper ─────────────────────────────────
+  // Primary: tvg-language field from M3U; fallback: country in English-primary list.
+  var ENGLISH_COUNTRIES = ['US', 'GB', 'AU', 'CA', 'NZ', 'IE', 'ZA', 'NG', 'GH', 'SG', 'PH'];
+  function isEnglishChannel(ch) {
+    if (ch.languages && ch.languages.length) return ch.languages.indexOf('english') !== -1;
+    return ENGLISH_COUNTRIES.indexOf(ch.country) !== -1;
+  }
+
+  // ── Compose display list from all active filters ───────────
   function getDisplayList() {
+    var list;
     if (_showFavsOnly && typeof NexPlayDB !== 'undefined') {
-      return _filtered.filter(function (ch) {
+      list = _filtered.filter(function (ch) {
         return NexPlayDB.isFavourite(ch.id, 'channel');
       });
-    }
-    if (_showWorkingOnly) {
-      return _filtered.filter(function (ch) {
+    } else if (_showWorkingOnly) {
+      list = _filtered.filter(function (ch) {
         return getChStatus(ch.id) === 'ok';
       });
+    } else {
+      list = _filtered;
     }
-    return _filtered;
+    if (_showEnglishOnly) list = list.filter(isEnglishChannel);
+    return list;
   }
   function applyWorkingFilter(show) {
     _showWorkingOnly = show;
@@ -1335,6 +1368,32 @@ var IPTVPage = function () {
     var display = getDisplayList();
     if (!display.length) {
       list.innerHTML = show ? '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">No working channels yet — try some channels first to discover what plays.</div>' : '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">No channels found.</div>';
+      return;
+    }
+    appendChannelBatch();
+    if (display.length > CHANNEL_BATCH) {
+      _chanScrollHandler = function _chanScrollHandler() {
+        var nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 300;
+        if (nearBottom) appendChannelBatch();
+      };
+      list.addEventListener('scroll', _chanScrollHandler);
+    }
+  }
+  function applyEnglishFilter(show) {
+    _showEnglishOnly = show;
+    var btn = document.getElementById('iptv-english-toggle');
+    if (btn) btn.classList.toggle('active', show);
+    var list = document.getElementById('iptv-channel-list');
+    if (!list) return;
+    if (_chanScrollHandler) {
+      list.removeEventListener('scroll', _chanScrollHandler);
+      _chanScrollHandler = null;
+    }
+    _channelOffset = 0;
+    list.innerHTML = '';
+    var display = getDisplayList();
+    if (!display.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">' + (show ? 'No English channels in this filter.' : 'No channels found.') + '</div>';
       return;
     }
     appendChannelBatch();
@@ -1439,6 +1498,7 @@ var IPTVPage = function () {
     _channelOffset = 0;
     _showWorkingOnly = false;
     _showFavsOnly = false;
+    _showEnglishOnly = false;
     _scanStop = true; // cancel any running scan
     _scanActive = false;
     cancelMobileWatching();

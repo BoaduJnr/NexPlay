@@ -17,6 +17,7 @@
   let _chanScrollHandler = null;
   let _showWorkingOnly   = false;
   let _showFavsOnly      = false;
+  let _showEnglishOnly   = false;
   // In-memory fav set — authoritative for badge rendering within a session.
   // Supplements localStorage which can lag on Tizen 3.0 async reads.
   let _favChannelIds     = {};
@@ -432,6 +433,18 @@
     var isFav   = favSet ? !!favSet[ch.id]
                 : (typeof NexPlayDB !== 'undefined' ? NexPlayDB.isFavourite(ch.id, 'channel') : false);
 
+    // Subtitle: EPG now-playing when available, else country · category
+    var subParts = [];
+    if (ch.country) subParts.push(ch.country);
+    if (ch.categories && ch.categories.length && ch.categories[0]) {
+      var cat0 = ch.categories[0];
+      var catLabel = CATEGORY_LABELS[cat0] || cat0;
+      if (catLabel) subParts.push(catLabel);
+    }
+    var subtitle = nowProg
+      ? `<div class="ch-now-prog">${nowProg.title}</div>`
+      : (subParts.length ? `<div class="ch-now-prog">${subParts.join(' · ')}</div>` : '');
+
     return `
       <div class="channel-item ${isActive ? 'active' : ''}"
         data-nav data-channel-id="${ch.id}" tabindex="0">
@@ -442,7 +455,7 @@
         </div>
         <div class="ch-name-wrap">
           <div class="channel-name">${ch.name || ''}</div>
-          ${nowProg ? `<div class="ch-now-prog">${nowProg.title}</div>` : ''}
+          ${subtitle}
         </div>
         ${isFav ? '<span class="ch-fav-badge">&#9829;</span>' : ''}
         <button class="ch-fav-btn${isFav ? ' active' : ''}" data-ch-fav="${ch.id}" title="${isFav ? 'Remove favourite' : 'Add favourite'}">${isFav ? '♥' : '♡'}</button>
@@ -614,7 +627,11 @@
     var cur   = epg ? EPGClient.getCurrent(channel.id)       : null;
     var next  = epg ? EPGClient.getNext(channel.id)          : null;
     var pct   = epg ? EPGClient.currentProgress(channel.id)  : 0;
-    var cats  = (channel.categories || []).map(function(c) { return CATEGORY_LABELS[c] || c; }).join(' · ');
+    var catLabels = (channel.categories || [])
+      .map(function(c) { return CATEGORY_LABELS[c] || c; })
+      .filter(function(c) { return c && c !== 'undefined'; })
+      .join(' · ');
+    var cats = [channel.country, catLabels].filter(Boolean).join(' · ');
 
     bar.innerHTML = `
       <div class="live-badge"><div class="live-dot"></div> LIVE</div>
@@ -853,15 +870,26 @@
     }
   }
 
-  // ── Working-only filter ────────────────────────────────────
+  // ── English-channel helper ─────────────────────────────────
+  // Primary: tvg-language field from M3U; fallback: country in English-primary list.
+  var ENGLISH_COUNTRIES = ['US','GB','AU','CA','NZ','IE','ZA','NG','GH','SG','PH'];
+  function isEnglishChannel(ch) {
+    if (ch.languages && ch.languages.length) return ch.languages.indexOf('english') !== -1;
+    return ENGLISH_COUNTRIES.indexOf(ch.country) !== -1;
+  }
+
+  // ── Compose display list from all active filters ───────────
   function getDisplayList() {
+    var list;
     if (_showFavsOnly && typeof NexPlayDB !== 'undefined') {
-      return _filtered.filter(function(ch) { return NexPlayDB.isFavourite(ch.id, 'channel'); });
+      list = _filtered.filter(function(ch) { return NexPlayDB.isFavourite(ch.id, 'channel'); });
+    } else if (_showWorkingOnly) {
+      list = _filtered.filter(function(ch) { return getChStatus(ch.id) === 'ok'; });
+    } else {
+      list = _filtered;
     }
-    if (_showWorkingOnly) {
-      return _filtered.filter(function(ch) { return getChStatus(ch.id) === 'ok'; });
-    }
-    return _filtered;
+    if (_showEnglishOnly) list = list.filter(isEnglishChannel);
+    return list;
   }
 
   function applyWorkingFilter(show) {
@@ -889,6 +917,38 @@
 
     appendChannelBatch();
 
+    if (display.length > CHANNEL_BATCH) {
+      _chanScrollHandler = function() {
+        var nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 300;
+        if (nearBottom) appendChannelBatch();
+      };
+      list.addEventListener('scroll', _chanScrollHandler);
+    }
+  }
+
+  function applyEnglishFilter(show) {
+    _showEnglishOnly = show;
+    var btn = document.getElementById('iptv-english-toggle');
+    if (btn) btn.classList.toggle('active', show);
+
+    var list = document.getElementById('iptv-channel-list');
+    if (!list) return;
+
+    if (_chanScrollHandler) {
+      list.removeEventListener('scroll', _chanScrollHandler);
+      _chanScrollHandler = null;
+    }
+    _channelOffset = 0;
+    list.innerHTML = '';
+
+    var display = getDisplayList();
+    if (!display.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:rgba(240,240,248,0.45);">'
+        + (show ? 'No English channels in this filter.' : 'No channels found.')
+        + '</div>';
+      return;
+    }
+    appendChannelBatch();
     if (display.length > CHANNEL_BATCH) {
       _chanScrollHandler = function() {
         var nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 300;
@@ -1110,6 +1170,10 @@
                   <span class="ch-status ch-status-ok" style="position:static;width:9px;height:9px;display:inline-block;flex-shrink:0;"></span>
                   Working channels only
                 </button>
+                <button id="iptv-english-toggle" data-nav tabindex="0"
+                  class="iptv-working-btn${_showEnglishOnly ? ' active' : ''}">
+                  🇬🇧 English channels
+                </button>
                 <button id="iptv-scan-btn" data-nav tabindex="0"
                   class="iptv-working-btn">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" style="flex-shrink:0;">
@@ -1212,6 +1276,14 @@
       });
     }
 
+    // English filter
+    var englishBtn = document.getElementById('iptv-english-toggle');
+    if (englishBtn) {
+      englishBtn.addEventListener('click', function() {
+        applyEnglishFilter(!_showEnglishOnly);
+      });
+    }
+
     // Load meta + channels in parallel
     await Promise.all([
       buildCountryOptions(),
@@ -1240,6 +1312,7 @@
     _channelOffset      = 0;
     _showWorkingOnly    = false;
     _showFavsOnly       = false;
+    _showEnglishOnly    = false;
     _scanStop           = true;   // cancel any running scan
     _scanActive         = false;
     cancelMobileWatching();

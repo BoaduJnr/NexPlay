@@ -72,7 +72,10 @@ class IPTVClient {
         var cats = meta['group-title']
           ? meta['group-title'].split(';').map(function(c) {
               return c.trim().toLowerCase().replace(/\s+/g, '-');
-            }).filter(Boolean)
+            }).filter(function(c) { return c && c !== 'undefined'; })
+          : [];
+        var langs = meta['tvg-language']
+          ? meta['tvg-language'].split(';').map(function(l) { return l.trim().toLowerCase(); }).filter(Boolean)
           : [];
         entries.push({
           id:         baseId,
@@ -80,6 +83,7 @@ class IPTVClient {
           logo:       meta['tvg-logo'] || '',
           country:    country,
           categories: cats,
+          languages:  langs,
           is_nsfw:    false,
           url:        line,
         });
@@ -111,14 +115,14 @@ class IPTVClient {
   // ── Primary source: index.m3u — 2.1 MB, single file, no ID mismatch ──
   async getAllChannels() {
     if (this._allChannels) return this._allChannels;
-    var cached = IPTVClient._readCache('np_iptv_m3u_v2', 12 * 60 * 60 * 1000); // 12h; v2 = country+category fix
+    var cached = IPTVClient._readCache('np_iptv_m3u_v3', 12 * 60 * 60 * 1000); // 12h; v2 = country+category fix
     if (cached) { this._allChannels = cached; return cached; }
     var res = await fetch('https://iptv-org.github.io/iptv/index.m3u');
     if (!res.ok) throw new Error('index.m3u fetch failed');
     var text = await res.text();
     var entries  = IPTVClient.parseM3U(text);
     var channels = IPTVClient.groupM3UChannels(entries);
-    IPTVClient._writeCache('np_iptv_m3u_v2', channels);
+    IPTVClient._writeCache('np_iptv_m3u_v3', channels);
     this._allChannels = channels;
     return channels;
   }
