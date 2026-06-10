@@ -128,6 +128,24 @@
                  : (m + ':' + (s < 10 ? '0' : '') + s);
   }
 
+  // Updates the buffer fill bar — shows how far ahead the stream is buffered vs playback.
+  // Color codes: green = well ahead, yellow = within 10%, red = within 3% (about to stall).
+  function _updateBufferFill(video, playPct) {
+    var buf = document.getElementById('buffer-fill');
+    if (!buf || !video) return;
+    if (!video.buffered || !video.buffered.length || !video.duration) {
+      buf.style.width = '0%'; return;
+    }
+    var buffEnd = 0;
+    try { buffEnd = video.buffered.end(video.buffered.length - 1); } catch(e) { return; }
+    var bufPct = Math.min(100, buffEnd / video.duration * 100);
+    buf.style.width = bufPct + '%';
+    var gap = bufPct - parseFloat(playPct || 0);
+    buf.classList.remove('buf-close', 'buf-critical');
+    if (gap < 3)  buf.classList.add('buf-critical');  // red  — nearly stalling
+    else if (gap < 10) buf.classList.add('buf-close'); // yellow — getting close
+  }
+
   function updateProgress() {
     if (typeof webapis === 'undefined' || !webapis.avplay) return;
     try {
@@ -546,6 +564,7 @@
           var time = document.getElementById('player-time');
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+          _updateBufferFill(video, pct);
         }, 3000);
       });
     });
@@ -554,13 +573,13 @@
   // ── Download handler ────────────────────────────────────────────────────
   function _resetDownloadUI() {
     var btn  = document.getElementById('player-dl-btn');
-    var row  = document.getElementById('player-dl-row');
-    var fill = document.getElementById('player-dl-fill');
-    var txt  = document.getElementById('player-dl-text');
+    var fill = document.getElementById('player-dl-fill');   // now the .dl-fill span inside button
+    var lbl  = btn && btn.querySelector('.dl-label');
+    var ico  = btn && btn.querySelector('.dl-icon');
     if (btn)  { btn.classList.remove('dl-active', 'dl-done'); }
-    if (row)  { row.classList.remove('dl-active'); }
+    if (lbl)  { lbl.textContent = 'Save'; }
+    if (ico)  { ico.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>'; }
     if (fill) { fill.style.width = '0%'; }
-    if (txt)  { txt.textContent = '0%'; }
   }
 
   function _handleDownload() {
@@ -572,9 +591,7 @@
     var btn = document.getElementById('player-dl-btn');
     if (btn && btn.classList.contains('dl-active')) return; // already in progress
 
-    var row  = document.getElementById('player-dl-row');
-    var fill = document.getElementById('player-dl-fill');
-    var txt  = document.getElementById('player-dl-text');
+    var fill = document.getElementById('player-dl-fill');   // .dl-fill span inside button
 
     // Determine stream type: CDN headers or HLS URL → segment download; otherwise direct XHR
     var hasStreamHeaders = _qualityHeaders && Object.keys(_qualityHeaders).length > 0;
@@ -585,21 +602,18 @@
     } else {
       // Direct MP4 (e.g. YTS torrent web seed) — simple XHR blob download
       if (typeof App !== 'undefined') App.showToast('Starting download…');
-      _startFileDownload(btn, row, fill, txt);
+      _startFileDownload(btn, fill);
     }
   }
 
   // Download HLS stream by fetching all segments through the CF Worker proxy
   async function _downloadHLS() {
     var btn  = document.getElementById('player-dl-btn');
-    var row  = document.getElementById('player-dl-row');
     var fill = document.getElementById('player-dl-fill');
-    var txt  = document.getElementById('player-dl-text');
-
+    var lbl  = btn && btn.querySelector('.dl-label');
     if (btn)  btn.classList.add('dl-active');
-    if (row)  row.classList.add('dl-active');
+    if (lbl)  lbl.textContent = '…';
     if (fill) fill.style.width = '0%';
-    if (txt)  txt.textContent = 'Fetching playlist…';
 
     _hlsDownloadController = new AbortController();
     var signal = _hlsDownloadController.signal;
@@ -608,8 +622,8 @@
 
     function setProgress(done, total) {
       var pct = Math.round(done / total * 100);
-      if (fill) fill.style.width = pct + '%';
-      if (txt)  txt.textContent = done + '/' + total + ' (' + pct + '%)';
+      if (fill) fill.style.width = pct + '%';   // fill the pill from left
+      if (lbl)  lbl.textContent = pct + '%';
     }
 
     // Resolve relative or proxy URL to an absolute CDN URL
@@ -681,7 +695,6 @@
       // If it's a master playlist, follow to the best quality variant
       if (parsed.isMaster) {
         if (!parsed.bestProxyUrl) throw new Error('No quality variant found in master playlist');
-        if (txt) txt.textContent = 'Fetching quality stream…';
         resp = await fetch(parsed.bestProxyUrl, { signal: signal });
         if (!resp.ok) throw new Error('Variant fetch failed (' + resp.status + ')');
         m3u8Text = await resp.text();
@@ -697,28 +710,67 @@
       var segs = parsed.segments;
       if (!segs.length) throw new Error('No segments found in playlist');
 
-      if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments — save .ts and open in VLC');
+      // Load mux.js for TS→MP4 remux (fast container swap, no re-encoding)
+      if (typeof muxjs === 'undefined') {
+        if (lbl) lbl.textContent = 'Init…';
+        await new Promise(function(resolve, reject) {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/mux.js@6/dist/mux.min.js';
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
 
-      // Try File System Access API for streaming write (avoids memory limits on large files)
+      if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments…');
+
+      // Try File System Access API for streaming write (Chrome/Edge/Android Chrome)
       var writable = null;
       if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
         try {
           var fh = await window.showSaveFilePicker({
-            suggestedName: safeName + '.ts',
-            types: [{ description: 'Video (MPEG-TS)', accept: { 'video/mp2t': ['.ts'] } }]
+            suggestedName: safeName + '.mp4',
+            types: [{ description: 'MP4 Video', accept: { 'video/mp4': ['.mp4'] } }]
           });
           writable = await fh.createWritable();
         } catch(e) {
-          if (e.name === 'AbortError') { _resetDownloadUI(); return; } // user cancelled picker
-          writable = null; // FSA not available — fall back to in-memory blob
+          if (e.name === 'AbortError') { _resetDownloadUI(); return; }
+          writable = null;
         }
       }
 
-      var collected = writable ? null : [];
-      var totalBytes = 0;
-      var MAX_BLOB = 600 * 1024 * 1024; // 600 MB safety cap for blob path
+      // Mux.js transmuxer: TS → fMP4. Rules:
+      //   • push() feeds raw TS bytes; data events may fire during push
+      //   • flush() is called ONCE after ALL segments — signals end-of-stream
+      //   • NEVER call flush() inside the download loop (it resets the stream)
+      // FSA writes must be chained (Promise queue) to preserve MP4 byte order.
+      var tx = new muxjs.mp4.Transmuxer();
+      var mp4Chunks = [];                      // blob-fallback accumulator
+      var mp4WriteQueue = Promise.resolve();   // FSA ordered-write chain
+      var initDone = false;
+
+      tx.on('data', function(segment) {
+        var pieces = [];
+        if (!initDone && segment.initSegment && segment.initSegment.byteLength > 0) {
+          pieces.push(new Uint8Array(segment.initSegment));
+          initDone = true;
+        }
+        if (segment.data && segment.data.byteLength > 0) {
+          pieces.push(new Uint8Array(segment.data));
+        }
+        if (!pieces.length) return;
+
+        if (writable) {
+          // Chain each write so they land in order even though the event is sync
+          pieces.forEach(function(p) {
+            mp4WriteQueue = mp4WriteQueue.then(function() { return writable.write(p); });
+          });
+        } else {
+          pieces.forEach(function(p) { mp4Chunks.push(p); });
+        }
+      });
+
       var failed = 0;
-      var BATCH = 4; // parallel fetches per tick
+      var BATCH = 4;
 
       for (var i = 0; i < segs.length; i += BATCH) {
         if (signal.aborted) break;
@@ -732,19 +784,19 @@
         }));
 
         for (var j = 0; j < results.length; j++) {
-          var chunk = results[j];
-          if (!chunk) { failed++; continue; }
-          if (writable) {
-            await writable.write(chunk);
-          } else {
-            if (totalBytes + chunk.byteLength > MAX_BLOB) break; // cap reached
-            collected.push(chunk);
-            totalBytes += chunk.byteLength;
-          }
+          if (!results[j]) { failed++; continue; }
+          tx.push(results[j]); // data events fire here for complete PES packets
         }
+        // ↑ No flush() here — flushing inside the loop resets the transmuxer stream
 
         setProgress(Math.min(i + BATCH, segs.length), segs.length);
       }
+
+      // Single flush at the very end — drains remaining buffered data
+      tx.flush();
+
+      // Wait for all queued FSA writes to land before closing the file
+      await mp4WriteQueue;
 
       if (signal.aborted) {
         if (writable) try { await writable.abort(); } catch(e) {}
@@ -754,17 +806,17 @@
 
       if (writable) {
         await writable.close();
-      } else if (collected && collected.length) {
-        if (txt) txt.textContent = 'Saving…';
-        var totalLen = collected.reduce(function(s, c) { return s + c.byteLength; }, 0);
+      } else if (mp4Chunks.length) {
+        if (lbl) lbl.textContent = 'Saving…';
+        var totalLen = mp4Chunks.reduce(function(s, c) { return s + c.byteLength; }, 0);
         var output = new Uint8Array(totalLen);
         var off = 0;
-        collected.forEach(function(c) { output.set(c, off); off += c.byteLength; });
-        var dlBlob = new Blob([output], { type: 'video/mp2t' });
+        mp4Chunks.forEach(function(c) { output.set(c, off); off += c.byteLength; });
+        var dlBlob = new Blob([output], { type: 'video/mp4' });
         var dlObjUrl = URL.createObjectURL(dlBlob);
         var dlA = document.createElement('a');
         dlA.href = dlObjUrl;
-        dlA.download = safeName + '.ts';
+        dlA.download = safeName + '.mp4';
         document.body.appendChild(dlA);
         dlA.click();
         document.body.removeChild(dlA);
@@ -773,13 +825,20 @@
 
       _hlsDownloadController = null;
       if (btn)  { btn.classList.remove('dl-active'); btn.classList.add('dl-done'); }
+      // Swap to checkmark icon and "Saved" label
+      var doneIco = btn && btn.querySelector('.dl-icon');
+      if (doneIco) doneIco.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+      if (lbl)  lbl.textContent = failed ? failed + ' missed' : 'Saved';
       if (fill) fill.style.width = '100%';
-      if (txt)  txt.textContent = failed ? '✓ (' + failed + ' missing)' : '✓ Done';
       if (typeof App !== 'undefined') App.showToast(
-        'Download done! Open the .ts file in VLC.' + (failed ? ' (' + failed + ' segments failed)' : ''));
+        'Download complete!' + (failed ? ' (' + failed + ' segments failed)' : ''));
       setTimeout(function() {
         if (btn) btn.classList.remove('dl-done');
-        if (row) row.classList.remove('dl-active');
+        // Reset icon + label after dismiss
+        var resetIco = btn && btn.querySelector('.dl-icon');
+        var resetLbl = btn && btn.querySelector('.dl-label');
+        if (resetIco) resetIco.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>';
+        if (resetLbl) resetLbl.textContent = 'Save';
       }, 6000);
 
     } catch(e) {
@@ -791,12 +850,11 @@
     }
   }
 
-  function _startFileDownload(btn, row, fill, txt) {
-    // Show progress UI
+  function _startFileDownload(btn, fill) {
+    var lbl = btn && btn.querySelector('.dl-label');
     if (btn)  btn.classList.add('dl-active');
-    if (row)  row.classList.add('dl-active');
+    if (lbl)  lbl.textContent = '0%';
     if (fill) fill.style.width = '0%';
-    if (txt)  txt.textContent = '0%';
 
     var filename = (_titleCache ? _titleCache.replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 80) : 'video') + '.mp4';
 
@@ -809,9 +867,10 @@
       if (e.lengthComputable) {
         var pct = Math.round(e.loaded / e.total * 100);
         if (fill) fill.style.width = pct + '%';
-        if (txt)  txt.textContent = pct + '%';
+        if (lbl)  lbl.textContent = pct + '%';
       } else {
-        if (txt) txt.textContent = Math.round(e.loaded / 1e6) + 'MB';
+        var mb = Math.round(e.loaded / 1e6);
+        if (lbl) lbl.textContent = mb + 'MB';
       }
     };
 
@@ -828,13 +887,18 @@
         setTimeout(function() { URL.revokeObjectURL(objUrl); }, 2000);
 
         if (btn)  { btn.classList.remove('dl-active'); btn.classList.add('dl-done'); }
-        if (fill) { fill.style.width = '100%'; }
-        if (txt)  { txt.textContent = '✓'; }
+        var doneIco = btn && btn.querySelector('.dl-icon');
+        if (doneIco) doneIco.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+        if (lbl)  lbl.textContent = 'Saved';
+        if (fill) fill.style.width = '100%';
         if (typeof App !== 'undefined') App.showToast('Download complete!');
 
         setTimeout(function() {
           if (btn) btn.classList.remove('dl-done');
-          if (row) row.classList.remove('dl-active');
+          var rIco = btn && btn.querySelector('.dl-icon');
+          var rLbl = btn && btn.querySelector('.dl-label');
+          if (rIco) rIco.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>';
+          if (rLbl) rLbl.textContent = 'Save';
         }, 4000);
       } else {
         _resetDownloadUI();
@@ -1122,6 +1186,7 @@
           var time = document.getElementById('player-time');
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+          _updateBufferFill(video, pct);
         }, 3000);
       });
       hls.on(Hls.Events.ERROR, function(ev, data) {
@@ -1349,6 +1414,20 @@
           _availableQualities = result.qualities || [];
           _qualityHeaders = result.headers || null;
           console.log('[Player] stream resolved:', result.url.slice(0, 60));
+
+          // autoDownload: skip playback and go straight to download
+          if (_params.autoDownload) {
+            _currentStreamUrl = result.url;
+            setPlayerStatus('Ready to download');
+            var dlBtn2 = document.getElementById('player-dl-btn');
+            if (dlBtn2) dlBtn2.style.display = '';
+            setTimeout(function() {
+              var dlBtn3 = document.getElementById('player-dl-btn');
+              if (dlBtn3) dlBtn3.click();
+            }, 400);
+            return;
+          }
+
           setPlayerStatus('Starting playback...');
           var _savedPrefLabel = '';
           if (_streamErrorRetries === 0) {
@@ -1662,31 +1741,27 @@
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z"/><rect x="16" y="6" width="2" height="12"/></svg>
               <span>Next</span></button>` : ''}
           </div>
-          <button id="player-dl-btn" class="player-dl-btn" title="Download" style="display:none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </button>
           <div id="quality-dd-wrap" class="player-cbar-quality">
             ${TVDropdown.html('quality-dd', [{ value: 'auto', label: 'Auto' }], 'auto')}
           </div>
         </div>
-        <!-- Row 2 (bottom): progress track (seekable) + time -->
+        <!-- Row 2 (bottom): seek track + time + download button -->
         <div class="player-cbar-row1">
           <div class="player-cbar-track" id="seek-track" data-nav tabindex="0" title="Left/Right to seek">
+            <div id="buffer-fill" class="player-cbar-buffer-fill"></div>
             <div id="progress-fill" class="player-cbar-fill"></div>
           </div>
           <span id="player-time" class="player-cbar-time">0:00 / 0:00</span>
+          <button id="player-dl-btn" class="player-dl-btn" style="display:none;">
+            <span class="dl-fill" id="player-dl-fill"></span>
+            <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            <span class="dl-label">Save</span>
+          </button>
         </div>
-        <!-- Download progress (appears below seek bar when active) -->
-        <div id="player-dl-row" class="player-dl-row">
-          <div class="player-dl-track">
-            <div id="player-dl-fill" class="player-dl-fill"></div>
-          </div>
-          <span id="player-dl-text" class="player-dl-text">0%</span>
-        </div>
+        <!-- Shell retained so JS references to player-dl-row don't throw -->
+        <div id="player-dl-row" style="display:none;"></div>
       </div>
 
       <div class="player-info-bar" style="right:${rightPad}px;">

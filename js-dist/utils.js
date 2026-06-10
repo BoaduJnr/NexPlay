@@ -65,7 +65,6 @@ var UX = function () {
     var btn = e.target.closest('.card-action-btn');
     if (!btn) return;
     e.stopPropagation();
-    if (typeof NexPlayDB === 'undefined') return;
     var card = btn.closest('[data-movie-id],[data-show-id]');
     if (!card) return;
     var isShow = !!card.dataset.showId;
@@ -74,6 +73,14 @@ var UX = function () {
     var title = isShow ? card.dataset.showTitle || '' : card.dataset.movieTitle || '';
     var poster = isShow ? card.dataset.showPoster || '' : card.dataset.moviePoster || '';
     var action = btn.dataset.action;
+    if (action === 'info') {
+      if (typeof App !== 'undefined') App.navigate('detail', {
+        id: id,
+        type: type
+      });
+      return;
+    }
+    if (typeof NexPlayDB === 'undefined') return;
     if (action === 'fav') {
       var added = NexPlayDB.toggleFavourite(id, type, title, poster);
       btn.classList.toggle('fav-active', added);

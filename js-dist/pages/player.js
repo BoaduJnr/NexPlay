@@ -75,35 +75,6 @@ var _Pact = /*#__PURE__*/function () {
 function _isSettledPact(thenable) {
   return thenable instanceof _Pact && thenable.s & 1;
 }
-function _forTo(array, body, check) {
-  var i = -1,
-    pact,
-    reject;
-  function _cycle(result) {
-    try {
-      while (++i < array.length && (!check || !check())) {
-        result = body(i);
-        if (result && result.then) {
-          if (_isSettledPact(result)) {
-            result = result.v;
-          } else {
-            result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
-            return;
-          }
-        }
-      }
-      if (pact) {
-        _settle(pact, 1, result);
-      } else {
-        pact = result;
-      }
-    } catch (e) {
-      _settle(pact || (pact = new _Pact()), 2, e);
-    }
-  }
-  _cycle();
-  return pact;
-}
 function _for(test, update, body) {
   var stage;
   for (;;) {
@@ -219,10 +190,10 @@ var PlayerPage = function () {
       stopAvPlay();
       modal.classList.remove('hidden');
       document.body.classList.add('player-open');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" title=\"Download\" style=\"display:none;\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\">\n              <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/>\n              <polyline points=\"7 10 12 15 17 10\"/>\n              <line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/>\n            </svg>\n          </button>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n        <!-- Download progress (appears below seek bar when active) -->\n        <div id=\"player-dl-row\" class=\"player-dl-row\">\n          <div class=\"player-dl-track\">\n            <div id=\"player-dl-fill\" class=\"player-dl-fill\"></div>\n          </div>\n          <span id=\"player-dl-text\" class=\"player-dl-text\">0%</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): seek track + time + download button -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"buffer-fill\" class=\"player-cbar-buffer-fill\"></div>\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" style=\"display:none;\">\n            <span class=\"dl-fill\" id=\"player-dl-fill\"></span>\n            <svg class=\"dl-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"12\" height=\"12\">\n              <path d=\"M12 5v14M5 12l7 7 7-7\"/>\n            </svg>\n            <span class=\"dl-label\">Save</span>\n          </button>\n        </div>\n        <!-- Shell retained so JS references to player-dl-row don't throw -->\n        <div id=\"player-dl-row\" style=\"display:none;\"></div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
@@ -275,13 +246,13 @@ var PlayerPage = function () {
       });
       Nav.reset(modal);
       loadBestSource();
-      var _temp22 = function () {
+      var _temp21 = function () {
         if (params.id) {
-          var _temp21 = _catch(function () {
-            function _temp20() {
+          var _temp20 = _catch(function () {
+            function _temp19() {
               Nav.reset(modal);
             }
-            var _temp19 = function () {
+            var _temp18 = function () {
               if (isTV) {
                 return Promise.resolve(Promise.all([TMDB.tvDetails(parseInt(params.id)), buildEpisodePanel(parseInt(params.id))])).then(function (_ref) {
                   var _ref2 = _slicedToArray(_ref, 1),
@@ -367,14 +338,14 @@ var PlayerPage = function () {
                 });
               }
             }();
-            return _temp19 && _temp19.then ? _temp19.then(_temp20) : _temp20(_temp19);
+            return _temp18 && _temp18.then ? _temp18.then(_temp19) : _temp19(_temp18);
           }, function (err) {
             console.error('Player metadata error:', err);
           });
-          if (_temp21 && _temp21.then) return _temp21.then(function () {});
+          if (_temp20 && _temp20.then) return _temp20.then(function () {});
         }
       }();
-      return Promise.resolve(_temp22 && _temp22.then ? _temp22.then(function () {}) : void 0);
+      return Promise.resolve(_temp21 && _temp21.then ? _temp21.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -383,7 +354,7 @@ var PlayerPage = function () {
     try {
       var list = document.getElementById('episode-list');
       if (!list) return Promise.resolve();
-      var _temp18 = _catch(function () {
+      var _temp17 = _catch(function () {
         return Promise.resolve(TMDB.tvSeason(_params.id, seasonNumber)).then(function (season) {
           var episodes = season.episodes || [];
           var isMobileList = !!list.closest('.episode-panel-mobile');
@@ -422,7 +393,7 @@ var PlayerPage = function () {
       }, function () {
         list.innerHTML = "<div class=\"error-msg\" style=\"font-size:13px;\">Could not load episodes</div>";
       });
-      return Promise.resolve(_temp18 && _temp18.then ? _temp18.then(function () {}) : void 0);
+      return Promise.resolve(_temp17 && _temp17.then ? _temp17.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -431,7 +402,7 @@ var PlayerPage = function () {
   var buildEpisodePanel = function buildEpisodePanel(seriesId) {
     try {
       var _exit4 = false;
-      function _temp17(_result6) {
+      function _temp16(_result6) {
         if (_exit4) return _result6;
         var seasons = (_seriesDetails.seasons || []).filter(function (s) {
           return s.season_number > 0;
@@ -458,7 +429,7 @@ var PlayerPage = function () {
       }
       var panel = document.getElementById('episode-panel');
       if (!panel) return Promise.resolve();
-      var _temp16 = _catch(function () {
+      var _temp15 = _catch(function () {
         return Promise.resolve(TMDB.tvDetails(seriesId)).then(function (_TMDB$tvDetails) {
           _seriesDetails = _TMDB$tvDetails;
         });
@@ -466,7 +437,7 @@ var PlayerPage = function () {
         panel.innerHTML = '';
         _exit4 = true;
       });
-      return Promise.resolve(_temp16 && _temp16.then ? _temp16.then(_temp17) : _temp17(_temp16));
+      return Promise.resolve(_temp15 && _temp15.then ? _temp15.then(_temp16) : _temp16(_temp15));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -475,19 +446,17 @@ var PlayerPage = function () {
   var _downloadHLS = function _downloadHLS() {
     try {
       var btn = document.getElementById('player-dl-btn');
-      var row = document.getElementById('player-dl-row');
       var fill = document.getElementById('player-dl-fill');
-      var txt = document.getElementById('player-dl-text');
+      var lbl = btn && btn.querySelector('.dl-label');
       if (btn) btn.classList.add('dl-active');
-      if (row) row.classList.add('dl-active');
+      if (lbl) lbl.textContent = '…';
       if (fill) fill.style.width = '0%';
-      if (txt) txt.textContent = 'Fetching playlist…';
       _hlsDownloadController = new AbortController();
       var signal = _hlsDownloadController.signal;
       function setProgress(done, total) {
         var pct = Math.round(done / total * 100);
-        if (fill) fill.style.width = pct + '%';
-        if (txt) txt.textContent = done + '/' + total + ' (' + pct + '%)';
+        if (fill) fill.style.width = pct + '%'; // fill the pill from left
+        if (lbl) lbl.textContent = pct + '%';
       }
 
       // Resolve relative or proxy URL to an absolute CDN URL
@@ -568,138 +537,195 @@ var PlayerPage = function () {
           if (!resp.ok) throw new Error('Playlist fetch failed (' + resp.status + ')');
           return Promise.resolve(resp.text()).then(function (m3u8Text) {
             var _exit = false;
-            function _temp14(_result2) {
-              var _exit2 = false;
+            function _temp13(_result2) {
               if (_exit) return _result2;
-              function _temp12(_result4) {
-                var _interrupt = false;
-                if (_exit2) return _result4;
-                function _temp10() {
-                  var _exit3 = false;
-                  function _temp0(_result5) {
-                    if (_exit3) return _result5;
-                    function _temp8() {
-                      _hlsDownloadController = null;
-                      if (btn) {
-                        btn.classList.remove('dl-active');
-                        btn.classList.add('dl-done');
+              function _temp11() {
+                var _exit2 = false;
+                function _temp1(_result4) {
+                  var _interrupt = false;
+                  if (_exit2) return _result4;
+                  function _temp9() {
+                    // Single flush at the very end — drains remaining buffered data
+                    tx.flush();
+
+                    // Wait for all queued FSA writes to land before closing the file
+                    return Promise.resolve(mp4WriteQueue).then(function () {
+                      var _exit3 = false;
+                      function _temp7(_result5) {
+                        if (_exit3) return _result5;
+                        function _temp5() {
+                          _hlsDownloadController = null;
+                          if (btn) {
+                            btn.classList.remove('dl-active');
+                            btn.classList.add('dl-done');
+                          }
+                          // Swap to checkmark icon and "Saved" label
+                          var doneIco = btn && btn.querySelector('.dl-icon');
+                          if (doneIco) doneIco.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+                          if (lbl) lbl.textContent = failed ? failed + ' missed' : 'Saved';
+                          if (fill) fill.style.width = '100%';
+                          if (typeof App !== 'undefined') App.showToast('Download complete!' + (failed ? ' (' + failed + ' segments failed)' : ''));
+                          setTimeout(function () {
+                            if (btn) btn.classList.remove('dl-done');
+                            // Reset icon + label after dismiss
+                            var resetIco = btn && btn.querySelector('.dl-icon');
+                            var resetLbl = btn && btn.querySelector('.dl-label');
+                            if (resetIco) resetIco.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>';
+                            if (resetLbl) resetLbl.textContent = 'Save';
+                          }, 6000);
+                        }
+                        var _temp4 = function () {
+                          if (writable) {
+                            return Promise.resolve(writable.close()).then(function () {});
+                          } else if (mp4Chunks.length) {
+                            if (lbl) lbl.textContent = 'Saving…';
+                            var totalLen = mp4Chunks.reduce(function (s, c) {
+                              return s + c.byteLength;
+                            }, 0);
+                            var output = new Uint8Array(totalLen);
+                            var off = 0;
+                            mp4Chunks.forEach(function (c) {
+                              output.set(c, off);
+                              off += c.byteLength;
+                            });
+                            var dlBlob = new Blob([output], {
+                              type: 'video/mp4'
+                            });
+                            var dlObjUrl = URL.createObjectURL(dlBlob);
+                            var dlA = document.createElement('a');
+                            dlA.href = dlObjUrl;
+                            dlA.download = safeName + '.mp4';
+                            document.body.appendChild(dlA);
+                            dlA.click();
+                            document.body.removeChild(dlA);
+                            setTimeout(function () {
+                              URL.revokeObjectURL(dlObjUrl);
+                            }, 5000);
+                          }
+                        }();
+                        return _temp4 && _temp4.then ? _temp4.then(_temp5) : _temp5(_temp4);
                       }
-                      if (fill) fill.style.width = '100%';
-                      if (txt) txt.textContent = failed ? '✓ (' + failed + ' missing)' : '✓ Done';
-                      if (typeof App !== 'undefined') App.showToast('Download done! Open the .ts file in VLC.' + (failed ? ' (' + failed + ' segments failed)' : ''));
-                      setTimeout(function () {
-                        if (btn) btn.classList.remove('dl-done');
-                        if (row) row.classList.remove('dl-active');
-                      }, 6000);
-                    }
-                    var _temp7 = function () {
-                      if (writable) {
-                        return Promise.resolve(writable.close()).then(function () {});
-                      } else if (collected && collected.length) {
-                        if (txt) txt.textContent = 'Saving…';
-                        var totalLen = collected.reduce(function (s, c) {
-                          return s + c.byteLength;
-                        }, 0);
-                        var output = new Uint8Array(totalLen);
-                        var off = 0;
-                        collected.forEach(function (c) {
-                          output.set(c, off);
-                          off += c.byteLength;
-                        });
-                        var dlBlob = new Blob([output], {
-                          type: 'video/mp2t'
-                        });
-                        var dlObjUrl = URL.createObjectURL(dlBlob);
-                        var dlA = document.createElement('a');
-                        dlA.href = dlObjUrl;
-                        dlA.download = safeName + '.ts';
-                        document.body.appendChild(dlA);
-                        dlA.click();
-                        document.body.removeChild(dlA);
-                        setTimeout(function () {
-                          URL.revokeObjectURL(dlObjUrl);
-                        }, 5000);
-                      }
-                    }();
-                    return _temp7 && _temp7.then ? _temp7.then(_temp8) : _temp8(_temp7);
-                  }
-                  var _temp9 = function () {
-                    if (signal.aborted) {
-                      function _temp6() {
-                        _resetDownloadUI();
-                        _exit3 = true;
-                      }
-                      var _temp5 = function () {
-                        if (writable) {
-                          var _temp15 = _catch(function () {
-                            return Promise.resolve(writable.abort()).then(function () {});
-                          }, function () {});
-                          if (_temp15 && _temp15.then) return _temp15.then(function () {});
+                      var _temp6 = function () {
+                        if (signal.aborted) {
+                          function _temp3() {
+                            _resetDownloadUI();
+                            _exit3 = true;
+                          }
+                          var _temp2 = function () {
+                            if (writable) {
+                              var _temp14 = _catch(function () {
+                                return Promise.resolve(writable.abort()).then(function () {});
+                              }, function () {});
+                              if (_temp14 && _temp14.then) return _temp14.then(function () {});
+                            }
+                          }();
+                          return _temp2 && _temp2.then ? _temp2.then(_temp3) : _temp3(_temp2);
                         }
                       }();
-                      return _temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5);
-                    }
-                  }();
-                  return _temp9 && _temp9.then ? _temp9.then(_temp0) : _temp0(_temp9);
-                }
-                var collected = writable ? null : [];
-                var totalBytes = 0;
-                var MAX_BLOB = 600 * 1024 * 1024; // 600 MB safety cap for blob path
-                // parallel fetches per tick
-                var failed = 0;
-                var BATCH = 4;
-                var i = 0;
-                var _temp1 = _for(function () {
-                  return !_interrupt && i < segs.length;
-                }, function () {
-                  return !!(i += BATCH);
-                }, function () {
-                  if (signal.aborted) {
-                    _interrupt = true;
-                    return;
-                  }
-                  var batch = segs.slice(i, i + BATCH);
-                  return Promise.resolve(Promise.all(batch.map(function (u) {
-                    return fetch(u, {
-                      signal: signal
-                    }).then(function (r) {
-                      return r.ok ? r.arrayBuffer() : Promise.reject(r.status);
-                    }).then(function (ab) {
-                      return new Uint8Array(ab);
-                    }).catch(function () {
-                      return null;
+                      return _temp6 && _temp6.then ? _temp6.then(_temp7) : _temp7(_temp6);
                     });
-                  }))).then(function (results) {
-                    var _interrupt2 = false;
-                    function _temp3() {
-                      setProgress(Math.min(i + BATCH, segs.length), segs.length);
+                  }
+                  // Mux.js transmuxer: TS → fMP4. Rules:
+                  //   • push() feeds raw TS bytes; data events may fire during push
+                  //   • flush() is called ONCE after ALL segments — signals end-of-stream
+                  //   • NEVER call flush() inside the download loop (it resets the stream)
+                  // FSA writes must be chained (Promise queue) to preserve MP4 byte order.
+                  var tx = new muxjs.mp4.Transmuxer();
+                  var mp4Chunks = []; // blob-fallback accumulator
+                  var mp4WriteQueue = Promise.resolve(); // FSA ordered-write chain
+                  var initDone = false;
+                  tx.on('data', function (segment) {
+                    var pieces = [];
+                    if (!initDone && segment.initSegment && segment.initSegment.byteLength > 0) {
+                      pieces.push(new Uint8Array(segment.initSegment));
+                      initDone = true;
                     }
-                    var _temp2 = _forTo(results, function (j) {
-                      var chunk = results[j];
-                      if (!chunk) {
-                        failed++;
+                    if (segment.data && segment.data.byteLength > 0) {
+                      pieces.push(new Uint8Array(segment.data));
+                    }
+                    if (!pieces.length) return;
+                    if (writable) {
+                      // Chain each write so they land in order even though the event is sync
+                      pieces.forEach(function (p) {
+                        mp4WriteQueue = mp4WriteQueue.then(function () {
+                          return writable.write(p);
+                        });
+                      });
+                    } else {
+                      pieces.forEach(function (p) {
+                        mp4Chunks.push(p);
+                      });
+                    }
+                  });
+                  var failed = 0;
+                  var BATCH = 4;
+                  var i = 0;
+                  var _temp8 = _for(function () {
+                    return !_interrupt && i < segs.length;
+                  }, function () {
+                    return !!(i += BATCH);
+                  }, function () {
+                    if (signal.aborted) {
+                      _interrupt = true;
+                      return;
+                    }
+                    var batch = segs.slice(i, i + BATCH);
+                    return Promise.resolve(Promise.all(batch.map(function (u) {
+                      return fetch(u, {
+                        signal: signal
+                      }).then(function (r) {
+                        return r.ok ? r.arrayBuffer() : Promise.reject(r.status);
+                      }).then(function (ab) {
+                        return new Uint8Array(ab);
+                      }).catch(function () {
+                        return null;
+                      });
+                    }))).then(function (results) {
+                      for (var j = 0; j < results.length; j++) {
+                        if (!results[j]) {
+                          failed++;
+                          continue;
+                        }
+                        tx.push(results[j]); // data events fire here for complete PES packets
+                      }
+                      // ↑ No flush() here — flushing inside the loop resets the transmuxer stream
+
+                      setProgress(Math.min(i + BATCH, segs.length), segs.length);
+                    });
+                  });
+                  return _temp8 && _temp8.then ? _temp8.then(_temp9) : _temp9(_temp8);
+                }
+                if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments…');
+
+                // Try File System Access API for streaming write (Chrome/Edge/Android Chrome)
+                var writable = null;
+                var _temp0 = function () {
+                  if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+                    return _catch(function () {
+                      return Promise.resolve(window.showSaveFilePicker({
+                        suggestedName: safeName + '.mp4',
+                        types: [{
+                          description: 'MP4 Video',
+                          accept: {
+                            'video/mp4': ['.mp4']
+                          }
+                        }]
+                      })).then(function (fh) {
+                        return Promise.resolve(fh.createWritable()).then(function (_fh$createWritable) {
+                          writable = _fh$createWritable;
+                        });
+                      });
+                    }, function (e) {
+                      if (e.name === 'AbortError') {
+                        _resetDownloadUI();
+                        _exit2 = true;
                         return;
                       }
-                      var _temp = function () {
-                        if (writable) {
-                          return Promise.resolve(writable.write(chunk)).then(function () {});
-                        } else {
-                          if (totalBytes + chunk.byteLength > MAX_BLOB) {
-                            _interrupt2 = true;
-                            return;
-                          } // cap reached
-                          collected.push(chunk);
-                          totalBytes += chunk.byteLength;
-                        }
-                      }();
-                      if (_temp && _temp.then) return _temp.then(function () {});
-                    }, function () {
-                      return _interrupt2;
+                      writable = null;
                     });
-                    return _temp2 && _temp2.then ? _temp2.then(_temp3) : _temp3(_temp2);
-                  });
-                });
-                return _temp1 && _temp1.then ? _temp1.then(_temp10) : _temp10(_temp1);
+                  }
+                }();
+                return _temp0 && _temp0.then ? _temp0.then(_temp1) : _temp1(_temp0);
               }
               if (parsed.isLive) {
                 _resetDownloadUI();
@@ -708,45 +734,28 @@ var PlayerPage = function () {
               }
               var segs = parsed.segments;
               if (!segs.length) throw new Error('No segments found in playlist');
-              if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments — save .ts and open in VLC');
 
-              // Try File System Access API for streaming write (avoids memory limits on large files)
-              var writable = null;
-              var _temp11 = function () {
-                if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
-                  return _catch(function () {
-                    return Promise.resolve(window.showSaveFilePicker({
-                      suggestedName: safeName + '.ts',
-                      types: [{
-                        description: 'Video (MPEG-TS)',
-                        accept: {
-                          'video/mp2t': ['.ts']
-                        }
-                      }]
-                    })).then(function (fh) {
-                      return Promise.resolve(fh.createWritable()).then(function (_fh$createWritable) {
-                        writable = _fh$createWritable;
-                      });
-                    });
-                  }, function (e) {
-                    if (e.name === 'AbortError') {
-                      _resetDownloadUI();
-                      _exit2 = true;
-                      return;
-                    } // user cancelled picker
-                    writable = null; // FSA not available — fall back to in-memory blob
-                  });
+              // Load mux.js for TS→MP4 remux (fast container swap, no re-encoding)
+              var _temp10 = function () {
+                if (typeof muxjs === 'undefined') {
+                  if (lbl) lbl.textContent = 'Init…';
+                  return Promise.resolve(new Promise(function (resolve, reject) {
+                    var s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/mux.js@6/dist/mux.min.js';
+                    s.onload = resolve;
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+                  })).then(function () {});
                 }
               }();
-              return _temp11 && _temp11.then ? _temp11.then(_temp12) : _temp12(_temp11);
+              return _temp10 && _temp10.then ? _temp10.then(_temp11) : _temp11(_temp10);
             }
             var parsed = parseM3U8(m3u8Text, origUrl);
 
             // If it's a master playlist, follow to the best quality variant
-            var _temp13 = function () {
+            var _temp12 = function () {
               if (parsed.isMaster) {
                 if (!parsed.bestProxyUrl) throw new Error('No quality variant found in master playlist');
-                if (txt) txt.textContent = 'Fetching quality stream…';
                 return Promise.resolve(fetch(parsed.bestProxyUrl, {
                   signal: signal
                 })).then(function (_fetch) {
@@ -759,7 +768,7 @@ var PlayerPage = function () {
                 });
               }
             }();
-            return _temp13 && _temp13.then ? _temp13.then(_temp14) : _temp14(_temp13);
+            return _temp12 && _temp12.then ? _temp12.then(_temp13) : _temp13(_temp12);
           });
         });
       }, function (e) {
@@ -912,6 +921,29 @@ var PlayerPage = function () {
     var h = Math.floor(m / 60);
     m = m % 60;
     return h > 0 ? h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s : m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // Updates the buffer fill bar — shows how far ahead the stream is buffered vs playback.
+  // Color codes: green = well ahead, yellow = within 10%, red = within 3% (about to stall).
+  function _updateBufferFill(video, playPct) {
+    var buf = document.getElementById('buffer-fill');
+    if (!buf || !video) return;
+    if (!video.buffered || !video.buffered.length || !video.duration) {
+      buf.style.width = '0%';
+      return;
+    }
+    var buffEnd = 0;
+    try {
+      buffEnd = video.buffered.end(video.buffered.length - 1);
+    } catch (e) {
+      return;
+    }
+    var bufPct = Math.min(100, buffEnd / video.duration * 100);
+    buf.style.width = bufPct + '%';
+    var gap = bufPct - parseFloat(playPct || 0);
+    buf.classList.remove('buf-close', 'buf-critical');
+    if (gap < 3) buf.classList.add('buf-critical'); // red  — nearly stalling
+    else if (gap < 10) buf.classList.add('buf-close'); // yellow — getting close
   }
   function updateProgress() {
     if (typeof webapis === 'undefined' || !webapis.avplay) return;
@@ -1409,6 +1441,7 @@ var PlayerPage = function () {
           var time = document.getElementById('player-time');
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+          _updateBufferFill(video, pct);
         }, 3000);
       });
     });
@@ -1417,20 +1450,20 @@ var PlayerPage = function () {
   // ── Download handler ────────────────────────────────────────────────────
   function _resetDownloadUI() {
     var btn = document.getElementById('player-dl-btn');
-    var row = document.getElementById('player-dl-row');
-    var fill = document.getElementById('player-dl-fill');
-    var txt = document.getElementById('player-dl-text');
+    var fill = document.getElementById('player-dl-fill'); // now the .dl-fill span inside button
+    var lbl = btn && btn.querySelector('.dl-label');
+    var ico = btn && btn.querySelector('.dl-icon');
     if (btn) {
       btn.classList.remove('dl-active', 'dl-done');
     }
-    if (row) {
-      row.classList.remove('dl-active');
+    if (lbl) {
+      lbl.textContent = 'Save';
+    }
+    if (ico) {
+      ico.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>';
     }
     if (fill) {
       fill.style.width = '0%';
-    }
-    if (txt) {
-      txt.textContent = '0%';
     }
   }
   function _handleDownload() {
@@ -1441,9 +1474,7 @@ var PlayerPage = function () {
     var btn = document.getElementById('player-dl-btn');
     if (btn && btn.classList.contains('dl-active')) return; // already in progress
 
-    var row = document.getElementById('player-dl-row');
-    var fill = document.getElementById('player-dl-fill');
-    var txt = document.getElementById('player-dl-text');
+    var fill = document.getElementById('player-dl-fill'); // .dl-fill span inside button
 
     // Determine stream type: CDN headers or HLS URL → segment download; otherwise direct XHR
     var hasStreamHeaders = _qualityHeaders && Object.keys(_qualityHeaders).length > 0;
@@ -1453,15 +1484,14 @@ var PlayerPage = function () {
     } else {
       // Direct MP4 (e.g. YTS torrent web seed) — simple XHR blob download
       if (typeof App !== 'undefined') App.showToast('Starting download…');
-      _startFileDownload(btn, row, fill, txt);
+      _startFileDownload(btn, fill);
     }
   }
-  function _startFileDownload(btn, row, fill, txt) {
-    // Show progress UI
+  function _startFileDownload(btn, fill) {
+    var lbl = btn && btn.querySelector('.dl-label');
     if (btn) btn.classList.add('dl-active');
-    if (row) row.classList.add('dl-active');
+    if (lbl) lbl.textContent = '0%';
     if (fill) fill.style.width = '0%';
-    if (txt) txt.textContent = '0%';
     var filename = (_titleCache ? _titleCache.replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 80) : 'video') + '.mp4';
     var xhr = new XMLHttpRequest();
     _dlXhr = xhr;
@@ -1471,9 +1501,10 @@ var PlayerPage = function () {
       if (e.lengthComputable) {
         var pct = Math.round(e.loaded / e.total * 100);
         if (fill) fill.style.width = pct + '%';
-        if (txt) txt.textContent = pct + '%';
+        if (lbl) lbl.textContent = pct + '%';
       } else {
-        if (txt) txt.textContent = Math.round(e.loaded / 1e6) + 'MB';
+        var mb = Math.round(e.loaded / 1e6);
+        if (lbl) lbl.textContent = mb + 'MB';
       }
     };
     xhr.onload = function () {
@@ -1493,16 +1524,17 @@ var PlayerPage = function () {
           btn.classList.remove('dl-active');
           btn.classList.add('dl-done');
         }
-        if (fill) {
-          fill.style.width = '100%';
-        }
-        if (txt) {
-          txt.textContent = '✓';
-        }
+        var doneIco = btn && btn.querySelector('.dl-icon');
+        if (doneIco) doneIco.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+        if (lbl) lbl.textContent = 'Saved';
+        if (fill) fill.style.width = '100%';
         if (typeof App !== 'undefined') App.showToast('Download complete!');
         setTimeout(function () {
           if (btn) btn.classList.remove('dl-done');
-          if (row) row.classList.remove('dl-active');
+          var rIco = btn && btn.querySelector('.dl-icon');
+          var rLbl = btn && btn.querySelector('.dl-label');
+          if (rIco) rIco.innerHTML = '<path d="M12 5v14M5 12l7 7 7-7"/>';
+          if (rLbl) rLbl.textContent = 'Save';
         }, 4000);
       } else {
         _resetDownloadUI();
@@ -1792,6 +1824,7 @@ var PlayerPage = function () {
           var time = document.getElementById('player-time');
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+          _updateBufferFill(video, pct);
         }, 3000);
       });
       hls.on(Hls.Events.ERROR, function (ev, data) {
@@ -2023,6 +2056,19 @@ var PlayerPage = function () {
         _availableQualities = result.qualities || [];
         _qualityHeaders = result.headers || null;
         console.log('[Player] stream resolved:', result.url.slice(0, 60));
+
+        // autoDownload: skip playback and go straight to download
+        if (_params.autoDownload) {
+          _currentStreamUrl = result.url;
+          setPlayerStatus('Ready to download');
+          var dlBtn2 = document.getElementById('player-dl-btn');
+          if (dlBtn2) dlBtn2.style.display = '';
+          setTimeout(function () {
+            var dlBtn3 = document.getElementById('player-dl-btn');
+            if (dlBtn3) dlBtn3.click();
+          }, 400);
+          return;
+        }
         setPlayerStatus('Starting playback...');
         var _savedPrefLabel = '';
         if (_streamErrorRetries === 0) {

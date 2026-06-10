@@ -30,6 +30,7 @@
             </svg>
           </div>
           <div class="card-mobile-actions">
+            <button class="card-action-btn" data-action="info" title="More Info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></button>
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?'♥':'♡'}</button>
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(movie.id,'movie')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           </div>
@@ -252,6 +253,10 @@
         </div>
         <!-- Web/mobile: icon + label hints (same style as TV colour hints, but tappable) -->
         <div class="home-icon-hints" id="home-icon-hints">
+          <span class="home-hint-item home-icon-hint" id="hib-info" style="cursor:default;">
+            <svg class="home-icon-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="home-hint-label">More Info</span>
+          </span>
           <span class="home-hint-item home-icon-hint" id="hib-fav">
             <span class="hib-fav-icon home-icon-glyph">♡</span>
             <span class="home-hint-label">Add to Favourite</span>

@@ -76,6 +76,8 @@ body.theme-night .hero-gradient { background: linear-gradient(to right,#0a0a0f 0
 body.theme-night .hero-title { color: #e8e8f0 !important; }
 body.theme-night .pill { background: #0d0d18 !important; border-color: rgba(167,139,250,0.12) !important; }
 body.theme-night .logo-mark { box-shadow: 0 0 28px rgba(124,58,237,0.60) !important; }
+/* Calm logo uses blue gradient — give it a matching blue glow */
+body.theme-calm .logo-mark  { box-shadow: 0 0 22px rgba(88,166,255,0.55) !important; }
 body.theme-night .card.nav-focused { box-shadow: 0 0 0 2px #7c3aed, 0 0 0 4px rgba(124,58,237,0.20), 0 8px 40px rgba(0,0,0,0.85), 0 0 20px rgba(124,58,237,0.55) !important; }
 
 /* ── Bright Theme — direct colors (no CSS vars, works on old Chromium) ── */
@@ -109,7 +111,8 @@ body.theme-bright .hero-meta .rating { color: #7c3aed !important; }
 
 /* Buttons */
 body.theme-bright .btn-secondary { background: rgba(10,10,32,0.08) !important; color: #0a0a20 !important; border-color: rgba(10,10,32,0.22) !important; }
-body.theme-bright .btn-secondary.nav-focused { background: rgba(10,10,32,0.15) !important; box-shadow: 0 0 0 2px rgba(10,10,32,0.50) !important; }
+body.theme-bright .btn-secondary:hover,
+body.theme-bright .btn-secondary.nav-focused { background: rgba(10,10,32,0.16) !important; color: #0a0a20 !important; border-color: rgba(10,10,32,0.45) !important; box-shadow: 0 0 0 2px rgba(10,10,32,0.45) !important; }
 
 /* Filter pills */
 body.theme-bright .pill { background: rgba(10,10,32,0.07) !important; color: rgba(10,10,32,0.65) !important; border-color: rgba(10,10,32,0.15) !important; }
@@ -145,6 +148,9 @@ body.theme-bright .search-pill-btn.nav-focused { background: rgba(109,40,217,0.0
 body.theme-bright .search-active-input { background: #fff !important; color: #0a0a20 !important; border-color: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(109,40,217,0.12) !important; }
 body.theme-bright .search-active-input::-webkit-input-placeholder { color: rgba(10,10,32,0.35) !important; }
 body.theme-bright .search-active-input::placeholder { color: rgba(10,10,32,0.35) !important; }
+/* Calm — search placeholder readable on dark blue input background */
+body.theme-calm .search-active-input::-webkit-input-placeholder { color: rgba(201,209,217,0.50) !important; }
+body.theme-calm .search-active-input::placeholder { color: rgba(201,209,217,0.50) !important; }
 body.theme-bright .search-close-btn { background: rgba(10,10,32,0.06) !important; border-color: rgba(10,10,32,0.22) !important; color: rgba(10,10,32,0.50) !important; }
 body.theme-bright .search-close-btn:hover { background: rgba(220,38,38,0.10) !important; border-color: rgba(220,38,38,0.35) !important; color: #dc2626 !important; }
 
@@ -218,6 +224,7 @@ body.theme-calm .iptv-idle-text { color: rgba(201,209,217,0.40) !important; }
 body.theme-calm .iptv-bar-name { color: #c9d1d9 !important; }
 body.theme-calm .iptv-bar-meta { color: rgba(201,209,217,0.50) !important; }
 body.theme-calm .channel-name { color: #c9d1d9 !important; }
+body.theme-calm .channel-category { color: rgba(201,209,217,0.45) !important; }
 body.theme-calm .iptv-placeholder { color: rgba(255,255,255,0.65) !important; }
 body.theme-calm .channel-item { background: #1c2230 !important; border-color: rgba(88,166,255,0.08) !important; }
 body.theme-calm .channel-item:hover,
@@ -268,6 +275,29 @@ body.theme-calm .player-modal .tdd-wrapper.open .tdd-trigger {
 }
 
 /* ── Theme-aware primary buttons (Play Now / Play / Detail CTA) ─── */
+/* ── Bright theme primary button — deep purple on light background ── */
+body.theme-bright .btn-primary {
+  background:         linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(109,40,217,0.40) !important;
+}
+body.theme-bright .btn-primary:hover,
+body.theme-bright .btn-primary.nav-focused {
+  background:         linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 2px #0a0a20, 0 0 0 4px #6d28d9, 0 0 20px rgba(109,40,217,0.45) !important;
+}
+
+/* ── Calm theme secondary button — blue-glass tint ── */
+body.theme-calm .btn-secondary { background: rgba(88,166,255,0.08) !important; color: #c9d1d9 !important; border-color: rgba(88,166,255,0.22) !important; }
+body.theme-calm .btn-secondary:hover,
+body.theme-calm .btn-secondary.nav-focused { background: rgba(88,166,255,0.16) !important; border-color: #58a6ff !important; color: #e6edf3 !important; box-shadow: 0 0 0 2px rgba(88,166,255,0.35) !important; }
+
+/* ── Night theme secondary button ── */
+body.theme-night .btn-secondary { background: rgba(167,139,250,0.08) !important; color: #c4b5fd !important; border-color: rgba(167,139,250,0.25) !important; }
+body.theme-night .btn-secondary:hover,
+body.theme-night .btn-secondary.nav-focused { background: rgba(167,139,250,0.18) !important; border-color: #a78bfa !important; color: #e8e8f0 !important; box-shadow: 0 0 0 2px rgba(167,139,250,0.45) !important; }
+
 body.theme-calm .btn-primary {
   background:         linear-gradient(135deg, #58a6ff 0%, #1d6ed8 100%) !important;
   box-shadow:         0 4px 14px rgba(88,166,255,0.42) !important;
@@ -318,9 +348,15 @@ body.is-web .card-action-btn {
   line-height: 1;
   box-shadow:         0 2px 6px rgba(0,0,0,0.50);
 }
-body.is-web .card-action-btn.fav-active { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
-body.is-web .card-action-btn.wl-active  { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
+body.is-web .card-action-btn.fav-active  { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
+body.is-web .card-action-btn.wl-active   { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
+body.is-web .card-action-btn[data-action="info"]:hover { color: #a78bfa; border-color: rgba(167,139,250,0.80); background: rgba(0,0,0,0.88); }
 body.is-web .card-mobile-actions { gap: 6px; position: absolute; bottom: 36px; right: 5px; z-index: 6; flex-direction: column; }
+
+/* Calm — info button accent */
+body.theme-calm body.is-web .card-action-btn[data-action="info"]:hover { color: #58a6ff; border-color: rgba(88,166,255,0.80); }
+/* Night — info button accent */
+body.theme-night body.is-web .card-action-btn[data-action="info"]:hover { color: #c4b5fd; border-color: rgba(196,181,253,0.80); }
 /* Hidden by default — only shown on web (body.is-web) and mobile (@media).
    Tizen TV never sets is-web so the button stays hidden there; RED key is used instead. */
 .ch-fav-btn { display: none; }
@@ -363,6 +399,7 @@ body.is-web .card-badges { display: none !important; }
   }
   .card-action-btn.fav-active  { color: #f87171; border-color: rgba(248,113,113,0.80); background: rgba(0,0,0,0.88); }
   .card-action-btn.wl-active   { color: #4ade80; border-color: rgba(74,222,128,0.80); background: rgba(0,0,0,0.88); }
+  .card-action-btn[data-action="info"]:active { color: #a78bfa; border-color: rgba(167,139,250,0.80); background: rgba(0,0,0,0.88); }
 
   /* Channel card fav button */
   .ch-fav-btn {
@@ -401,6 +438,7 @@ body.theme-night .player-cbar-fill,
 body.theme-night #progress-fill {
   background:         linear-gradient(to right, #7c3aed, #c4b5fd) !important;
 }
+body.theme-night .player-cbar-buffer-fill { background: rgba(167,139,250,0.32) !important; }
 body.theme-night .pcb-btn.pcb-play {
   background:         linear-gradient(135deg, #9333ea 0%, #581c87 100%) !important;
   box-shadow:         0 4px 22px rgba(124,58,237,0.70) !important;
@@ -421,6 +459,7 @@ body.theme-calm #progress-fill {
   background:         linear-gradient(to right, #58a6ff, #79c0ff) !important;
 }
 body.theme-calm .player-cbar-track     { background: rgba(88,166,255,0.20) !important; }
+body.theme-calm .player-cbar-buffer-fill { background: rgba(88,166,255,0.35) !important; }
 body.theme-calm .player-cbar-track.nav-focused {
   background: rgba(88,166,255,0.32) !important;
   outline: 2px solid rgba(121,192,255,0.80) !important;
@@ -482,6 +521,140 @@ body.theme-calm .similar-item.nav-focused { box-shadow: inset 0 0 0 2px #58a6ff 
 .similar-panel .ep-title      { white-space: normal !important; line-height: 1.35 !important; font-size: 15px !important; }
 .similar-panel .ep-meta,
 .episode-panel .ep-meta       { color: rgba(240,240,248,0.58) !important; font-size: 13px !important; }
+
+/* ── Detail page text — default dark; overridden per theme below ── */
+.detail-genres-text { color: #a78bfa; }
+.detail-title-text  { color: #f0f0f8; }
+.detail-meta-text   { color: rgba(240,240,248,0.65); }
+.detail-overview-text { color: rgba(240,240,248,0.80); }
+/* Cast section text (dark hardcoded in JS — override here) */
+.detail-cast-header { color: rgba(240,240,248,0.55) !important; }
+.detail-cast-name   { color: rgba(240,240,248,0.75) !important; }
+
+/* Bright theme — detail page text on light bg */
+body.theme-bright .detail-genres-text  { color: #6d28d9 !important; }
+body.theme-bright .detail-title-text   { color: #0a0a20 !important; }
+body.theme-bright .detail-meta-text    { color: rgba(10,10,32,0.65) !important; }
+body.theme-bright .detail-overview-text { color: rgba(10,10,32,0.80) !important; }
+body.theme-bright .detail-cast-header  { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .detail-cast-name    { color: rgba(10,10,32,0.75) !important; }
+
+/* Calm theme */
+body.theme-calm .detail-genres-text   { color: #79c0ff !important; }
+body.theme-calm .detail-title-text    { color: #c9d1d9 !important; }
+body.theme-calm .detail-meta-text     { color: rgba(201,209,217,0.65) !important; }
+body.theme-calm .detail-overview-text { color: rgba(201,209,217,0.80) !important; }
+
+/* Night theme */
+body.theme-night .detail-genres-text  { color: #c4b5fd !important; }
+body.theme-night .detail-title-text   { color: #e8e8f0 !important; }
+body.theme-night .detail-meta-text    { color: rgba(232,232,240,0.65) !important; }
+body.theme-night .detail-overview-text { color: rgba(232,232,240,0.80) !important; }
+
+/* ── Detail page button row ────────────────────────────────────────────────
+   Fixes: inconsistent heights, wrapping orphans, misaligned baselines.
+   Gap 8px keeps all 4 buttons on one row at 700px container width (≈688px total).
+   align-items:stretch forces equal height within each flex line.
+   .detail-btn gives all buttons identical padding + font so they compute same height. */
+.detail-btns { display: flex;
+  gap: 8px; flex-wrap: wrap; align-items: flex-start;
+  margin-bottom: 48px;
+}
+/* Force block-flex so parent gap/alignment works and height locks uniformly.
+   inline-flex (base .btn) resists parent stretch — display:flex fixes it. */
+.detail-btn {
+  display: flex !important;
+  height: 52px !important;
+  padding: 0 28px !important;
+  font-size: 18px !important;
+  align-items: center !important; flex-shrink: 0;
+}
+#detail-play.detail-btn { padding: 0 36px !important; }
+
+/* On detail page, replace scale() focus with a ring glow — keeps the fixed height intact */
+.detail-btn:hover, .detail-btn.nav-focused {
+  transform: none !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.80), 0 0 0 4px #7c3aed, 0 4px 20px rgba(0,0,0,0.35) !important;
+}
+/* Per-theme ring colours */
+body.theme-calm  .detail-btn:hover,
+body.theme-calm  .detail-btn.nav-focused { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #58a6ff, 0 4px 18px rgba(88,166,255,0.40) !important; }
+body.theme-night .detail-btn:hover,
+body.theme-night .detail-btn.nav-focused { box-shadow: 0 0 0 2px #e8e8f0, 0 0 0 4px #a78bfa, 0 4px 20px rgba(167,139,250,0.45) !important; }
+body.theme-bright .detail-btn:hover,
+body.theme-bright .detail-btn.nav-focused { box-shadow: 0 0 0 2px #0a0a20, 0 0 0 4px #6d28d9, 0 4px 16px rgba(109,40,217,0.35) !important; }
+
+/* Mobile: tighter */
+@media (max-width: 1023px) {
+  .detail-btn { height: 44px !important; padding: 0 16px !important; font-size: 14px !important; }
+  #detail-play.detail-btn { padding: 0 22px !important; }
+  .detail-btns { gap: 8px; }
+}
+
+/* ── Detail page backdrop — gradient handled in CSS so themes match ────────
+   The backdrop div no longer has a hardcoded #111 background or inline gradient.
+   #detail-page background colour matches each theme's gradient endpoint. ── */
+.detail-grad-overlay {
+  background:         linear-gradient(to bottom, transparent 25%, #09090f 100%);
+}
+body.theme-calm   .detail-grad-overlay { background: linear-gradient(to bottom, transparent 25%, #0d1117 100%) !important; }
+body.theme-night  .detail-grad-overlay { background: linear-gradient(to bottom, transparent 25%, #0a0a0f 100%) !important; }
+body.theme-bright .detail-grad-overlay { background: linear-gradient(to bottom, transparent 30%, #f0f0fa 100%) !important; }
+/* detail-page background = gradient endpoint — removes the visible seam at 540px */
+#detail-page { background: #09090f; }
+body.theme-calm   #detail-page { background: #0d1117 !important; }
+body.theme-night  #detail-page { background: #0a0a0f !important; }
+body.theme-bright #detail-page { background: #f0f0fa !important; }
+/* Backdrop fills the whole page — no height restriction, no z-index seam */
+#detail-backdrop { background: transparent !important; }
+
+/* ── Detail page inline download progress bar ──────────────────────────── */
+.detail-dl-progress {
+  display: none;
+  margin-top: 12px;
+  width: 100%;
+  max-width: 460px;
+}
+.detail-dl-progress.active { display: block; }
+.detail-dl-track {
+  width: 100%;
+  height: 36px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.detail-dl-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background:         linear-gradient(to right, rgba(74,222,128,0.32), rgba(34,211,238,0.32)); transition: width 0.4s ease;
+  pointer-events: none;
+}
+.detail-dl-status {
+  position: relative; z-index: 1;
+  font-size: 13px; font-weight: 800;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+/* Calm */
+body.theme-calm .detail-dl-track  { background: rgba(88,166,255,0.10); }
+body.theme-calm .detail-dl-fill   { background: linear-gradient(to right, rgba(74,222,128,0.32), rgba(121,192,255,0.32)) !important; }
+body.theme-calm .detail-dl-status { color: rgba(201,209,217,0.88); }
+/* Night */
+body.theme-night .detail-dl-track  { background: rgba(167,139,250,0.10); }
+body.theme-night .detail-dl-fill   { background: linear-gradient(to right, rgba(52,211,153,0.32), rgba(56,189,248,0.32)) !important; }
+body.theme-night .detail-dl-status { color: rgba(232,232,240,0.88); }
+/* Bright */
+body.theme-bright .detail-dl-track  { background: rgba(10,10,32,0.08); }
+body.theme-bright .detail-dl-fill   { background: linear-gradient(to right, rgba(5,150,105,0.30), rgba(14,165,233,0.30)) !important; }
+body.theme-bright .detail-dl-status { color: rgba(10,10,32,0.78); }
+
+/* ── Detail page download button — hidden on TV, shown on web/mobile only ── */
+.detail-dl-btn { display: none !important; }
+body.is-web    .detail-dl-btn { display: inline-flex !important; }
+body.is-mobile .detail-dl-btn { display: inline-flex !important; }
 
 /* ── Detail page — bright theme text colours ── */
 /* Gradient fades to page bg on bright theme; text below the dark backdrop must be dark */
@@ -559,8 +732,21 @@ body.movie-avplay-on #avplay-area {
   height: 4px;
   background: rgba(255,255,255,0.22);
   border-radius: 2px; overflow: hidden;
+  position: relative;
 }
+/* Buffer-ahead indicator — shows how far the stream is loaded ahead of playback.
+   Sits behind the playback fill. Green = well ahead, yellow = within 10%, red = nearly stalling. */
+.player-cbar-buffer-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: rgba(255,255,255,0.28); transition: width 1.5s ease;
+  pointer-events: none;
+}
+.player-cbar-buffer-fill.buf-close    { background: rgba(250,204,21,0.55); }  /* yellow  — <10% gap */
+.player-cbar-buffer-fill.buf-critical { background: rgba(248,113,113,0.65); } /* red     — <3%  gap */
 .player-cbar-fill {
+  position: relative; z-index: 1;   /* sits on top of the buffer fill */
   height: 100%; width: 0%;
   background: #7c3aed; border-radius: 2px; transition: width 1s linear;
 }
@@ -578,92 +764,92 @@ body.movie-avplay-on #avplay-area {
 .player-cbar-quality { flex-shrink: 0;
 }
 
-/* ── Download button (web/mobile only) ──────────────────────────────────── */
-.player-dl-btn {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.08);
-  border: 1.5px solid rgba(255,255,255,0.20);
-  color: rgba(255,255,255,0.75);
-  cursor: pointer;
-  outline: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  margin-right: 12px;
-  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
-}
-.player-dl-btn:hover {
-  background: rgba(124,58,237,0.20);
-  border-color: #a78bfa;
-  color: #fff;
-}
-.player-dl-btn.dl-active {
-  color: #4ade80;
-  border-color: rgba(74,222,128,0.55);
-  background: rgba(74,222,128,0.10);
-}
-.player-dl-btn.dl-done {
-  color: #4ade80;
-  border-color: rgba(74,222,128,0.70);
-  background: rgba(74,222,128,0.15);
-}
-/* Hidden on TV */
+/* ── Download button — lives in the seek-bar row, right of the timestamp ── */
+/* Hidden on TV; web/mobile only */
 body:not(.is-web):not(.is-mobile) .player-dl-btn { display: none !important; }
 
-/* ── Download progress row (below the seek bar) ─────────────────────────── */
-.player-dl-row {
-  display: none; align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  padding: 0 2px;
-}
-.player-dl-row.dl-active { display: flex; }
-body:not(.is-web):not(.is-mobile) .player-dl-row { display: none !important; }
-
-.player-dl-track { flex: 1;
-  min-width: 0;
-  height: 3px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 2px;
+.player-dl-btn {
+  position: relative;
   overflow: hidden;
-}
-.player-dl-fill {
-  height: 100%; width: 0%;
-  background:         linear-gradient(to right, #4ade80, #22d3ee);
-  border-radius: 2px;
-  transition: width 0.4s ease;
-}
-.player-dl-text {
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.72);
+  cursor: pointer;
+  outline: none; display: flex; align-items: center;
+  gap: 5px; flex-shrink: 0;
+  margin-left: 12px;
+  transition: border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
   white-space: nowrap;
-  min-width: 38px;
-  text-align: right;
 }
+/* Internal progress fill — grows left-to-right during download */
+.dl-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0%;
+  background: rgba(74,222,128,0.22);
+  border-radius: inherit;
+  pointer-events: none; transition: width 0.4s ease;
+  z-index: 0;
+}
+.dl-icon, .dl-label { position: relative; z-index: 1; }
+.dl-icon { flex-shrink: 0; }
+.dl-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.player-dl-btn:hover,
+.player-dl-btn.nav-focused {
+  background: rgba(255,255,255,0.13);
+  border-color: rgba(255,255,255,0.38);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.28);
+}
+.player-dl-btn.dl-active {
+  border-color: rgba(74,222,128,0.60);
+  color: #4ade80;
+}
+.player-dl-btn.dl-done {
+  border-color: rgba(74,222,128,0.70);
+  color: #4ade80;
+  background: rgba(74,222,128,0.10);
+}
+/* dl-row retained as empty shell (no-op) so existing JS references don't break */
+.player-dl-row { display: none !important; }
+.player-dl-track, .player-dl-fill-old, .player-dl-text { display: none !important; }
 
 /* ── Download theme overrides ────────────────────────────────────────────── */
 /* The player modal is ALWAYS dark (video backdrop) — only the fill/accent colour changes per theme.
    Bright theme keeps white-on-dark controls identical to other player buttons. */
 
-/* Bright — reinforce white borders (player bg is dark regardless of page theme) */
-body.theme-bright .player-dl-btn { background: rgba(0,0,0,0.55); border-color: rgba(255,255,255,0.32); color: rgba(255,255,255,0.80); }
-body.theme-bright .player-dl-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.60); color: #fff; }
+/* Bright — white-on-dark (player modal is always dark) */
+body.theme-bright .player-dl-btn { background: rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.78); }
+body.theme-bright .player-dl-btn:hover,
+body.theme-bright .player-dl-btn.nav-focused { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.55); color: #fff; }
 body.theme-bright .player-dl-btn.dl-active,
-body.theme-bright .player-dl-btn.dl-done  { color: #4ade80; border-color: rgba(74,222,128,0.65); background: rgba(74,222,128,0.12); }
-body.theme-bright .player-dl-fill { background: linear-gradient(to right, #4ade80, #22d3ee) !important; }
+body.theme-bright .player-dl-btn.dl-done { color: #4ade80; border-color: rgba(74,222,128,0.65); }
+body.theme-bright .player-dl-btn .dl-fill { background: rgba(74,222,128,0.20); }
 
-/* Calm — blue accent on download progress */
-body.theme-calm .player-dl-btn { border-color: rgba(88,166,255,0.35); color: rgba(201,209,217,0.80); }
-body.theme-calm .player-dl-btn:hover { background: rgba(88,166,255,0.15); border-color: #58a6ff; color: #c9d1d9; }
+/* Calm — blue accent on hover, green fill */
+body.theme-calm .player-dl-btn { border-color: rgba(88,166,255,0.30); color: rgba(201,209,217,0.78); }
+body.theme-calm .player-dl-btn:hover,
+body.theme-calm .player-dl-btn.nav-focused { background: rgba(88,166,255,0.14); border-color: #58a6ff; color: #e6edf3; box-shadow: 0 2px 12px rgba(88,166,255,0.22); }
 body.theme-calm .player-dl-btn.dl-active,
-body.theme-calm .player-dl-btn.dl-done  { color: #4ade80; border-color: rgba(74,222,128,0.55); }
-body.theme-calm .player-dl-fill { background: linear-gradient(to right, #4ade80, #79c0ff) !important; }
-body.theme-calm .player-dl-text { color: rgba(201,209,217,0.55); }
+body.theme-calm .player-dl-btn.dl-done { color: #4ade80; border-color: rgba(74,222,128,0.55); }
+body.theme-calm .player-dl-btn .dl-fill { background: rgba(74,222,128,0.22); }
 
-/* Night — lavender accent on hover, teal download fill */
-body.theme-night .player-dl-btn { border-color: rgba(167,139,250,0.30); color: rgba(232,232,240,0.75); }
-body.theme-night .player-dl-btn:hover { background: rgba(167,139,250,0.18); border-color: #a78bfa; color: #e8e8f0; }
+/* Night — lavender accent on hover, teal fill */
+body.theme-night .player-dl-btn { border-color: rgba(167,139,250,0.26); color: rgba(232,232,240,0.72); }
+body.theme-night .player-dl-btn:hover,
+body.theme-night .player-dl-btn.nav-focused { background: rgba(167,139,250,0.16); border-color: #a78bfa; color: #e8e8f0; box-shadow: 0 2px 12px rgba(167,139,250,0.25); }
 body.theme-night .player-dl-btn.dl-active,
-body.theme-night .player-dl-btn.dl-done  { color: #34d399; border-color: rgba(52,211,153,0.60); }
-body.theme-night .player-dl-fill { background: linear-gradient(to right, #34d399, #38bdf8) !important; }
+body.theme-night .player-dl-btn.dl-done { color: #34d399; border-color: rgba(52,211,153,0.55); }
+body.theme-night .player-dl-btn .dl-fill { background: rgba(52,211,153,0.18); }
 /* Seekable progress track focus style */
 .player-cbar-track.nav-focused {
   background: rgba(124,58,237,0.35) !important;
@@ -696,7 +882,7 @@ body.theme-night .player-dl-fill { background: linear-gradient(to right, #34d399
   box-shadow:         0 0 0 2px #fff, 0 0 0 4px #7c3aed, 0 0 20px rgba(124,58,237,0.55);
 }
 /* Legacy id */
-#progress-fill { height:100%; background:#7c3aed; border-radius:2px; width:0%; transition:width 1s linear; }
+#progress-fill { position:relative; z-index:1; height:100%; background:#7c3aed; border-radius:2px; width:0%; transition:width 1s linear; }
 
 /* ── Player UI auto-hide ─────────────────────────────── */
 .player-header, .player-info-bar, .player-cbar,
@@ -1758,7 +1944,7 @@ body.theme-night .player-dl-fill { background: linear-gradient(to right, #34d399
 .iptv-bar-meta      { font-size: 13px; color: rgba(240, 240, 248, 0.45); margin-top: 2px; }
 
 /* ── Channel card — now-playing text ─────────────────── */
-.ch-name-wrap  { flex: 1; min-width: 0; }
+.ch-name-wrap  { flex: 1; min-width: 0; width: 100%; overflow: hidden; }
 .ch-now-prog   {
   font-size: 11px;
   color: rgba(240,240,248,0.50);
@@ -3114,7 +3300,9 @@ body.theme-night .iptv-sidebar-title { color: #e8e8f0 !important; }
 body.theme-night .iptv-idle-text { color: rgba(232,232,240,0.40) !important; }
 body.theme-night .iptv-bar-name { color: #e8e8f0 !important; }
 body.theme-night .iptv-bar-meta { color: rgba(232,232,240,0.45) !important; }
+body.theme-night .iptv-filter-label { color: rgba(232,232,240,0.45) !important; }
 body.theme-night .channel-name { color: #e8e8f0 !important; }
+body.theme-night .channel-category { color: rgba(232,232,240,0.40) !important; }
 /* Night — channel cards & logo */
 body.theme-night .channel-item { background: #0d0d18 !important; border-color: rgba(167,139,250,0.06) !important; }
 body.theme-night .channel-item:hover,
@@ -3392,6 +3580,12 @@ body.theme-bright .card.nav-focused {
   #detail-page > div[style] { padding: 200px 16px 40px !important; }
   #detail-title { font-size: 26px !important; }
   #detail-overview { font-size: 15px !important; }
+  .detail-dl-btn { display: inline-flex !important; }
+
+  /* Bright theme — mobile card action buttons: dark bg for contrast on light cards */
+  body.theme-bright .card-action-btn { background: rgba(10,10,32,0.80) !important; border-color: rgba(10,10,32,0.50) !important; color: rgba(255,255,255,0.90) !important; }
+  body.theme-bright .card-action-btn.fav-active { color: #f87171 !important; border-color: rgba(248,113,113,0.80) !important; }
+  body.theme-bright .card-action-btn.wl-active  { color: #4ade80 !important; border-color: rgba(74,222,128,0.80) !important; }
 
 }
 
