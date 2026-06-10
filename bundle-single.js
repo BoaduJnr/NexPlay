@@ -99,7 +99,7 @@ const html = `<!DOCTYPE html>
   <link rel="apple-touch-icon" href="/icon.png">
 
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self' 'unsafe-inline' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; frame-src https:; connect-src 'self' https:; img-src 'self' https: data: blob:; media-src 'self' https: blob:;">
+    content="default-src 'self' 'unsafe-inline' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; frame-src https:; connect-src 'self' https: wss:; img-src 'self' https: data: blob:; media-src 'self' https: blob:;">
   <style>
 ${css}
   </style>
@@ -147,6 +147,7 @@ ${css}
 ${polyfills}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
 <script>
 ${appJs}
 </script>

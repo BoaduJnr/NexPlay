@@ -639,6 +639,100 @@ body.movie-avplay-on #avplay-area {
 .player-cbar-quality {
   -webkit-flex-shrink: 0; flex-shrink: 0;
 }
+
+/* ── Download button (web/mobile only) ──────────────────────────────────── */
+.player-dl-btn {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.20);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  outline: none;
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: center; justify-content: center;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
+  margin-right: 12px;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+.player-dl-btn:hover {
+  background: rgba(124,58,237,0.20);
+  border-color: #a78bfa;
+  color: #fff;
+}
+.player-dl-btn.dl-active {
+  color: #4ade80;
+  border-color: rgba(74,222,128,0.55);
+  background: rgba(74,222,128,0.10);
+}
+.player-dl-btn.dl-done {
+  color: #4ade80;
+  border-color: rgba(74,222,128,0.70);
+  background: rgba(74,222,128,0.15);
+}
+/* Hidden on TV */
+body:not(.is-web):not(.is-mobile) .player-dl-btn { display: none !important; }
+
+/* ── Download progress row (below the seek bar) ─────────────────────────── */
+.player-dl-row {
+  display: none;
+  -webkit-align-items: center; align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 0 2px;
+}
+.player-dl-row.dl-active { display: -webkit-flex; display: flex; }
+body:not(.is-web):not(.is-mobile) .player-dl-row { display: none !important; }
+
+.player-dl-track {
+  -webkit-flex: 1; flex: 1;
+  min-width: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.player-dl-fill {
+  height: 100%; width: 0%;
+  background: -webkit-linear-gradient(to right, #4ade80, #22d3ee);
+  background:         linear-gradient(to right, #4ade80, #22d3ee);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.player-dl-text {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* ── Download theme overrides ────────────────────────────────────────────── */
+/* The player modal is ALWAYS dark (video backdrop) — only the fill/accent colour changes per theme.
+   Bright theme keeps white-on-dark controls identical to other player buttons. */
+
+/* Bright — reinforce white borders (player bg is dark regardless of page theme) */
+body.theme-bright .player-dl-btn { background: rgba(0,0,0,0.55); border-color: rgba(255,255,255,0.32); color: rgba(255,255,255,0.80); }
+body.theme-bright .player-dl-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.60); color: #fff; }
+body.theme-bright .player-dl-btn.dl-active,
+body.theme-bright .player-dl-btn.dl-done  { color: #4ade80; border-color: rgba(74,222,128,0.65); background: rgba(74,222,128,0.12); }
+body.theme-bright .player-dl-fill { background: -webkit-linear-gradient(to right, #4ade80, #22d3ee) !important; background: linear-gradient(to right, #4ade80, #22d3ee) !important; }
+
+/* Calm — blue accent on download progress */
+body.theme-calm .player-dl-btn { border-color: rgba(88,166,255,0.35); color: rgba(201,209,217,0.80); }
+body.theme-calm .player-dl-btn:hover { background: rgba(88,166,255,0.15); border-color: #58a6ff; color: #c9d1d9; }
+body.theme-calm .player-dl-btn.dl-active,
+body.theme-calm .player-dl-btn.dl-done  { color: #4ade80; border-color: rgba(74,222,128,0.55); }
+body.theme-calm .player-dl-fill { background: -webkit-linear-gradient(to right, #4ade80, #79c0ff) !important; background: linear-gradient(to right, #4ade80, #79c0ff) !important; }
+body.theme-calm .player-dl-text { color: rgba(201,209,217,0.55); }
+
+/* Night — lavender accent on hover, teal download fill */
+body.theme-night .player-dl-btn { border-color: rgba(167,139,250,0.30); color: rgba(232,232,240,0.75); }
+body.theme-night .player-dl-btn:hover { background: rgba(167,139,250,0.18); border-color: #a78bfa; color: #e8e8f0; }
+body.theme-night .player-dl-btn.dl-active,
+body.theme-night .player-dl-btn.dl-done  { color: #34d399; border-color: rgba(52,211,153,0.60); }
+body.theme-night .player-dl-fill { background: -webkit-linear-gradient(to right, #34d399, #38bdf8) !important; background: linear-gradient(to right, #34d399, #38bdf8) !important; }
 /* Seekable progress track focus style */
 .player-cbar-track.nav-focused {
   background: rgba(124,58,237,0.35) !important;
@@ -2296,7 +2390,7 @@ body.theme-calm .epg-panel-ch              { color: #79c0ff !important; }
   border-radius: var(--radius);
   font-size: 15px;
   font-weight: 600;
-  z-index: 9999;
+  z-index: 10001;   /* above player-modal (10000) so toasts inside the player are visible */
   transition: transform 300ms ease, opacity 300ms ease;
   opacity: 0;
   box-shadow: 0 8px 30px rgba(0,0,0,0.5);

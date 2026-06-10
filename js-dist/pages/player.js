@@ -11,6 +11,184 @@ function _catch(body, recover) {
   }
   return result;
 }
+function _settle(pact, state, value) {
+  if (!pact.s) {
+    if (value instanceof _Pact) {
+      if (value.s) {
+        if (state & 1) {
+          state = value.s;
+        }
+        value = value.v;
+      } else {
+        value.o = _settle.bind(null, pact, state);
+        return;
+      }
+    }
+    if (value && value.then) {
+      value.then(_settle.bind(null, pact, state), _settle.bind(null, pact, 2));
+      return;
+    }
+    pact.s = state;
+    pact.v = value;
+    var observer = pact.o;
+    if (observer) {
+      observer(pact);
+    }
+  }
+}
+var _Pact = /*#__PURE__*/function () {
+  function _Pact() {}
+  _Pact.prototype.then = function (onFulfilled, onRejected) {
+    var result = new _Pact();
+    var state = this.s;
+    if (state) {
+      var callback = state & 1 ? onFulfilled : onRejected;
+      if (callback) {
+        try {
+          _settle(result, 1, callback(this.v));
+        } catch (e) {
+          _settle(result, 2, e);
+        }
+        return result;
+      } else {
+        return this;
+      }
+    }
+    this.o = function (_this) {
+      try {
+        var value = _this.v;
+        if (_this.s & 1) {
+          _settle(result, 1, onFulfilled ? onFulfilled(value) : value);
+        } else if (onRejected) {
+          _settle(result, 1, onRejected(value));
+        } else {
+          _settle(result, 2, value);
+        }
+      } catch (e) {
+        _settle(result, 2, e);
+      }
+    };
+    return result;
+  };
+  return _Pact;
+}();
+function _isSettledPact(thenable) {
+  return thenable instanceof _Pact && thenable.s & 1;
+}
+function _forTo(array, body, check) {
+  var i = -1,
+    pact,
+    reject;
+  function _cycle(result) {
+    try {
+      while (++i < array.length && (!check || !check())) {
+        result = body(i);
+        if (result && result.then) {
+          if (_isSettledPact(result)) {
+            result = result.v;
+          } else {
+            result.then(_cycle, reject || (reject = _settle.bind(null, pact = new _Pact(), 2)));
+            return;
+          }
+        }
+      }
+      if (pact) {
+        _settle(pact, 1, result);
+      } else {
+        pact = result;
+      }
+    } catch (e) {
+      _settle(pact || (pact = new _Pact()), 2, e);
+    }
+  }
+  _cycle();
+  return pact;
+}
+function _for(test, update, body) {
+  var stage;
+  for (;;) {
+    var shouldContinue = test();
+    if (_isSettledPact(shouldContinue)) {
+      shouldContinue = shouldContinue.v;
+    }
+    if (!shouldContinue) {
+      return result;
+    }
+    if (shouldContinue.then) {
+      stage = 0;
+      break;
+    }
+    var result = body();
+    if (result && result.then) {
+      if (_isSettledPact(result)) {
+        result = result.s;
+      } else {
+        stage = 1;
+        break;
+      }
+    }
+    if (update) {
+      var updateValue = update();
+      if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
+        stage = 2;
+        break;
+      }
+    }
+  }
+  var pact = new _Pact();
+  var reject = _settle.bind(null, pact, 2);
+  (stage === 0 ? shouldContinue.then(_resumeAfterTest) : stage === 1 ? result.then(_resumeAfterBody) : updateValue.then(_resumeAfterUpdate)).then(void 0, reject);
+  return pact;
+  function _resumeAfterBody(value) {
+    result = value;
+    do {
+      if (update) {
+        updateValue = update();
+        if (updateValue && updateValue.then && !_isSettledPact(updateValue)) {
+          updateValue.then(_resumeAfterUpdate).then(void 0, reject);
+          return;
+        }
+      }
+      shouldContinue = test();
+      if (!shouldContinue || _isSettledPact(shouldContinue) && !shouldContinue.v) {
+        _settle(pact, 1, result);
+        return;
+      }
+      if (shouldContinue.then) {
+        shouldContinue.then(_resumeAfterTest).then(void 0, reject);
+        return;
+      }
+      result = body();
+      if (_isSettledPact(result)) {
+        result = result.v;
+      }
+    } while (!result || !result.then);
+    result.then(_resumeAfterBody).then(void 0, reject);
+  }
+  function _resumeAfterTest(shouldContinue) {
+    if (shouldContinue) {
+      result = body();
+      if (result && result.then) {
+        result.then(_resumeAfterBody).then(void 0, reject);
+      } else {
+        _resumeAfterBody(result);
+      }
+    } else {
+      _settle(pact, 1, result);
+    }
+  }
+  function _resumeAfterUpdate() {
+    if (shouldContinue = test()) {
+      if (shouldContinue.then) {
+        shouldContinue.then(_resumeAfterTest).then(void 0, reject);
+      } else {
+        _resumeAfterTest(shouldContinue);
+      }
+    } else {
+      _settle(pact, 1, result);
+    }
+  }
+}
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -41,10 +219,10 @@ var PlayerPage = function () {
       stopAvPlay();
       modal.classList.remove('hidden');
       document.body.classList.add('player-open');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" title=\"Download\" style=\"display:none;\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\">\n              <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/>\n              <polyline points=\"7 10 12 15 17 10\"/>\n              <line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/>\n            </svg>\n          </button>\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): progress track (seekable) + time -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n        </div>\n        <!-- Download progress (appears below seek bar when active) -->\n        <div id=\"player-dl-row\" class=\"player-dl-row\">\n          <div class=\"player-dl-track\">\n            <div id=\"player-dl-fill\" class=\"player-dl-fill\"></div>\n          </div>\n          <span id=\"player-dl-text\" class=\"player-dl-text\">0%</span>\n        </div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
@@ -89,15 +267,21 @@ var PlayerPage = function () {
         goNextEpisode();
         showPlayerUI();
       });
+
+      // Download button (web/mobile only — hidden on TV via CSS)
+      var dlBtn = document.getElementById('player-dl-btn');
+      if (dlBtn) dlBtn.addEventListener('click', function () {
+        _handleDownload();
+      });
       Nav.reset(modal);
       loadBestSource();
-      var _temp7 = function () {
+      var _temp22 = function () {
         if (params.id) {
-          var _temp6 = _catch(function () {
-            function _temp5() {
+          var _temp21 = _catch(function () {
+            function _temp20() {
               Nav.reset(modal);
             }
-            var _temp4 = function () {
+            var _temp19 = function () {
               if (isTV) {
                 return Promise.resolve(Promise.all([TMDB.tvDetails(parseInt(params.id)), buildEpisodePanel(parseInt(params.id))])).then(function (_ref) {
                   var _ref2 = _slicedToArray(_ref, 1),
@@ -183,14 +367,14 @@ var PlayerPage = function () {
                 });
               }
             }();
-            return _temp4 && _temp4.then ? _temp4.then(_temp5) : _temp5(_temp4);
+            return _temp19 && _temp19.then ? _temp19.then(_temp20) : _temp20(_temp19);
           }, function (err) {
             console.error('Player metadata error:', err);
           });
-          if (_temp6 && _temp6.then) return _temp6.then(function () {});
+          if (_temp21 && _temp21.then) return _temp21.then(function () {});
         }
       }();
-      return Promise.resolve(_temp7 && _temp7.then ? _temp7.then(function () {}) : void 0);
+      return Promise.resolve(_temp22 && _temp22.then ? _temp22.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -199,7 +383,7 @@ var PlayerPage = function () {
     try {
       var list = document.getElementById('episode-list');
       if (!list) return Promise.resolve();
-      var _temp3 = _catch(function () {
+      var _temp18 = _catch(function () {
         return Promise.resolve(TMDB.tvSeason(_params.id, seasonNumber)).then(function (season) {
           var episodes = season.episodes || [];
           var isMobileList = !!list.closest('.episode-panel-mobile');
@@ -238,7 +422,7 @@ var PlayerPage = function () {
       }, function () {
         list.innerHTML = "<div class=\"error-msg\" style=\"font-size:13px;\">Could not load episodes</div>";
       });
-      return Promise.resolve(_temp3 && _temp3.then ? _temp3.then(function () {}) : void 0);
+      return Promise.resolve(_temp18 && _temp18.then ? _temp18.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -246,9 +430,9 @@ var PlayerPage = function () {
   // â"€â"€ TV Episode panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   var buildEpisodePanel = function buildEpisodePanel(seriesId) {
     try {
-      var _exit = false;
-      function _temp2(_result) {
-        if (_exit) return _result;
+      var _exit4 = false;
+      function _temp17(_result6) {
+        if (_exit4) return _result6;
         var seasons = (_seriesDetails.seasons || []).filter(function (s) {
           return s.season_number > 0;
         });
@@ -274,15 +458,320 @@ var PlayerPage = function () {
       }
       var panel = document.getElementById('episode-panel');
       if (!panel) return Promise.resolve();
-      var _temp = _catch(function () {
+      var _temp16 = _catch(function () {
         return Promise.resolve(TMDB.tvDetails(seriesId)).then(function (_TMDB$tvDetails) {
           _seriesDetails = _TMDB$tvDetails;
         });
       }, function () {
         panel.innerHTML = '';
-        _exit = true;
+        _exit4 = true;
       });
-      return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
+      return Promise.resolve(_temp16 && _temp16.then ? _temp16.then(_temp17) : _temp17(_temp16));
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  };
+  // Download HLS stream by fetching all segments through the CF Worker proxy
+  var _downloadHLS = function _downloadHLS() {
+    try {
+      var btn = document.getElementById('player-dl-btn');
+      var row = document.getElementById('player-dl-row');
+      var fill = document.getElementById('player-dl-fill');
+      var txt = document.getElementById('player-dl-text');
+      if (btn) btn.classList.add('dl-active');
+      if (row) row.classList.add('dl-active');
+      if (fill) fill.style.width = '0%';
+      if (txt) txt.textContent = 'Fetching playlist…';
+      _hlsDownloadController = new AbortController();
+      var signal = _hlsDownloadController.signal;
+      function setProgress(done, total) {
+        var pct = Math.round(done / total * 100);
+        if (fill) fill.style.width = pct + '%';
+        if (txt) txt.textContent = done + '/' + total + ' (' + pct + '%)';
+      }
+
+      // Resolve relative or proxy URL to an absolute CDN URL
+      // Wrap a CDN URL with the CF Worker proxy (unless already proxied)
+      // Extract original CDN URL from a proxy URL (for base URL resolution)
+      function origAbsUrl(rel, origBase) {
+        if (!rel) return '';
+        if (/^https?:\/\//i.test(rel)) return rel;
+        if (rel.charAt(0) === '/') {
+          var m = origBase.match(/^(https?:\/\/[^\/]+)/);
+          return m ? m[1] + rel : rel;
+        }
+        return origBase.substring(0, origBase.lastIndexOf('/') + 1) + rel;
+      }
+      function proxyUrl(cdnUrl) {
+        if (cdnUrl.indexOf(PROXY_BASE) === 0) return cdnUrl; // already proxied by the CF Worker
+        return buildProxyUrl(cdnUrl, _qualityHeaders);
+      }
+      function unproxyUrl(url) {
+        if (url.indexOf(PROXY_BASE) !== 0) return url;
+        try {
+          var purl = new URL(url);
+          return decodeURIComponent(purl.searchParams.get('url') || url);
+        } catch (e) {
+          return url;
+        }
+      }
+      function parseM3U8(text, origBase) {
+        var lines = text.trim().split('\n').map(function (l) {
+          return l.trim();
+        }).filter(function (l) {
+          return l;
+        });
+        var segments = [],
+          isMaster = false,
+          bestBW = 0,
+          bestProxyUrl = null,
+          bestOrigUrl = null;
+        var isLive = text.indexOf('#EXT-X-ENDLIST') === -1;
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i];
+          if (ln.indexOf('#EXT-X-STREAM-INF') === 0) {
+            isMaster = true;
+            var bwM = ln.match(/BANDWIDTH=(\d+)/i);
+            var bw = bwM ? parseInt(bwM[1]) : 0;
+            if (bw >= bestBW && i + 1 < lines.length && lines[i + 1].charAt(0) !== '#') {
+              bestBW = bw;
+              var rawVariant = lines[i + 1];
+              // If the proxy already rewrote this URL, extract the original for base URL tracking
+              var absVariant = origAbsUrl(unproxyUrl(rawVariant), origBase);
+              bestOrigUrl = absVariant;
+              bestProxyUrl = proxyUrl(absVariant);
+            }
+          } else if (ln.charAt(0) !== '#' && ln.length > 0) {
+            if (!isMaster) {
+              // Segment URL — may be already proxied or relative/absolute CDN URL
+              var absSeg = origAbsUrl(unproxyUrl(ln), origBase);
+              segments.push(proxyUrl(absSeg));
+            }
+          }
+        }
+        return {
+          isMaster: isMaster,
+          isLive: isLive && !isMaster,
+          bestProxyUrl: bestProxyUrl,
+          bestOrigUrl: bestOrigUrl,
+          segments: segments
+        };
+      }
+      var safeName = (_titleCache || 'video').replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 60);
+      return Promise.resolve(_catch(function () {
+        var origUrl = _currentStreamUrl; // original CDN URL (un-proxied)
+
+        // Fetch master/media playlist through the proxy
+        return Promise.resolve(fetch(proxyUrl(origUrl), {
+          signal: signal
+        })).then(function (resp) {
+          if (!resp.ok) throw new Error('Playlist fetch failed (' + resp.status + ')');
+          return Promise.resolve(resp.text()).then(function (m3u8Text) {
+            var _exit = false;
+            function _temp14(_result2) {
+              var _exit2 = false;
+              if (_exit) return _result2;
+              function _temp12(_result4) {
+                var _interrupt = false;
+                if (_exit2) return _result4;
+                function _temp10() {
+                  var _exit3 = false;
+                  function _temp0(_result5) {
+                    if (_exit3) return _result5;
+                    function _temp8() {
+                      _hlsDownloadController = null;
+                      if (btn) {
+                        btn.classList.remove('dl-active');
+                        btn.classList.add('dl-done');
+                      }
+                      if (fill) fill.style.width = '100%';
+                      if (txt) txt.textContent = failed ? '✓ (' + failed + ' missing)' : '✓ Done';
+                      if (typeof App !== 'undefined') App.showToast('Download done! Open the .ts file in VLC.' + (failed ? ' (' + failed + ' segments failed)' : ''));
+                      setTimeout(function () {
+                        if (btn) btn.classList.remove('dl-done');
+                        if (row) row.classList.remove('dl-active');
+                      }, 6000);
+                    }
+                    var _temp7 = function () {
+                      if (writable) {
+                        return Promise.resolve(writable.close()).then(function () {});
+                      } else if (collected && collected.length) {
+                        if (txt) txt.textContent = 'Saving…';
+                        var totalLen = collected.reduce(function (s, c) {
+                          return s + c.byteLength;
+                        }, 0);
+                        var output = new Uint8Array(totalLen);
+                        var off = 0;
+                        collected.forEach(function (c) {
+                          output.set(c, off);
+                          off += c.byteLength;
+                        });
+                        var dlBlob = new Blob([output], {
+                          type: 'video/mp2t'
+                        });
+                        var dlObjUrl = URL.createObjectURL(dlBlob);
+                        var dlA = document.createElement('a');
+                        dlA.href = dlObjUrl;
+                        dlA.download = safeName + '.ts';
+                        document.body.appendChild(dlA);
+                        dlA.click();
+                        document.body.removeChild(dlA);
+                        setTimeout(function () {
+                          URL.revokeObjectURL(dlObjUrl);
+                        }, 5000);
+                      }
+                    }();
+                    return _temp7 && _temp7.then ? _temp7.then(_temp8) : _temp8(_temp7);
+                  }
+                  var _temp9 = function () {
+                    if (signal.aborted) {
+                      function _temp6() {
+                        _resetDownloadUI();
+                        _exit3 = true;
+                      }
+                      var _temp5 = function () {
+                        if (writable) {
+                          var _temp15 = _catch(function () {
+                            return Promise.resolve(writable.abort()).then(function () {});
+                          }, function () {});
+                          if (_temp15 && _temp15.then) return _temp15.then(function () {});
+                        }
+                      }();
+                      return _temp5 && _temp5.then ? _temp5.then(_temp6) : _temp6(_temp5);
+                    }
+                  }();
+                  return _temp9 && _temp9.then ? _temp9.then(_temp0) : _temp0(_temp9);
+                }
+                var collected = writable ? null : [];
+                var totalBytes = 0;
+                var MAX_BLOB = 600 * 1024 * 1024; // 600 MB safety cap for blob path
+                // parallel fetches per tick
+                var failed = 0;
+                var BATCH = 4;
+                var i = 0;
+                var _temp1 = _for(function () {
+                  return !_interrupt && i < segs.length;
+                }, function () {
+                  return !!(i += BATCH);
+                }, function () {
+                  if (signal.aborted) {
+                    _interrupt = true;
+                    return;
+                  }
+                  var batch = segs.slice(i, i + BATCH);
+                  return Promise.resolve(Promise.all(batch.map(function (u) {
+                    return fetch(u, {
+                      signal: signal
+                    }).then(function (r) {
+                      return r.ok ? r.arrayBuffer() : Promise.reject(r.status);
+                    }).then(function (ab) {
+                      return new Uint8Array(ab);
+                    }).catch(function () {
+                      return null;
+                    });
+                  }))).then(function (results) {
+                    var _interrupt2 = false;
+                    function _temp3() {
+                      setProgress(Math.min(i + BATCH, segs.length), segs.length);
+                    }
+                    var _temp2 = _forTo(results, function (j) {
+                      var chunk = results[j];
+                      if (!chunk) {
+                        failed++;
+                        return;
+                      }
+                      var _temp = function () {
+                        if (writable) {
+                          return Promise.resolve(writable.write(chunk)).then(function () {});
+                        } else {
+                          if (totalBytes + chunk.byteLength > MAX_BLOB) {
+                            _interrupt2 = true;
+                            return;
+                          } // cap reached
+                          collected.push(chunk);
+                          totalBytes += chunk.byteLength;
+                        }
+                      }();
+                      if (_temp && _temp.then) return _temp.then(function () {});
+                    }, function () {
+                      return _interrupt2;
+                    });
+                    return _temp2 && _temp2.then ? _temp2.then(_temp3) : _temp3(_temp2);
+                  });
+                });
+                return _temp1 && _temp1.then ? _temp1.then(_temp10) : _temp10(_temp1);
+              }
+              if (parsed.isLive) {
+                _resetDownloadUI();
+                if (typeof App !== 'undefined') App.showToast('Live streams cannot be downloaded');
+                return;
+              }
+              var segs = parsed.segments;
+              if (!segs.length) throw new Error('No segments found in playlist');
+              if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments — save .ts and open in VLC');
+
+              // Try File System Access API for streaming write (avoids memory limits on large files)
+              var writable = null;
+              var _temp11 = function () {
+                if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+                  return _catch(function () {
+                    return Promise.resolve(window.showSaveFilePicker({
+                      suggestedName: safeName + '.ts',
+                      types: [{
+                        description: 'Video (MPEG-TS)',
+                        accept: {
+                          'video/mp2t': ['.ts']
+                        }
+                      }]
+                    })).then(function (fh) {
+                      return Promise.resolve(fh.createWritable()).then(function (_fh$createWritable) {
+                        writable = _fh$createWritable;
+                      });
+                    });
+                  }, function (e) {
+                    if (e.name === 'AbortError') {
+                      _resetDownloadUI();
+                      _exit2 = true;
+                      return;
+                    } // user cancelled picker
+                    writable = null; // FSA not available — fall back to in-memory blob
+                  });
+                }
+              }();
+              return _temp11 && _temp11.then ? _temp11.then(_temp12) : _temp12(_temp11);
+            }
+            var parsed = parseM3U8(m3u8Text, origUrl);
+
+            // If it's a master playlist, follow to the best quality variant
+            var _temp13 = function () {
+              if (parsed.isMaster) {
+                if (!parsed.bestProxyUrl) throw new Error('No quality variant found in master playlist');
+                if (txt) txt.textContent = 'Fetching quality stream…';
+                return Promise.resolve(fetch(parsed.bestProxyUrl, {
+                  signal: signal
+                })).then(function (_fetch) {
+                  resp = _fetch;
+                  if (!resp.ok) throw new Error('Variant fetch failed (' + resp.status + ')');
+                  return Promise.resolve(resp.text()).then(function (_resp$text) {
+                    m3u8Text = _resp$text;
+                    parsed = parseM3U8(m3u8Text, parsed.bestOrigUrl || origUrl);
+                  });
+                });
+              }
+            }();
+            return _temp13 && _temp13.then ? _temp13.then(_temp14) : _temp14(_temp13);
+          });
+        });
+      }, function (e) {
+        _hlsDownloadController = null;
+        if (e.name === 'AbortError') {
+          _resetDownloadUI();
+          return;
+        }
+        console.error('[DL] HLS error:', e);
+        _resetDownloadUI();
+        if (typeof App !== 'undefined') App.showToast('Download failed: ' + (e.message || String(e)));
+      }));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -340,6 +829,10 @@ var PlayerPage = function () {
   var _seriesDetails = null;
   var _availableQualities = [];
   var _hlsInstance = null; // active hls.js instance — must be destroyed before swapping streams
+  var _wtClient = null; // active WebTorrent client — destroyed on stream switch
+  var _currentStreamUrl = null; // original (un-proxied) stream URL — used by download
+  var _dlXhr = null; // active download XHR — cancelled on player close
+  var _hlsDownloadController = null; // AbortController for HLS segment downloads
 
   // ── Player UI auto-hide + progress tracking ───────────
   var _hideTimer = null,
@@ -772,12 +1265,283 @@ var PlayerPage = function () {
   }
 
   // ── AVPlay helpers ────────────────────────────────────
+  // ── WebTorrent (web/mobile only — no server, no proxy, pure P2P) ───────────
+  function stopWebTorrent() {
+    if (_wtClient) {
+      try {
+        _wtClient.destroy();
+      } catch (e) {}
+      _wtClient = null;
+    }
+  }
+  function _ensureWebTorrent() {
+    if (typeof WebTorrent !== 'undefined') return Promise.resolve(true);
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js';
+      s.onload = function () {
+        resolve(typeof WebTorrent !== 'undefined');
+      };
+      s.onerror = function () {
+        resolve(false);
+      };
+      document.head.appendChild(s);
+    });
+  }
+  function playWithWebTorrent(magnetURI) {
+    _ensureWebTorrent().then(function (available) {
+      if (!available || typeof WebTorrent === 'undefined') {
+        console.log('[Player] WebTorrent failed to load');
+        trySource(0);
+        return;
+      }
+      // Proceed even if WEBRTC_SUPPORT is false — web seeds (HTTP CDN) work without WebRTC
+      _startWebTorrent(magnetURI);
+    });
+  }
+  function _startWebTorrent(magnetURI) {
+    var area = document.getElementById('avplay-area');
+    if (!area) {
+      trySource(0);
+      return;
+    }
+    setPlayerStatus('Finding peers...');
+    stopWebTorrent();
+    _removeEmbedFocusToast();
+    var _pm = document.getElementById('player-modal');
+    if (_pm) _pm.classList.remove('player-embed-mode');
+    area.innerHTML = '<video id="web-video" style="width:100%;height:100%;background:#000;" autoplay playsinline></video>';
+    var video = document.getElementById('web-video');
+    var playerModal = document.getElementById('player-modal');
+    if (playerModal) {
+      playerModal.addEventListener('mousemove', function () {
+        showPlayerUI();
+      });
+      playerModal.addEventListener('touchstart', function () {
+        showPlayerUI();
+      }, {
+        passive: true
+      });
+      playerModal.addEventListener('mouseleave', function () {
+        if (_hideTimer) clearTimeout(_hideTimer);
+        _hideTimer = setTimeout(hidePlayerUI, 1500);
+      });
+    }
+    _wtClient = new WebTorrent();
+
+    // 30s watchdog — P2P peers rarely connect for this content; fail fast to embeds
+    var watchdog = setTimeout(function () {
+      console.log('[Player] WebTorrent: no peers in 30s — falling back');
+      stopWebTorrent();
+      trySource(0);
+    }, 30000);
+    _wtClient.on('error', function (err) {
+      console.error('[Player] WebTorrent error:', err && err.message || err);
+      clearTimeout(watchdog);
+      stopWebTorrent();
+      trySource(0);
+    });
+
+    // magnetURI may be a magnet: link or a proxied .torrent URL
+    _wtClient.add(magnetURI, {
+      strategy: 'sequential'
+    }, function (torrent) {
+      console.log('[Player] WebTorrent: torrent ready, files:', torrent.files.length, 'seeds:', torrent.urlList && torrent.urlList.length);
+
+      // Route all web-seed requests through our proxy to bypass CDN CORS restrictions
+      if (torrent.urlList && torrent.urlList.length) {
+        torrent.urlList = torrent.urlList.map(function (u) {
+          return PROXY_BASE + '/?url=' + encodeURIComponent(u);
+        });
+      }
+
+      // Only MP4/WebM files can play via browser MSE — never fall back to MKV/other
+      var sorted = torrent.files.slice().sort(function (a, b) {
+        return b.length - a.length;
+      });
+      var file = sorted.find(function (f) {
+        return /\.mp4$/i.test(f.name) && !f.name.includes('.ia.');
+      }) || sorted.find(function (f) {
+        return /\.(mp4|webm)$/i.test(f.name);
+      });
+      if (!file) {
+        clearTimeout(watchdog);
+        console.log('[Player] WebTorrent: no MP4/WebM found (MKV not supported by browser MSE) — falling back');
+        stopWebTorrent();
+        trySource(0);
+        return;
+      }
+      console.log('[Player] WebTorrent: streaming', file.name, '~' + Math.round(file.length / 1e6) + 'MB');
+      setPlayerStatus('Connecting...');
+      torrent.on('download', function () {
+        if (torrent.downloadSpeed > 0) {
+          clearTimeout(watchdog);
+          setPlayerStatus('');
+        }
+        var spd = Math.round(torrent.downloadSpeed / 1024);
+        var pct = (torrent.downloaded / torrent.length * 100).toFixed(1);
+        console.log('[WT] ' + pct + '% @ ' + spd + 'KB/s peers:' + torrent.numPeers);
+      });
+      file.renderTo(video, function (err) {
+        clearTimeout(watchdog);
+        if (err) {
+          console.error('[Player] WebTorrent renderTo error:', err);
+          stopWebTorrent();
+          trySource(0);
+          return;
+        }
+        setPlayerStatus('');
+        updatePlayIcon(true);
+        startAutoHide();
+        if (typeof NexPlayDB !== 'undefined') {
+          NexPlayDB.addToHistory(_params.id, 'movie', _titleCache, _posterCache, null, null);
+        }
+        video.addEventListener('ended', function () {
+          if (_params.playlist === 'watchlist') goNextInPlaylist();
+        });
+        if (_progressInterval) clearInterval(_progressInterval);
+        _progressInterval = setInterval(function () {
+          if (!video || video.paused) return;
+          var dur = video.duration * 1000 || 1;
+          var pos = video.currentTime * 1000;
+          var pct = Math.min(100, pos / dur * 100).toFixed(1);
+          var fill = document.getElementById('progress-fill');
+          var time = document.getElementById('player-time');
+          if (fill) fill.style.width = pct + '%';
+          if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+        }, 3000);
+      });
+    });
+  }
+
+  // ── Download handler ────────────────────────────────────────────────────
+  function _resetDownloadUI() {
+    var btn = document.getElementById('player-dl-btn');
+    var row = document.getElementById('player-dl-row');
+    var fill = document.getElementById('player-dl-fill');
+    var txt = document.getElementById('player-dl-text');
+    if (btn) {
+      btn.classList.remove('dl-active', 'dl-done');
+    }
+    if (row) {
+      row.classList.remove('dl-active');
+    }
+    if (fill) {
+      fill.style.width = '0%';
+    }
+    if (txt) {
+      txt.textContent = '0%';
+    }
+  }
+  function _handleDownload() {
+    if (!_currentStreamUrl) {
+      if (typeof App !== 'undefined') App.showToast('No stream available to download');
+      return;
+    }
+    var btn = document.getElementById('player-dl-btn');
+    if (btn && btn.classList.contains('dl-active')) return; // already in progress
+
+    var row = document.getElementById('player-dl-row');
+    var fill = document.getElementById('player-dl-fill');
+    var txt = document.getElementById('player-dl-text');
+
+    // Determine stream type: CDN headers or HLS URL → segment download; otherwise direct XHR
+    var hasStreamHeaders = _qualityHeaders && Object.keys(_qualityHeaders).length > 0;
+    var isHLS = /\.m3u8/i.test(_currentStreamUrl) || /\/hls\//i.test(_currentStreamUrl);
+    if (hasStreamHeaders || isHLS) {
+      _downloadHLS();
+    } else {
+      // Direct MP4 (e.g. YTS torrent web seed) — simple XHR blob download
+      if (typeof App !== 'undefined') App.showToast('Starting download…');
+      _startFileDownload(btn, row, fill, txt);
+    }
+  }
+  function _startFileDownload(btn, row, fill, txt) {
+    // Show progress UI
+    if (btn) btn.classList.add('dl-active');
+    if (row) row.classList.add('dl-active');
+    if (fill) fill.style.width = '0%';
+    if (txt) txt.textContent = '0%';
+    var filename = (_titleCache ? _titleCache.replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 80) : 'video') + '.mp4';
+    var xhr = new XMLHttpRequest();
+    _dlXhr = xhr;
+    xhr.open('GET', _currentStreamUrl, true);
+    xhr.responseType = 'blob';
+    xhr.onprogress = function (e) {
+      if (e.lengthComputable) {
+        var pct = Math.round(e.loaded / e.total * 100);
+        if (fill) fill.style.width = pct + '%';
+        if (txt) txt.textContent = pct + '%';
+      } else {
+        if (txt) txt.textContent = Math.round(e.loaded / 1e6) + 'MB';
+      }
+    };
+    xhr.onload = function () {
+      _dlXhr = null;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        var objUrl = URL.createObjectURL(xhr.response);
+        var a = document.createElement('a');
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () {
+          URL.revokeObjectURL(objUrl);
+        }, 2000);
+        if (btn) {
+          btn.classList.remove('dl-active');
+          btn.classList.add('dl-done');
+        }
+        if (fill) {
+          fill.style.width = '100%';
+        }
+        if (txt) {
+          txt.textContent = '✓';
+        }
+        if (typeof App !== 'undefined') App.showToast('Download complete!');
+        setTimeout(function () {
+          if (btn) btn.classList.remove('dl-done');
+          if (row) row.classList.remove('dl-active');
+        }, 4000);
+      } else {
+        _resetDownloadUI();
+        if (typeof App !== 'undefined') App.showToast('Download failed (' + xhr.status + ')');
+      }
+    };
+    xhr.onerror = function () {
+      _dlXhr = null;
+      _resetDownloadUI();
+      if (typeof App !== 'undefined') App.showToast('Download failed');
+    };
+    xhr.onabort = function () {
+      _dlXhr = null;
+      _resetDownloadUI();
+    };
+    xhr.send();
+  }
   function stopAvPlay() {
     // Save final position before stopping
     if (_progressInterval) {
       clearInterval(_progressInterval);
       _progressInterval = null;
     }
+    // Cancel any active download (XHR or HLS segment fetch)
+    if (_dlXhr) {
+      try {
+        _dlXhr.abort();
+      } catch (e) {}
+      _dlXhr = null;
+    }
+    if (_hlsDownloadController) {
+      try {
+        _hlsDownloadController.abort();
+      } catch (e) {}
+      _hlsDownloadController = null;
+    }
+    _resetDownloadUI();
+    // Tear down any active WebTorrent session
+    stopWebTorrent();
     // Web: save hls.js watch position before destroying the video
     if (_hlsInstance) {
       try {
@@ -944,12 +1708,12 @@ var PlayerPage = function () {
     }
     return PROXY_BASE + '/?url=' + encodeURIComponent(streamUrl) + (h ? '&headers=' + encodeURIComponent(h) : '');
   }
-  function playWithHlsJs(streamUrl, headers) {
-    // Stream URL is already routed through the CF Worker proxy (see playWithUrl).
-    // The proxy injects the correct Referer/Origin headers and rewrites all segment
-    // URLs back through itself, so hls.js just loads the proxied manifest URL.
+  function playWithHlsJs(streamUrl, headers, _isDirect) {
+    // streamUrl may be a direct CDN URL or a proxied URL depending on _isDirect.
+    // Direct mode: browser IP is usually not blocked by CDNs (only CF Worker IPs are).
+    // Proxy mode: used as fallback — adds Referer/Origin and rewrites segment URLs.
     var playUrl = streamUrl;
-    console.log('[Player] playWithHlsJs via proxy:', playUrl.slice(0, 80));
+    console.log('[Player] playWithHlsJs ' + (_isDirect ? 'direct:' : 'via proxy:'), playUrl.slice(0, 80));
     // Real HLS stream — restore controls and remove embed tab listener
     _removeEmbedFocusToast();
     var _pm = document.getElementById('player-modal');
@@ -1033,8 +1797,23 @@ var PlayerPage = function () {
       hls.on(Hls.Events.ERROR, function (ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          _streamErrorRetries = 0;
-          trySource(0);
+          if (_isDirect) {
+            // Direct CDN access failed — retry through the CF Worker proxy
+            console.log('[Player] Direct HLS failed, retrying via proxy');
+            var proxied = buildProxyUrl(_currentStreamUrl, _qualityHeaders);
+            playWithHlsJs(proxied, _qualityHeaders, false);
+          } else {
+            // Both direct and proxy failed — try the next stream source (e.g. Vidrock after Videasy CDN fails)
+            _streamErrorRetries++;
+            if (_streamErrorRetries <= 2) {
+              console.log('[Player] CDN blocked, trying next stream source...');
+              setPlayerStatus('Trying another source...');
+              loadBestSource();
+            } else {
+              _streamErrorRetries = 0;
+              trySource(0);
+            }
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -1048,18 +1827,30 @@ var PlayerPage = function () {
     }
   }
   function playWithUrl(url, headers) {
+    _currentStreamUrl = url; // store original URL for download button
+
+    // Show download button for all non-TV streams (TV hidden via CSS).
+    // HLS streams use segment-fetch download; direct MP4 uses XHR blob download.
+    var dlBtn = document.getElementById('player-dl-btn');
+    if (dlBtn) dlBtn.style.display = '';
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
-
-    // TV always proxies (TLS compat + Referer injection).
-    // Browser proxies for CORS and segment URL rewriting.
-    var playUrl = buildProxyUrl(url, headers);
     if (typeof webapis === 'undefined' || !webapis.avplay) {
-      playWithHlsJs(playUrl, headers);
+      // Web/mobile: for CDN-auth streams try the URL DIRECTLY first.
+      // CDNs like mooncarpet.site block CF Worker datacenter IPs with 403,
+      // but allow residential browser IPs. Try direct, fall back to proxy on fatal error.
+      var hasHeaders = headers && Object.keys(headers).length > 0;
+      if (hasHeaders) {
+        playWithHlsJs(url, headers, true); // true = direct mode, will proxy on failure
+      } else {
+        var playUrl = buildProxyUrl(url, headers);
+        playWithHlsJs(playUrl, headers, false);
+      }
       return;
     }
 
     // TV: AVPlay via proxy
+    var playUrl = buildProxyUrl(url, headers);
     console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     // Restore controls in case we're retrying after an iframe embed
     _removeEmbedFocusToast();
@@ -1244,6 +2035,10 @@ var PlayerPage = function () {
         });
         playWithUrl(_prefQ ? _prefQ.url : result.url, result.headers);
         renderQualityDropdown();
+      } else if (result && result.type === 'torrent') {
+        console.log('[Player] torrent source:', result.quality, result.hash && result.hash.slice(0, 8));
+        setPlayerStatus('Loading torrent...');
+        playWithWebTorrent(result.magnetURI);
       } else {
         console.log('[Player] no stream, falling back to embeds');
         trySource(0);

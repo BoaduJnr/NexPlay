@@ -39,7 +39,11 @@
   let _currentEpisode = 1;
   let _seriesDetails = null;
   let _availableQualities = [];
-  let _hlsInstance = null;  // active hls.js instance — must be destroyed before swapping streams
+  let _hlsInstance      = null;  // active hls.js instance — must be destroyed before swapping streams
+  let _wtClient         = null;  // active WebTorrent client — destroyed on stream switch
+  let _currentStreamUrl      = null;  // original (un-proxied) stream URL — used by download
+  let _dlXhr                 = null;  // active download XHR — cancelled on player close
+  let _hlsDownloadController = null;  // AbortController for HLS segment downloads
 
   // ── Player UI auto-hide + progress tracking ───────────
   let _hideTimer = null, _uiHidden = false, _keyListener = null;
@@ -405,9 +409,459 @@
   }
 
   // ── AVPlay helpers ────────────────────────────────────
+  // ── WebTorrent (web/mobile only — no server, no proxy, pure P2P) ───────────
+  function stopWebTorrent() {
+    if (_wtClient) {
+      try { _wtClient.destroy(); } catch(e) {}
+      _wtClient = null;
+    }
+  }
+
+  function _ensureWebTorrent() {
+    if (typeof WebTorrent !== 'undefined') return Promise.resolve(true);
+    return new Promise(function(resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js';
+      s.onload  = function() { resolve(typeof WebTorrent !== 'undefined'); };
+      s.onerror = function() { resolve(false); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function playWithWebTorrent(magnetURI) {
+    _ensureWebTorrent().then(function(available) {
+      if (!available || typeof WebTorrent === 'undefined') {
+        console.log('[Player] WebTorrent failed to load');
+        trySource(0);
+        return;
+      }
+      // Proceed even if WEBRTC_SUPPORT is false — web seeds (HTTP CDN) work without WebRTC
+      _startWebTorrent(magnetURI);
+    });
+  }
+
+  function _startWebTorrent(magnetURI) {
+    var area = document.getElementById('avplay-area');
+    if (!area) { trySource(0); return; }
+
+    setPlayerStatus('Finding peers...');
+    stopWebTorrent();
+    _removeEmbedFocusToast();
+    var _pm = document.getElementById('player-modal');
+    if (_pm) _pm.classList.remove('player-embed-mode');
+
+    area.innerHTML = '<video id="web-video" style="width:100%;height:100%;background:#000;" autoplay playsinline></video>';
+    var video = document.getElementById('web-video');
+
+    var playerModal = document.getElementById('player-modal');
+    if (playerModal) {
+      playerModal.addEventListener('mousemove', function() { showPlayerUI(); });
+      playerModal.addEventListener('touchstart', function() { showPlayerUI(); }, { passive: true });
+      playerModal.addEventListener('mouseleave', function() {
+        if (_hideTimer) clearTimeout(_hideTimer);
+        _hideTimer = setTimeout(hidePlayerUI, 1500);
+      });
+    }
+
+    _wtClient = new WebTorrent();
+
+    // 30s watchdog — P2P peers rarely connect for this content; fail fast to embeds
+    var watchdog = setTimeout(function() {
+      console.log('[Player] WebTorrent: no peers in 30s — falling back');
+      stopWebTorrent();
+      trySource(0);
+    }, 30000);
+
+    _wtClient.on('error', function(err) {
+      console.error('[Player] WebTorrent error:', err && err.message || err);
+      clearTimeout(watchdog);
+      stopWebTorrent();
+      trySource(0);
+    });
+
+    // magnetURI may be a magnet: link or a proxied .torrent URL
+    _wtClient.add(magnetURI, { strategy: 'sequential' }, function(torrent) {
+      console.log('[Player] WebTorrent: torrent ready, files:', torrent.files.length, 'seeds:', torrent.urlList && torrent.urlList.length);
+
+      // Route all web-seed requests through our proxy to bypass CDN CORS restrictions
+      if (torrent.urlList && torrent.urlList.length) {
+        torrent.urlList = torrent.urlList.map(function(u) {
+          return PROXY_BASE + '/?url=' + encodeURIComponent(u);
+        });
+      }
+
+      // Only MP4/WebM files can play via browser MSE — never fall back to MKV/other
+      var sorted = torrent.files.slice().sort(function(a, b) { return b.length - a.length; });
+      var file = sorted.find(function(f) { return /\.mp4$/i.test(f.name) && !f.name.includes('.ia.'); })
+               || sorted.find(function(f) { return /\.(mp4|webm)$/i.test(f.name); });
+
+      if (!file) {
+        clearTimeout(watchdog);
+        console.log('[Player] WebTorrent: no MP4/WebM found (MKV not supported by browser MSE) — falling back');
+        stopWebTorrent();
+        trySource(0);
+        return;
+      }
+
+      console.log('[Player] WebTorrent: streaming', file.name, '~' + Math.round(file.length / 1e6) + 'MB');
+      setPlayerStatus('Connecting...');
+
+      torrent.on('download', function() {
+        if (torrent.downloadSpeed > 0) {
+          clearTimeout(watchdog);
+          setPlayerStatus('');
+        }
+        var spd = Math.round(torrent.downloadSpeed / 1024);
+        var pct = (torrent.downloaded / torrent.length * 100).toFixed(1);
+        console.log('[WT] ' + pct + '% @ ' + spd + 'KB/s peers:' + torrent.numPeers);
+      });
+
+      file.renderTo(video, function(err) {
+        clearTimeout(watchdog);
+        if (err) {
+          console.error('[Player] WebTorrent renderTo error:', err);
+          stopWebTorrent();
+          trySource(0);
+          return;
+        }
+        setPlayerStatus('');
+        updatePlayIcon(true);
+        startAutoHide();
+
+        if (typeof NexPlayDB !== 'undefined') {
+          NexPlayDB.addToHistory(_params.id, 'movie', _titleCache, _posterCache, null, null);
+        }
+
+        video.addEventListener('ended', function() {
+          if (_params.playlist === 'watchlist') goNextInPlaylist();
+        });
+
+        if (_progressInterval) clearInterval(_progressInterval);
+        _progressInterval = setInterval(function() {
+          if (!video || video.paused) return;
+          var dur = video.duration * 1000 || 1;
+          var pos = video.currentTime * 1000;
+          var pct = Math.min(100, pos / dur * 100).toFixed(1);
+          var fill = document.getElementById('progress-fill');
+          var time = document.getElementById('player-time');
+          if (fill) fill.style.width = pct + '%';
+          if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+        }, 3000);
+      });
+    });
+  }
+
+  // ── Download handler ────────────────────────────────────────────────────
+  function _resetDownloadUI() {
+    var btn  = document.getElementById('player-dl-btn');
+    var row  = document.getElementById('player-dl-row');
+    var fill = document.getElementById('player-dl-fill');
+    var txt  = document.getElementById('player-dl-text');
+    if (btn)  { btn.classList.remove('dl-active', 'dl-done'); }
+    if (row)  { row.classList.remove('dl-active'); }
+    if (fill) { fill.style.width = '0%'; }
+    if (txt)  { txt.textContent = '0%'; }
+  }
+
+  function _handleDownload() {
+    if (!_currentStreamUrl) {
+      if (typeof App !== 'undefined') App.showToast('No stream available to download');
+      return;
+    }
+
+    var btn = document.getElementById('player-dl-btn');
+    if (btn && btn.classList.contains('dl-active')) return; // already in progress
+
+    var row  = document.getElementById('player-dl-row');
+    var fill = document.getElementById('player-dl-fill');
+    var txt  = document.getElementById('player-dl-text');
+
+    // Determine stream type: CDN headers or HLS URL → segment download; otherwise direct XHR
+    var hasStreamHeaders = _qualityHeaders && Object.keys(_qualityHeaders).length > 0;
+    var isHLS = /\.m3u8/i.test(_currentStreamUrl) || /\/hls\//i.test(_currentStreamUrl);
+
+    if (hasStreamHeaders || isHLS) {
+      _downloadHLS();
+    } else {
+      // Direct MP4 (e.g. YTS torrent web seed) — simple XHR blob download
+      if (typeof App !== 'undefined') App.showToast('Starting download…');
+      _startFileDownload(btn, row, fill, txt);
+    }
+  }
+
+  // Download HLS stream by fetching all segments through the CF Worker proxy
+  async function _downloadHLS() {
+    var btn  = document.getElementById('player-dl-btn');
+    var row  = document.getElementById('player-dl-row');
+    var fill = document.getElementById('player-dl-fill');
+    var txt  = document.getElementById('player-dl-text');
+
+    if (btn)  btn.classList.add('dl-active');
+    if (row)  row.classList.add('dl-active');
+    if (fill) fill.style.width = '0%';
+    if (txt)  txt.textContent = 'Fetching playlist…';
+
+    _hlsDownloadController = new AbortController();
+    var signal = _hlsDownloadController.signal;
+
+    var safeName = (_titleCache || 'video').replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 60);
+
+    function setProgress(done, total) {
+      var pct = Math.round(done / total * 100);
+      if (fill) fill.style.width = pct + '%';
+      if (txt)  txt.textContent = done + '/' + total + ' (' + pct + '%)';
+    }
+
+    // Resolve relative or proxy URL to an absolute CDN URL
+    function origAbsUrl(rel, origBase) {
+      if (!rel) return '';
+      if (/^https?:\/\//i.test(rel)) return rel;
+      if (rel.charAt(0) === '/') {
+        var m = origBase.match(/^(https?:\/\/[^\/]+)/);
+        return m ? m[1] + rel : rel;
+      }
+      return origBase.substring(0, origBase.lastIndexOf('/') + 1) + rel;
+    }
+
+    // Wrap a CDN URL with the CF Worker proxy (unless already proxied)
+    function proxyUrl(cdnUrl) {
+      if (cdnUrl.indexOf(PROXY_BASE) === 0) return cdnUrl; // already proxied by the CF Worker
+      return buildProxyUrl(cdnUrl, _qualityHeaders);
+    }
+
+    // Extract original CDN URL from a proxy URL (for base URL resolution)
+    function unproxyUrl(url) {
+      if (url.indexOf(PROXY_BASE) !== 0) return url;
+      try {
+        var purl = new URL(url);
+        return decodeURIComponent(purl.searchParams.get('url') || url);
+      } catch(e) { return url; }
+    }
+
+    function parseM3U8(text, origBase) {
+      var lines = text.trim().split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+      var segments = [], isMaster = false, bestBW = 0, bestProxyUrl = null, bestOrigUrl = null;
+      var isLive = text.indexOf('#EXT-X-ENDLIST') === -1;
+
+      for (var i = 0; i < lines.length; i++) {
+        var ln = lines[i];
+        if (ln.indexOf('#EXT-X-STREAM-INF') === 0) {
+          isMaster = true;
+          var bwM = ln.match(/BANDWIDTH=(\d+)/i);
+          var bw = bwM ? parseInt(bwM[1]) : 0;
+          if (bw >= bestBW && i + 1 < lines.length && lines[i + 1].charAt(0) !== '#') {
+            bestBW = bw;
+            var rawVariant = lines[i + 1];
+            // If the proxy already rewrote this URL, extract the original for base URL tracking
+            var absVariant = origAbsUrl(unproxyUrl(rawVariant), origBase);
+            bestOrigUrl   = absVariant;
+            bestProxyUrl  = proxyUrl(absVariant);
+          }
+        } else if (ln.charAt(0) !== '#' && ln.length > 0) {
+          if (!isMaster) {
+            // Segment URL — may be already proxied or relative/absolute CDN URL
+            var absSeg = origAbsUrl(unproxyUrl(ln), origBase);
+            segments.push(proxyUrl(absSeg));
+          }
+        }
+      }
+
+      return { isMaster: isMaster, isLive: isLive && !isMaster, bestProxyUrl: bestProxyUrl, bestOrigUrl: bestOrigUrl, segments: segments };
+    }
+
+    try {
+      var origUrl = _currentStreamUrl; // original CDN URL (un-proxied)
+
+      // Fetch master/media playlist through the proxy
+      var resp = await fetch(proxyUrl(origUrl), { signal: signal });
+      if (!resp.ok) throw new Error('Playlist fetch failed (' + resp.status + ')');
+      var m3u8Text = await resp.text();
+      var parsed = parseM3U8(m3u8Text, origUrl);
+
+      // If it's a master playlist, follow to the best quality variant
+      if (parsed.isMaster) {
+        if (!parsed.bestProxyUrl) throw new Error('No quality variant found in master playlist');
+        if (txt) txt.textContent = 'Fetching quality stream…';
+        resp = await fetch(parsed.bestProxyUrl, { signal: signal });
+        if (!resp.ok) throw new Error('Variant fetch failed (' + resp.status + ')');
+        m3u8Text = await resp.text();
+        parsed = parseM3U8(m3u8Text, parsed.bestOrigUrl || origUrl);
+      }
+
+      if (parsed.isLive) {
+        _resetDownloadUI();
+        if (typeof App !== 'undefined') App.showToast('Live streams cannot be downloaded');
+        return;
+      }
+
+      var segs = parsed.segments;
+      if (!segs.length) throw new Error('No segments found in playlist');
+
+      if (typeof App !== 'undefined') App.showToast('Downloading ' + segs.length + ' segments — save .ts and open in VLC');
+
+      // Try File System Access API for streaming write (avoids memory limits on large files)
+      var writable = null;
+      if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+        try {
+          var fh = await window.showSaveFilePicker({
+            suggestedName: safeName + '.ts',
+            types: [{ description: 'Video (MPEG-TS)', accept: { 'video/mp2t': ['.ts'] } }]
+          });
+          writable = await fh.createWritable();
+        } catch(e) {
+          if (e.name === 'AbortError') { _resetDownloadUI(); return; } // user cancelled picker
+          writable = null; // FSA not available — fall back to in-memory blob
+        }
+      }
+
+      var collected = writable ? null : [];
+      var totalBytes = 0;
+      var MAX_BLOB = 600 * 1024 * 1024; // 600 MB safety cap for blob path
+      var failed = 0;
+      var BATCH = 4; // parallel fetches per tick
+
+      for (var i = 0; i < segs.length; i += BATCH) {
+        if (signal.aborted) break;
+
+        var batch = segs.slice(i, i + BATCH);
+        var results = await Promise.all(batch.map(function(u) {
+          return fetch(u, { signal: signal })
+            .then(function(r) { return r.ok ? r.arrayBuffer() : Promise.reject(r.status); })
+            .then(function(ab) { return new Uint8Array(ab); })
+            .catch(function() { return null; });
+        }));
+
+        for (var j = 0; j < results.length; j++) {
+          var chunk = results[j];
+          if (!chunk) { failed++; continue; }
+          if (writable) {
+            await writable.write(chunk);
+          } else {
+            if (totalBytes + chunk.byteLength > MAX_BLOB) break; // cap reached
+            collected.push(chunk);
+            totalBytes += chunk.byteLength;
+          }
+        }
+
+        setProgress(Math.min(i + BATCH, segs.length), segs.length);
+      }
+
+      if (signal.aborted) {
+        if (writable) try { await writable.abort(); } catch(e) {}
+        _resetDownloadUI();
+        return;
+      }
+
+      if (writable) {
+        await writable.close();
+      } else if (collected && collected.length) {
+        if (txt) txt.textContent = 'Saving…';
+        var totalLen = collected.reduce(function(s, c) { return s + c.byteLength; }, 0);
+        var output = new Uint8Array(totalLen);
+        var off = 0;
+        collected.forEach(function(c) { output.set(c, off); off += c.byteLength; });
+        var dlBlob = new Blob([output], { type: 'video/mp2t' });
+        var dlObjUrl = URL.createObjectURL(dlBlob);
+        var dlA = document.createElement('a');
+        dlA.href = dlObjUrl;
+        dlA.download = safeName + '.ts';
+        document.body.appendChild(dlA);
+        dlA.click();
+        document.body.removeChild(dlA);
+        setTimeout(function() { URL.revokeObjectURL(dlObjUrl); }, 5000);
+      }
+
+      _hlsDownloadController = null;
+      if (btn)  { btn.classList.remove('dl-active'); btn.classList.add('dl-done'); }
+      if (fill) fill.style.width = '100%';
+      if (txt)  txt.textContent = failed ? '✓ (' + failed + ' missing)' : '✓ Done';
+      if (typeof App !== 'undefined') App.showToast(
+        'Download done! Open the .ts file in VLC.' + (failed ? ' (' + failed + ' segments failed)' : ''));
+      setTimeout(function() {
+        if (btn) btn.classList.remove('dl-done');
+        if (row) row.classList.remove('dl-active');
+      }, 6000);
+
+    } catch(e) {
+      _hlsDownloadController = null;
+      if (e.name === 'AbortError') { _resetDownloadUI(); return; }
+      console.error('[DL] HLS error:', e);
+      _resetDownloadUI();
+      if (typeof App !== 'undefined') App.showToast('Download failed: ' + (e.message || String(e)));
+    }
+  }
+
+  function _startFileDownload(btn, row, fill, txt) {
+    // Show progress UI
+    if (btn)  btn.classList.add('dl-active');
+    if (row)  row.classList.add('dl-active');
+    if (fill) fill.style.width = '0%';
+    if (txt)  txt.textContent = '0%';
+
+    var filename = (_titleCache ? _titleCache.replace(/[^a-zA-Z0-9 ]/g, '_').slice(0, 80) : 'video') + '.mp4';
+
+    var xhr = new XMLHttpRequest();
+    _dlXhr = xhr;
+    xhr.open('GET', _currentStreamUrl, true);
+    xhr.responseType = 'blob';
+
+    xhr.onprogress = function(e) {
+      if (e.lengthComputable) {
+        var pct = Math.round(e.loaded / e.total * 100);
+        if (fill) fill.style.width = pct + '%';
+        if (txt)  txt.textContent = pct + '%';
+      } else {
+        if (txt) txt.textContent = Math.round(e.loaded / 1e6) + 'MB';
+      }
+    };
+
+    xhr.onload = function() {
+      _dlXhr = null;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        var objUrl = URL.createObjectURL(xhr.response);
+        var a = document.createElement('a');
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(objUrl); }, 2000);
+
+        if (btn)  { btn.classList.remove('dl-active'); btn.classList.add('dl-done'); }
+        if (fill) { fill.style.width = '100%'; }
+        if (txt)  { txt.textContent = '✓'; }
+        if (typeof App !== 'undefined') App.showToast('Download complete!');
+
+        setTimeout(function() {
+          if (btn) btn.classList.remove('dl-done');
+          if (row) row.classList.remove('dl-active');
+        }, 4000);
+      } else {
+        _resetDownloadUI();
+        if (typeof App !== 'undefined') App.showToast('Download failed (' + xhr.status + ')');
+      }
+    };
+
+    xhr.onerror = function() {
+      _dlXhr = null;
+      _resetDownloadUI();
+      if (typeof App !== 'undefined') App.showToast('Download failed');
+    };
+
+    xhr.onabort = function() { _dlXhr = null; _resetDownloadUI(); };
+
+    xhr.send();
+  }
+
   function stopAvPlay() {
     // Save final position before stopping
     if (_progressInterval) { clearInterval(_progressInterval); _progressInterval = null; }
+    // Cancel any active download (XHR or HLS segment fetch)
+    if (_dlXhr) { try { _dlXhr.abort(); } catch(e) {} _dlXhr = null; }
+    if (_hlsDownloadController) { try { _hlsDownloadController.abort(); } catch(e) {} _hlsDownloadController = null; }
+    _resetDownloadUI();
+    // Tear down any active WebTorrent session
+    stopWebTorrent();
     // Web: save hls.js watch position before destroying the video
     if (_hlsInstance) {
       try {
@@ -593,12 +1047,12 @@
     return PROXY_BASE + '/?url=' + encodeURIComponent(streamUrl) + (h ? '&headers=' + encodeURIComponent(h) : '');
   }
 
-  function playWithHlsJs(streamUrl, headers) {
-    // Stream URL is already routed through the CF Worker proxy (see playWithUrl).
-    // The proxy injects the correct Referer/Origin headers and rewrites all segment
-    // URLs back through itself, so hls.js just loads the proxied manifest URL.
+  function playWithHlsJs(streamUrl, headers, _isDirect) {
+    // streamUrl may be a direct CDN URL or a proxied URL depending on _isDirect.
+    // Direct mode: browser IP is usually not blocked by CDNs (only CF Worker IPs are).
+    // Proxy mode: used as fallback — adds Referer/Origin and rewrites segment URLs.
     var playUrl = streamUrl;
-    console.log('[Player] playWithHlsJs via proxy:', playUrl.slice(0, 80));
+    console.log('[Player] playWithHlsJs ' + (_isDirect ? 'direct:' : 'via proxy:'), playUrl.slice(0, 80));
     // Real HLS stream — restore controls and remove embed tab listener
     _removeEmbedFocusToast();
     var _pm = document.getElementById('player-modal');
@@ -673,8 +1127,23 @@
       hls.on(Hls.Events.ERROR, function(ev, data) {
         console.error('[Player] HLS error:', data.type, data.details, data.fatal);
         if (data.fatal) {
-          _streamErrorRetries = 0;
-          trySource(0);
+          if (_isDirect) {
+            // Direct CDN access failed — retry through the CF Worker proxy
+            console.log('[Player] Direct HLS failed, retrying via proxy');
+            var proxied = buildProxyUrl(_currentStreamUrl, _qualityHeaders);
+            playWithHlsJs(proxied, _qualityHeaders, false);
+          } else {
+            // Both direct and proxy failed — try the next stream source (e.g. Vidrock after Videasy CDN fails)
+            _streamErrorRetries++;
+            if (_streamErrorRetries <= 2) {
+              console.log('[Player] CDN blocked, trying next stream source...');
+              setPlayerStatus('Trying another source...');
+              loadBestSource();
+            } else {
+              _streamErrorRetries = 0;
+              trySource(0);
+            }
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -687,19 +1156,32 @@
   }
 
   function playWithUrl(url, headers) {
+    _currentStreamUrl = url;  // store original URL for download button
+
+    // Show download button for all non-TV streams (TV hidden via CSS).
+    // HLS streams use segment-fetch download; direct MP4 uses XHR blob download.
+    var dlBtn = document.getElementById('player-dl-btn');
+    if (dlBtn) dlBtn.style.display = '';
+
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
 
-    // TV always proxies (TLS compat + Referer injection).
-    // Browser proxies for CORS and segment URL rewriting.
-    var playUrl = buildProxyUrl(url, headers);
-
     if (typeof webapis === 'undefined' || !webapis.avplay) {
-      playWithHlsJs(playUrl, headers);
+      // Web/mobile: for CDN-auth streams try the URL DIRECTLY first.
+      // CDNs like mooncarpet.site block CF Worker datacenter IPs with 403,
+      // but allow residential browser IPs. Try direct, fall back to proxy on fatal error.
+      var hasHeaders = headers && Object.keys(headers).length > 0;
+      if (hasHeaders) {
+        playWithHlsJs(url, headers, true); // true = direct mode, will proxy on failure
+      } else {
+        var playUrl = buildProxyUrl(url, headers);
+        playWithHlsJs(playUrl, headers, false);
+      }
       return;
     }
 
     // TV: AVPlay via proxy
+    var playUrl = buildProxyUrl(url, headers);
     console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     // Restore controls in case we're retrying after an iframe embed
     _removeEmbedFocusToast();
@@ -875,6 +1357,10 @@
           var _prefQ = _savedPrefLabel && _availableQualities.find(function(q) { return q.label === _savedPrefLabel; });
           playWithUrl(_prefQ ? _prefQ.url : result.url, result.headers);
           renderQualityDropdown();
+        } else if (result && result.type === 'torrent') {
+          console.log('[Player] torrent source:', result.quality, result.hash && result.hash.slice(0, 8));
+          setPlayerStatus('Loading torrent...');
+          playWithWebTorrent(result.magnetURI);
         } else {
           console.log('[Player] no stream, falling back to embeds');
           trySource(0);
@@ -1176,6 +1662,13 @@
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z"/><rect x="16" y="6" width="2" height="12"/></svg>
               <span>Next</span></button>` : ''}
           </div>
+          <button id="player-dl-btn" class="player-dl-btn" title="Download" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
           <div id="quality-dd-wrap" class="player-cbar-quality">
             ${TVDropdown.html('quality-dd', [{ value: 'auto', label: 'Auto' }], 'auto')}
           </div>
@@ -1186,6 +1679,13 @@
             <div id="progress-fill" class="player-cbar-fill"></div>
           </div>
           <span id="player-time" class="player-cbar-time">0:00 / 0:00</span>
+        </div>
+        <!-- Download progress (appears below seek bar when active) -->
+        <div id="player-dl-row" class="player-dl-row">
+          <div class="player-dl-track">
+            <div id="player-dl-fill" class="player-dl-fill"></div>
+          </div>
+          <span id="player-dl-text" class="player-dl-text">0%</span>
         </div>
       </div>
 
@@ -1219,6 +1719,10 @@
     var nextBtn = document.getElementById('ctrl-next');
     if (prevBtn) prevBtn.addEventListener('click', function() { goPrevEpisode(); showPlayerUI(); });
     if (nextBtn) nextBtn.addEventListener('click', function() { goNextEpisode(); showPlayerUI(); });
+
+    // Download button (web/mobile only — hidden on TV via CSS)
+    var dlBtn = document.getElementById('player-dl-btn');
+    if (dlBtn) dlBtn.addEventListener('click', function() { _handleDownload(); });
 
     Nav.reset(modal);
     loadBestSource();
