@@ -93,9 +93,13 @@ var StreamResolver = function () {
   }
 
   // ── Videasy ────────────────────────────────────────────
-  // Live endpoints only (verified 2026-06-05 — mb-flix, cdn, hdmovie, lamovie respond;
-  // moviebox/1movies=404, m4uhd/meine/superflix=500 → removed to cut resolve time).
-  var VIDEASY_ENDPOINTS = ['https://api.videasy.to/mb-flix/sources-with-title', 'https://api.videasy.to/cdn/sources-with-title', 'https://api.videasy.to/hdmovie/sources-with-title', 'https://api.videasy.to/lamovie/sources-with-title'];
+  // Live endpoints verified 2026-06-10:
+  //   lamovie → vimeos.net CDN (cors:*, works direct + proxy) ✅
+  //   cdn     → mooncarpet.site CDN (403 for all external IPs) ✅ API but ❌ CDN
+  //   mb-flix → 404 (endpoint removed)
+  //   hdmovie → timeout (dead)
+  // lamovie first — its CDN (vimeos.net) is the only one that actually streams.
+  var VIDEASY_ENDPOINTS = ['https://api.videasy.to/lamovie/sources-with-title', 'https://api.videasy.to/cdn/sources-with-title'];
   var VIDEASY_ORIGIN = 'https://player.videasy.to';
   var BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
   function resolveVideasy(tmdbId, type, title, year, season, episode, imdbId) {
