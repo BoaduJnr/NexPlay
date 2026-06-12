@@ -42,6 +42,17 @@ var App = function () {
           expandSidebar(false);
         }, true);
 
+        // Google Sign-In
+        if (typeof GoogleAuth !== 'undefined') GoogleAuth.init();
+
+        // Cloud sync (Deno KV) — init then pull saved data to local storage
+        if (typeof CloudSync !== 'undefined') {
+          CloudSync.init();
+          CloudSync.syncDown().then(function () {
+            console.log('[App] CloudSync down complete');
+          });
+        }
+
         // Start on Home
         navigateFull('home');
 
@@ -344,14 +355,15 @@ var App = function () {
     iptv: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n      <path d=\"M8 19v2M16 19v2M2 10h20\"/>\n    </svg>",
     search: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <circle cx=\"11\" cy=\"11\" r=\"8\"/>\n      <line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>\n    </svg>",
     favourites: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z\"/>\n    </svg>",
-    watchlist: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/>\n    </svg>"
+    watchlist: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/>\n    </svg>",
+    account: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n      <path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/>\n      <circle cx=\"12\" cy=\"7\" r=\"4\"/>\n    </svg>"
   };
 
   // ── Sidebar ─────────────────────────────────────────────
   function buildSidebar() {
     var sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
-    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">exPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"favourites\" tabindex=\"0\">\n            ").concat(ICONS.favourites, "<span class=\"nav-label\">Favourites</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"watchlist\" tabindex=\"0\">\n            ").concat(ICONS.watchlist, "<span class=\"nav-label\">Watchlist</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n      </ul>");
+    sidebar.innerHTML = "\n      <div class=\"sidebar-logo\">\n        <div class=\"logo-mark\">N</div>\n        <span class=\"logo-text\">exPlay</span>\n      </div>\n      <ul class=\"sidebar-nav\">\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"home\" tabindex=\"0\">\n            ".concat(ICONS.home, "<span class=\"nav-label\">Home</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"movies\" tabindex=\"0\">\n            ").concat(ICONS.movies, "<span class=\"nav-label\">Movies</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"series\" tabindex=\"0\">\n            ").concat(ICONS.series, "<span class=\"nav-label\">Series</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"favourites\" tabindex=\"0\">\n            ").concat(ICONS.favourites, "<span class=\"nav-label\">Favourites</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"watchlist\" tabindex=\"0\">\n            ").concat(ICONS.watchlist, "<span class=\"nav-label\">Watchlist</span>\n          </div>\n        </li>\n        <li>\n          <div class=\"nav-item\" data-nav data-nav-page=\"iptv\" tabindex=\"0\">\n            ").concat(ICONS.iptv, "<span class=\"nav-label\">Live TV</span>\n          </div>\n        </li>\n        <li id=\"nav-account-item\" class=\"nav-account-item\">\n          <div id=\"nav-account-inner\" class=\"nav-item nav-item-account\" data-nav tabindex=\"0\">\n            ").concat(ICONS.account, "<span class=\"nav-label\">Sign In</span>\n          </div>\n        </li>\n      </ul>");
     sidebar.querySelectorAll('[data-nav-page]').forEach(function (el) {
       el.addEventListener('click', function () {
         return navigate(el.dataset.navPage);
@@ -360,6 +372,29 @@ var App = function () {
         return expandSidebar(true);
       });
     });
+
+    // Account item — opens sign-in panel (not a page)
+    var accountItem = document.getElementById('nav-account-inner');
+    if (accountItem) {
+      accountItem.addEventListener('click', function () {
+        expandSidebar(false);
+        if (typeof GoogleAuth !== 'undefined') GoogleAuth.openPanel();
+      });
+      accountItem.addEventListener('nav:focus', function () {
+        expandSidebar(true);
+      });
+    }
+
+    // Mobile FAB — floating account button (top-right, mobile only)
+    var fab = document.createElement('button');
+    fab.id = 'account-fab';
+    fab.className = 'account-fab';
+    fab.title = 'Sign In';
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    fab.addEventListener('click', function () {
+      if (typeof GoogleAuth !== 'undefined') GoogleAuth.openPanel();
+    });
+    document.body.appendChild(fab);
   }
   function expandSidebar(on) {
     var sidebar = document.getElementById('sidebar');
@@ -489,6 +524,7 @@ var App = function () {
     navigate: navigateFull,
     genreMap: genreMap,
     cycleTheme: cycleTheme,
+    applyTheme: applyTheme,
     showToast: showToast
   };
 }();

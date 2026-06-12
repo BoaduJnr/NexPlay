@@ -696,7 +696,7 @@ var StreamResolver = function () {
       if (result) return result;
       if (_isTV) return null;
       console.log('[StreamResolver] torrent N/A, scraping embeds...');
-      return tryScrapeUrls(['https://vidsrc.me/embed/movie?tmdb=' + tmdbId, 'https://multiembed.mov/?video_id=' + tmdbId + '&tmdb=1']);
+      return tryScrapeUrls(['https://www.vidsrc.wtf/1/movie/' + tmdbId, 'https://vidsrc.me/embed/movie?tmdb=' + tmdbId, 'https://multiembed.mov/?video_id=' + tmdbId + '&tmdb=1']);
     }).catch(function (e) {
       console.log('[StreamResolver] resolveMovie error:', e.message);
       return null;
@@ -716,7 +716,7 @@ var StreamResolver = function () {
     }).then(function (result) {
       if (result || _isTV) return result;
       console.log('[StreamResolver] step2 failed, scraping embeds...');
-      return tryScrapeUrls(['https://vidsrc.xyz/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode, 'https://vidsrc.me/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode]);
+      return tryScrapeUrls(['https://www.vidsrc.wtf/1/tv/' + tmdbId + '/' + season + '/' + episode, 'https://vidsrc.xyz/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode, 'https://vidsrc.me/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode]);
     }).catch(function (e) {
       console.log('[StreamResolver] resolveTVEpisode error:', e.message);
       return null;

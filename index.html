@@ -12,7 +12,7 @@
   <meta http-equiv="Content-Security-Policy"
     content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com;
       style-src 'self' 'unsafe-inline';
       img-src 'self' https: data: blob:;
       media-src 'self' https: blob:;
@@ -43,6 +43,9 @@
 
 </div>
 
+<!-- ── Google Identity Services (web/mobile only — gracefully ignored on TV) ── -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <!-- ── Scripts (order matters — dependencies first) ── -->
 <script src="polyfills.js"></script>
 <script src="hls.min.js"></script>
@@ -52,6 +55,9 @@
 <script src="js-dist/api/iptv.js"></script>
 <script src="js-dist/api/stream.js"></script>
 <script src="js-dist/api/epg.js"></script>
+<script src="js-dist/api/subtitles.js"></script>
+<script src="js-dist/api/cloudsync.js"></script>
+<script src="js-dist/api/google-auth.js"></script>
 <script src="js-dist/nav.js"></script>
 <script src="js-dist/dropdown.js"></script>
 <script src="js-dist/utils.js"></script>

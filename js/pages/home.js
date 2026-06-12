@@ -34,6 +34,7 @@
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?'♥':'♡'}</button>
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(movie.id,'movie')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           </div>
+          <div class="card-ia-rating card-ia-na" id="ia-${movie.id}" title="No NexPlay ratings yet">N/A</div>
           <div class="card-prog" id="cprog-${movie.id}" data-type="movie"></div>
         </div>
       </div>`;
@@ -139,6 +140,7 @@
     bindCardClicks(el);
     UX.fillProgressBars(el);
     Nav.reset(el.closest('.section'));
+    UX.fetchInAppRatings(movies.map(function(m) { return String(m.id); }));
   }
 
   function bindCardClicks(container) {
@@ -182,6 +184,7 @@
         if (favIcon) favIcon.textContent = added ? '♥' : '♡';
         hibFav.classList.toggle('hib-active', added);
         App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       });
     }
 
@@ -191,6 +194,7 @@
         var added = NexPlayDB.toggleWatchlist(heroId, 'movie', heroTitle, '');
         hibWL.classList.toggle('hib-active', added);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       });
     }
 
@@ -216,11 +220,13 @@
         const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(movieId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
         const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.YELLOW) {
         e.preventDefault();
         App.navigate('detail', { id: movieId, type: 'movie' });

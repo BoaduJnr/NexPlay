@@ -41,6 +41,7 @@ const FavouritesPage = (() => {
         e.preventDefault();
         NexPlayDB.toggleFavourite(id, type, title, poster);
         App.showToast('Removed from Favourites');
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
         // Re-render to reflect removal
         var content = document.getElementById('main-content');
         if (content) render(content);

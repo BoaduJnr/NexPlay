@@ -33,7 +33,7 @@ var UX = (function() {
           if (latest.season && latest.episode) {
             var badge = document.createElement('div');
             badge.className = 'ep-badge';
-            badge.style.cssText = 'position:absolute;bottom:8px;left:6px;background:rgba(0,0,0,0.78);color:rgba(255,255,255,0.92);font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:0.5px;z-index:5;line-height:1.2;';
+            badge.style.cssText = 'position:absolute;bottom:8px;right:6px;background:rgba(0,0,0,0.78);color:rgba(255,255,255,0.92);font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;letter-spacing:0.5px;z-index:5;line-height:1.2;';
             badge.textContent = 'S' + latest.season + 'E' + latest.episode;
             poster.appendChild(badge);
           }
@@ -98,14 +98,53 @@ var UX = (function() {
       if (typeof App !== 'undefined') App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
       var b = document.getElementById('badges-' + id);
       if (b) b.innerHTML = badgesHTML(id, type);
+      if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
     } else if (action === 'wl') {
       var addedWL = NexPlayDB.toggleWatchlist(id, type, title, poster);
       btn.classList.toggle('wl-active', addedWL);
       if (typeof App !== 'undefined') App.showToast(addedWL ? '+ Added to Watchlist' : 'Removed from Watchlist');
       var b2 = document.getElementById('badges-' + id);
       if (b2) b2.innerHTML = badgesHTML(id, type);
+      if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
     }
   }, true); // capture phase
 
-  return { fillProgressBars: fillProgressBars, badgesHTML: badgesHTML, skeletonCards: skeletonCards };
+  // ── In-app ratings batch fetch ──────────────────────────────────────────────
+  // Fetches avg ratings for a list of movie/show IDs from Deno KV,
+  // then updates .card-ia-rating[id="ia-{id}"] badges in the DOM.
+  function fetchInAppRatings(ids) {
+    if (!ids || !ids.length) return;
+    var h    = window.location.hostname;
+    var base = (h === 'localhost' || h === '127.0.0.1' || window.location.protocol === 'https:')
+               ? '' : (typeof Config !== 'undefined' && Config.DEPLOY_URL ? Config.DEPLOY_URL : '');
+    var url  = base + '/api/ratings?ids=' + ids.slice(0, 100).join(',');
+    var xhr  = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.timeout = 8000;
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      var data;
+      try { data = JSON.parse(xhr.responseText); } catch(e) { return; }
+      var ids2 = Object.keys(data);
+      for (var i = 0; i < ids2.length; i++) {
+        var id  = ids2[i];
+        var el  = document.getElementById('ia-' + id);
+        if (!el) continue;
+        var r = data[id];
+        if (r && r.count > 0) {
+          el.textContent = '★ ' + parseFloat(r.avg).toFixed(1);
+          el.title       = 'NexPlay: ' + r.count + (r.count === 1 ? ' rating' : ' ratings');
+          el.className   = 'card-ia-rating';
+        } else {
+          el.textContent = 'N/A';
+          el.className   = 'card-ia-rating card-ia-na';
+          el.title       = 'No NexPlay ratings yet';
+        }
+      }
+    };
+    xhr.onerror = xhr.ontimeout = function() {};
+    xhr.send();
+  }
+
+  return { fillProgressBars: fillProgressBars, badgesHTML: badgesHTML, skeletonCards: skeletonCards, fetchInAppRatings: fetchInAppRatings };
 })();

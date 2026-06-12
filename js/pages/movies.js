@@ -58,6 +58,7 @@ const MoviesPage = (() => {
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(movie.id,'movie')?'♥':'♡'}</button>
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(movie.id,'movie')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           </div>
+          <div class="card-ia-rating card-ia-na" id="ia-${movie.id}" title="No NexPlay ratings yet">N/A</div>
           <div class="card-prog" id="cprog-${movie.id}" data-type="movie"></div>
         </div>
       </div>`;
@@ -125,6 +126,7 @@ const MoviesPage = (() => {
       }
       bindCardClicks(grid);
       UX.fillProgressBars(grid);
+      UX.fetchInAppRatings(data.results.map(function(m) { return String(m.id); }));
       if (replace) {
         var _si  = document.getElementById('movie-search-input');
         var _sw  = document.getElementById('movie-search-wrap');
@@ -225,11 +227,13 @@ const MoviesPage = (() => {
         const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(movieId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
         const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.YELLOW) {
         e.preventDefault();
         App.navigate('detail', { id: movieId, type: 'movie' });

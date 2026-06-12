@@ -1301,6 +1301,7 @@ var IPTVPage = function () {
     if (_showFavsOnly && !added) {
       applyFavFilter(true);
     }
+    if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
   }
   function applyFavFilter(show) {
     _showFavsOnly = show;

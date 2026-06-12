@@ -52,6 +52,7 @@
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(show.id,'tv')?' fav-active':''}" data-action="fav" title="Favourite">${typeof NexPlayDB!=='undefined'&&NexPlayDB.isFavourite(show.id,'tv')?'♥':'♡'}</button>
             <button class="card-action-btn${typeof NexPlayDB!=='undefined'&&NexPlayDB.isInWatchlist(show.id,'tv')?' wl-active':''}" data-action="wl" title="Watchlist"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
           </div>
+          <div class="card-ia-rating card-ia-na" id="ia-${show.id}" title="No NexPlay ratings yet">N/A</div>
           <div class="card-prog" id="cprog-${show.id}" data-type="tv"></div>
         </div>
       </div>`;
@@ -88,11 +89,13 @@
         const added = NexPlayDB.toggleFavourite(showId, 'tv', title, poster);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(showId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
         const added = NexPlayDB.toggleWatchlist(showId, 'tv', title, poster);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(showId);
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.YELLOW) {
         e.preventDefault();
         App.navigate('detail', { id: showId, type: 'tv' });
@@ -196,6 +199,7 @@
       if (replace) { grid.innerHTML = cards; } else { grid.insertAdjacentHTML('beforeend', cards); }
       bindCardClicks(grid);
       UX.fillProgressBars(grid);
+      UX.fetchInAppRatings(data.results.map(function(s) { return String(s.id); }));
       if (replace) {
         var _si  = document.getElementById('series-search-input');
         var _sw  = document.getElementById('series-search-wrap');

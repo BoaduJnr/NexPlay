@@ -140,6 +140,10 @@ const App = (() => {
     watchlist: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
     </svg>`,
+    account: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>`,
   };
 
   // ── Sidebar ─────────────────────────────────────────────
@@ -183,12 +187,38 @@ const App = (() => {
             ${ICONS.iptv}<span class="nav-label">Live TV</span>
           </div>
         </li>
+        <li id="nav-account-item" class="nav-account-item">
+          <div id="nav-account-inner" class="nav-item nav-item-account" data-nav tabindex="0">
+            ${ICONS.account}<span class="nav-label">Sign In</span>
+          </div>
+        </li>
       </ul>`;
 
     sidebar.querySelectorAll('[data-nav-page]').forEach(el => {
       el.addEventListener('click', () => navigate(el.dataset.navPage));
       el.addEventListener('nav:focus', () => expandSidebar(true));
     });
+
+    // Account item — opens sign-in panel (not a page)
+    var accountItem = document.getElementById('nav-account-inner');
+    if (accountItem) {
+      accountItem.addEventListener('click', function() {
+        expandSidebar(false);
+        if (typeof GoogleAuth !== 'undefined') GoogleAuth.openPanel();
+      });
+      accountItem.addEventListener('nav:focus', function() { expandSidebar(true); });
+    }
+
+    // Mobile FAB — floating account button (top-right, mobile only)
+    var fab = document.createElement('button');
+    fab.id        = 'account-fab';
+    fab.className = 'account-fab';
+    fab.title     = 'Sign In';
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    fab.addEventListener('click', function() {
+      if (typeof GoogleAuth !== 'undefined') GoogleAuth.openPanel();
+    });
+    document.body.appendChild(fab);
   }
 
   function expandSidebar(on) {
@@ -412,6 +442,17 @@ const App = (() => {
       expandSidebar(false);
     }, true);
 
+    // Google Sign-In
+    if (typeof GoogleAuth !== 'undefined') GoogleAuth.init();
+
+    // Cloud sync (Deno KV) — init then pull saved data to local storage
+    if (typeof CloudSync !== 'undefined') {
+      CloudSync.init();
+      CloudSync.syncDown().then(function() {
+        console.log('[App] CloudSync down complete');
+      });
+    }
+
     // Start on Home
     navigateFull('home');
 
@@ -433,7 +474,7 @@ const App = (() => {
     showToast._t = setTimeout(function() { toast.classList.remove('visible'); }, duration || 2500);
   }
 
-  return { init, navigate: navigateFull, genreMap, cycleTheme, showToast };
+  return { init, navigate: navigateFull, genreMap, cycleTheme, applyTheme, showToast };
 })();
 
 // Boot when DOM is ready

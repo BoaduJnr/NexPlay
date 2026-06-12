@@ -2,6 +2,12 @@
 
   const SOURCES = [
     {
+      id: 'vidsrc-wtf',
+      label: 'VidSrc WTF',
+      movieUrl: id       => `https://www.vidsrc.wtf/1/movie/${id}`,
+      tvUrl:  (id, s, e) => `https://www.vidsrc.wtf/1/tv/${id}/${s}/${e}`,
+    },
+    {
       id: 'videasy',
       label: 'Videasy',
       movieUrl: id       => `https://player.videasy.to/movie/${id}`,
@@ -570,6 +576,431 @@
     });
   }
 
+  // ── Settings panel — Quality · Subtitles · Download · Who's Watching ──
+  var _subActiveLang  = null;
+  var _dlQualityIdx   = 0;
+  var _watchingTimer  = null;   // heartbeat interval for "now watching"
+  var _watchingMovieId = null;  // current movie ID being broadcast
+
+  // ── Watching helpers ──────────────────────────────────────────────────
+  function _escHtmlP(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _watchingApiBase() {
+    var h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || window.location.protocol === 'https:') return '';
+    if (typeof Config !== 'undefined' && Config.DEPLOY_URL) return Config.DEPLOY_URL;
+    return '';
+  }
+
+  function _sendWatchingStatus() {
+    if (!_watchingMovieId) return;
+    var user = (typeof GoogleAuth !== 'undefined') ? GoogleAuth.getUser() : null;
+    if (!user) return;
+    var base = _watchingApiBase();
+    if (!base && window.location.protocol === 'file:') return;
+    var hidden = localStorage.getItem('np_status_hidden') === '1';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', base + '/api/watching', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.timeout = 5000;
+    xhr.send(JSON.stringify({
+      uid:        'g_' + user.sub,
+      movieId:    _watchingMovieId,
+      movieTitle: _titleCache || '',
+      name:       (user.firstName || '') + (user.lastName ? ' ' + user.lastName : ''),
+      picture:    user.picture || '',
+      hidden:     hidden,
+    }));
+  }
+
+  function _startWatchingHeartbeat(movieId) {
+    _stopWatchingHeartbeat();
+    _watchingMovieId = String(movieId);
+    _sendWatchingStatus();
+    _watchingTimer = setInterval(_sendWatchingStatus, 60000);
+  }
+
+  function _stopWatchingHeartbeat() {
+    if (_watchingTimer) { clearInterval(_watchingTimer); _watchingTimer = null; }
+    _watchingMovieId = null;
+  }
+
+  function _fetchWatchers(movieId, wListEl, wCountEl) {
+    if (!movieId || !wListEl) return;
+    var user = (typeof GoogleAuth !== 'undefined') ? GoogleAuth.getUser() : null;
+    var uid  = user ? ('g_' + user.sub) : '';
+    var base = _watchingApiBase();
+    var url  = base + '/api/watching?id=' + encodeURIComponent(movieId) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
+    var xhr  = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.timeout = 6000;
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      var watchers;
+      try { watchers = JSON.parse(xhr.responseText); } catch(e) { return; }
+      if (wCountEl) wCountEl.textContent = watchers.length > 0 ? watchers.length + ' watching' : 'Just you';
+      if (!watchers.length) {
+        wListEl.innerHTML = '<div class="ps-watching-empty">No one else watching right now</div>';
+        return;
+      }
+      wListEl.innerHTML = watchers.map(function(w) {
+        return '<div class="ps-watching-item">' +
+          '<span class="ps-watching-av">' +
+            (w.picture
+              ? '<img src="' + _escHtmlP(w.picture) + '" class="ps-watching-avatar" onerror="this.style.display=\'none\'">'
+              : '<span class="ps-watching-avatar-ph">' + (w.name||'?')[0].toUpperCase() + '</span>') +
+            '<span class="online-dot ps-watching-online"></span>' +
+          '</span>' +
+          '<span class="ps-watching-name">' + _escHtmlP(w.name||'Someone') + '</span>' +
+        '</div>';
+      }).join('');
+    };
+    xhr.onerror = xhr.ontimeout = function() {
+      if (wCountEl) wCountEl.textContent = '';
+    };
+    xhr.send();
+  }
+
+  function _closeSettingsPanel() {
+    var p = document.getElementById('player-settings-panel');
+    if (p && p.parentNode) p.parentNode.removeChild(p);
+  }
+
+  function _toggleSettingsPanel() {
+    if (document.getElementById('player-settings-panel')) { _closeSettingsPanel(); return; }
+    _buildSettingsPanel();
+  }
+
+  function _buildSettingsPanel() {
+    var wrap = document.getElementById('player-settings-wrap');
+    if (!wrap) return;
+
+    var panel = document.createElement('div');
+    panel.id = 'player-settings-panel';
+    panel.className = 'player-settings-panel';
+    wrap.appendChild(panel);
+
+    // Close on outside click
+    setTimeout(function() {
+      document.addEventListener('click', function onOut(e) {
+        var p = document.getElementById('player-settings-panel');
+        var btn = document.getElementById('player-settings-btn');
+        if (!p) { document.removeEventListener('click', onOut, true); return; }
+        if (!p.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+          _closeSettingsPanel();
+          document.removeEventListener('click', onOut, true);
+        }
+      }, true);
+    }, 80);
+
+    _renderSettingsPanel(panel);
+  }
+
+  // ── Shared: build a styled dropdown (trigger + list) ─────────────────
+  function _makeDropdown(opts, selectedIdx, placeholder, onSelect, up) {
+    // opts = [{ label, value, html? }]
+    var wrap = document.createElement('div');
+    wrap.className = 'ps-dd-wrap' + (up ? ' ps-dd-wrap-up' : '');
+
+    var trigger = document.createElement('button');
+    trigger.className = 'ps-dd-trigger';
+    var current = opts[selectedIdx] || opts[0];
+    trigger.innerHTML = (current ? (current.html || current.label) : placeholder)
+      + '<svg class="ps-dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>';
+    wrap.appendChild(trigger);
+
+    var list = document.createElement('div');
+    list.className = 'ps-dd-list hidden';
+    opts.forEach(function(opt, i) {
+      var item = document.createElement('button');
+      item.className = 'ps-dd-item' + (i === selectedIdx ? ' ps-dd-item-active' : '');
+      item.innerHTML = (opt.html || opt.label)
+        + (i === selectedIdx ? '<svg class="ps-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>' : '');
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        trigger.innerHTML = (opt.html || opt.label)
+          + '<svg class="ps-dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>';
+        list.querySelectorAll('.ps-dd-item').forEach(function(it, ii) {
+          it.classList.toggle('ps-dd-item-active', ii === i);
+          var ck = it.querySelector('.ps-dd-check');
+          if (ii === i && !ck) it.innerHTML += '<svg class="ps-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>';
+          else if (ii !== i && ck) ck.parentNode.removeChild(ck);
+        });
+        list.classList.add('hidden');
+        trigger.classList.remove('ps-dd-open');
+        onSelect(opt, i);
+      });
+      list.appendChild(item);
+    });
+    wrap.appendChild(list);
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = !list.classList.contains('hidden');
+      // Close all other open dropdowns in the panel
+      var panel = document.getElementById('player-settings-panel');
+      if (panel) panel.querySelectorAll('.ps-dd-list').forEach(function(l) { l.classList.add('hidden'); });
+      document.querySelectorAll('.ps-dd-trigger').forEach(function(t) { t.classList.remove('ps-dd-open'); });
+      if (!isOpen) {
+        list.classList.remove('hidden');
+        trigger.classList.add('ps-dd-open');
+      }
+    });
+
+    return wrap;
+  }
+
+  function _renderSettingsPanel(panel) {
+    panel.innerHTML = '';
+
+    // ── Who's Watching ────────────────────────────────────────
+    var movieId = _params && _params.id ? _params.id : null;
+    if (movieId && typeof GoogleAuth !== 'undefined' && GoogleAuth.isSignedIn()) {
+      var wSection = document.createElement('div');
+      wSection.className = 'ps-section ps-watching-section';
+
+      var wHeader = document.createElement('div');
+      wHeader.className = 'ps-section-title ps-watching-hd';
+      wHeader.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+        ' Who\'s Watching' +
+        '<span class="ps-watching-count" id="ps-watching-count">…</span>';
+
+      // Toggle dropdown on header click
+      wHeader.style.cursor = 'pointer';
+      var wList = document.createElement('div');
+      wList.className = 'ps-watching-list';
+      wList.id = 'ps-watching-list';
+      wList.innerHTML = '<div class="ps-watching-loading">Loading…</div>';
+
+      var _wOpen = false;
+      wHeader.addEventListener('click', function() {
+        _wOpen = !_wOpen;
+        wList.style.display = _wOpen ? '' : 'none';
+        var arrow = wHeader.querySelector('.ps-watching-arrow');
+        if (arrow) arrow.style.transform = _wOpen ? 'rotate(180deg)' : '';
+      });
+
+      // Append arrow indicator to header
+      var wArrow = document.createElement('svg');
+      wArrow.setAttribute('viewBox','0 0 24 24'); wArrow.setAttribute('width','12'); wArrow.setAttribute('height','12');
+      wArrow.setAttribute('fill','none'); wArrow.setAttribute('stroke','currentColor'); wArrow.setAttribute('stroke-width','2.5');
+      wArrow.className = 'ps-watching-arrow';
+      wArrow.style.marginLeft = 'auto'; wArrow.style.flexShrink = '0';
+      wArrow.style.transition = 'transform 150ms ease';
+      wArrow.innerHTML = '<polyline points="6 9 12 15 18 9"/>';
+      wHeader.appendChild(wArrow);
+
+      wList.style.display = 'none';
+      wSection.appendChild(wHeader);
+      wSection.appendChild(wList);
+      panel.appendChild(wSection);
+
+      // Fetch watchers immediately (list hidden until user clicks)
+      _fetchWatchers(movieId, wList, document.getElementById('ps-watching-count') || wHeader.querySelector('.ps-watching-count'));
+    }
+
+    // ── Quality ──────────────────────────────────────────────
+    var qSection = document.createElement('div');
+    qSection.className = 'ps-section';
+    qSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Quality</div>';
+
+    if (_availableQualities && _availableQualities.length) {
+      var savedQ = ''; try { savedQ = localStorage.getItem('np_pref_quality') || ''; } catch(e) {}
+      var qOpts = _availableQualities.map(function(q) { return { label: q.label }; });
+      var qSelIdx = _availableQualities.findIndex(function(q) { return q.label === savedQ; });
+      if (qSelIdx < 0) qSelIdx = 0;
+      var qDD = _makeDropdown(qOpts, qSelIdx, 'Auto', function(opt, i) {
+        var q = _availableQualities[i];
+        if (!q) return;
+        try { localStorage.setItem('np_pref_quality', q.label); } catch(e) {}
+        _resumePos = capturePos();
+        var hdrs = (_qualityHeaders && Object.keys(_qualityHeaders).length) ? _qualityHeaders : {};
+        stopAvPlay(); setPlayerStatus('Switching quality...'); playWithUrl(q.url, hdrs);
+        _closeSettingsPanel();
+      });
+      qSection.appendChild(qDD);
+    } else {
+      var qPlaceholder = document.createElement('div');
+      qPlaceholder.className = 'ps-dd-trigger ps-dd-disabled';
+      qPlaceholder.innerHTML = 'Auto <svg class="ps-dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>';
+      qSection.appendChild(qPlaceholder);
+    }
+    panel.appendChild(qSection);
+
+    // ── Subtitles ─────────────────────────────────────────────
+    var sSection = document.createElement('div');
+    sSection.className = 'ps-section';
+    sSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg> Subtitles</div>';
+
+    // Loading placeholder — replaced once langs arrive
+    var sLoading = document.createElement('div');
+    sLoading.className = 'ps-dd-trigger ps-dd-disabled';
+    sLoading.textContent = 'Loading…';
+    sSection.appendChild(sLoading);
+    panel.appendChild(sSection);
+
+    if (typeof SubtitleClient !== 'undefined') {
+      SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode)
+        .then(function(langs) {
+          if (!sSection.parentNode) return; // panel closed while loading
+          if (sLoading.parentNode) sSection.removeChild(sLoading);
+
+          var sOpts = [{ label: 'Off', html: '<span class="ps-dd-off">✕</span> Off' }];
+          langs.forEach(function(l) {
+            var flag = l.flagUrl ? '<img class="ps-dd-flag" src="' + l.flagUrl + '" onerror="this.style.display=\'none\'">' : '';
+            sOpts.push({ label: l.display || l.language, html: flag + (l.display || l.language), _lang: l });
+          });
+          var sSelIdx = 0;
+          if (_subActiveLang) {
+            var found = sOpts.findIndex(function(o) { return o._lang && o._lang.language === _subActiveLang; });
+            if (found >= 0) sSelIdx = found;
+          }
+          var sDD = _makeDropdown(sOpts, sSelIdx, 'Off', function(opt) {
+            if (!opt._lang) {
+              // Off selected
+              _subActiveLang = null;
+              if (typeof SubtitleClient !== 'undefined') SubtitleClient.removeSubtitle(document.getElementById('web-video'));
+              return;
+            }
+            var l = opt._lang;
+            SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', l.language, _currentSeason, _currentEpisode)
+              .then(function(sub) {
+                if (!sub) { if (typeof App !== 'undefined') App.showToast('Subtitle unavailable'); return; }
+                _subActiveLang = l.language;
+                SubtitleClient.applySubtitle(document.getElementById('web-video'), sub);
+              });
+          }, true); // drop-up — subtitle list opens upward (35 items, avoid overflow)
+          sSection.appendChild(sDD);
+        })
+        .catch(function() {
+          if (sLoading.parentNode) sLoading.textContent = 'Unavailable';
+        });
+    }
+
+    // ── Download ──────────────────────────────────────────────
+    if (_currentStreamUrl && typeof webapis === 'undefined') {
+      var dSection = document.createElement('div');
+      dSection.className = 'ps-section';
+      dSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Download</div>';
+
+      if (_availableQualities && _availableQualities.length) {
+        var dOpts = _availableQualities.map(function(q) { return { label: q.label }; });
+        var dDD = _makeDropdown(dOpts, _dlQualityIdx, 'Auto', function(opt, i) { _dlQualityIdx = i; });
+        dSection.appendChild(dDD);
+      } else {
+        var dPlaceholder = document.createElement('div');
+        dPlaceholder.className = 'ps-dd-trigger ps-dd-disabled';
+        dPlaceholder.innerHTML = 'Auto <svg class="ps-dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>';
+        dSection.appendChild(dPlaceholder);
+      }
+
+      var dBtn = document.createElement('button');
+      dBtn.className = 'ps-dl-btn';
+      dBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Save MP4';
+      dBtn.addEventListener('click', function() {
+        _closeSettingsPanel();
+        if (_availableQualities && _availableQualities.length && _availableQualities[_dlQualityIdx]) {
+          _currentStreamUrl = _availableQualities[_dlQualityIdx].url;
+        }
+        _handleDownload();
+      });
+      dSection.appendChild(dBtn);
+      panel.appendChild(dSection);
+    }
+  }
+
+  // ── Legacy sub-picker — kept for closePlayer ref ───────────────────────
+  function _closePicker() { _closeSettingsPanel(); }
+
+  function _openSubPicker() {
+    // If picker already open, close it
+    if (document.getElementById('player-sub-picker')) { _closePicker(); return; }
+    if (typeof SubtitleClient === 'undefined') return;
+
+    var ccBtn = document.getElementById('player-cc-btn');
+    if (!ccBtn) return;
+
+    // Build picker shell immediately so user sees it right away
+    var picker = document.createElement('div');
+    picker.id = 'player-sub-picker';
+    picker.className = 'player-sub-picker';
+    picker.innerHTML = '<div class="sub-picker-loading">Loading…</div>';
+    ccBtn.parentNode.style.position = 'relative';
+    ccBtn.parentNode.appendChild(picker);
+
+    // Close on click outside
+    setTimeout(function() {
+      document.addEventListener('click', function onOut(e) {
+        if (!picker.contains(e.target) && e.target !== ccBtn) {
+          _closePicker();
+          document.removeEventListener('click', onOut, true);
+        }
+      }, true);
+    }, 100);
+
+    // Fetch languages and populate
+    SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode)
+      .then(function(langs) {
+        picker.innerHTML = '';
+
+        // "Off" option
+        var offOpt = document.createElement('div');
+        offOpt.className = 'sub-lang-opt' + (!_subActiveLang ? ' active' : '');
+        offOpt.innerHTML = '<span class="sub-lang-off-icon">✕</span><span class="sub-lang-name">Off</span>'
+          + (!_subActiveLang ? '<span class="sub-lang-check">✓</span>' : '');
+        offOpt.addEventListener('click', function() {
+          _subActiveLang = null;
+          SubtitleClient.removeSubtitle(document.getElementById('web-video'));
+          var btn = document.getElementById('player-cc-btn');
+          if (btn) { btn.classList.remove('cc-active'); btn.querySelector('.cc-label').textContent = 'CC'; }
+          _closePicker();
+        });
+        picker.appendChild(offOpt);
+
+        if (!langs.length) {
+          var none = document.createElement('div');
+          none.className = 'sub-lang-opt sub-lang-empty';
+          none.textContent = 'No subtitles found';
+          picker.appendChild(none);
+          return;
+        }
+
+        langs.forEach(function(l) {
+          var opt = document.createElement('div');
+          var isActive = _subActiveLang === l.language;
+          opt.className = 'sub-lang-opt' + (isActive ? ' active' : '');
+          var flagHtml = l.flagUrl
+            ? '<img class="sub-lang-flag" src="' + l.flagUrl + '" onerror="this.style.display=\'none\'">'
+            : '<span class="sub-lang-flag-placeholder"></span>';
+          opt.innerHTML = flagHtml
+            + '<span class="sub-lang-name">' + (l.display || l.language) + '</span>'
+            + (isActive ? '<span class="sub-lang-check">✓</span>' : '<span class="sub-lang-loading" style="display:none">…</span>');
+          opt.addEventListener('click', function() {
+            var loadingEl = opt.querySelector('.sub-lang-loading');
+            if (loadingEl) loadingEl.style.display = '';
+            SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', l.language, _currentSeason, _currentEpisode)
+              .then(function(sub) {
+                if (!sub) { if (typeof App !== 'undefined') App.showToast('Subtitle not available'); _closePicker(); return; }
+                _subActiveLang = l.language;
+                SubtitleClient.applySubtitle(document.getElementById('web-video'), sub);
+                var btn = document.getElementById('player-cc-btn');
+                if (btn) {
+                  btn.classList.add('cc-active');
+                  btn.querySelector('.cc-label').textContent = l.language.toUpperCase();
+                }
+                _closePicker();
+              })
+              .catch(function() { _closePicker(); });
+          });
+          picker.appendChild(opt);
+        });
+      })
+      .catch(function() { _closePicker(); });
+  }
+
   // ── Download handler ────────────────────────────────────────────────────
   function _resetDownloadUI() {
     var btn  = document.getElementById('player-dl-btn');
@@ -1006,7 +1437,7 @@
     if (_pModal) _pModal.classList.add('player-embed-mode');
 
     // Friendly source names for display
-    var SOURCE_NAMES = { 'videasy': 'Videasy', '2embed': '2Embed', 'vsembed': 'VSEmbed', 'vidsrc-me': 'VidSrc', 'vidsrc': 'VidSrc.to' };
+    var SOURCE_NAMES = { 'vidsrc-wtf': 'VidSrc', 'videasy': 'Videasy', '2embed': '2Embed', 'vsembed': 'VSEmbed', 'vidsrc-me': 'VidSrc', 'vidsrc': 'VidSrc.to' };
     var srcObj   = _embedSourceList[_embedSourceIdx] || {};
     var srcName  = SOURCE_NAMES[srcObj.id] || srcObj.label || 'Embed Player';
     var hasNext  = _embedSourceIdx < _embedSourceList.length - 1;
@@ -1061,44 +1492,18 @@
       setPlayerStatus('Stream unavailable for this title');
       return;
     }
-    if (idx >= SOURCES.length) {
-      // All direct-stream scraping failed. On web, show embed iframe fallback.
-      if (typeof webapis === 'undefined' || !webapis.avplay) {
-        // Order: 2embed (no redirect, sandbox-safe) → vsembed → vidsrc.me → vidsrc.to
-        _embedSourceList = [SOURCES[0], SOURCES[1], SOURCES[2], SOURCES[3]].filter(Boolean);
-        _embedSourceIdx  = 0;
-        if (_embedSourceList.length) {
-          var first = _embedSourceList[0];
-          showIframeEmbed(_params.type === 'tv'
-            ? first.tvUrl(_params.id, _currentSeason, _currentEpisode)
-            : first.movieUrl(_params.id));
-        }
-        return;
-      }
-      setPlayerStatus('Stream unavailable for this title');
-      return;
+    // All modern embed sites (vidsrc.wtf, videasy, 2embed etc.) use client-side rendering —
+    // scraping static HTML for m3u8 always fails and wastes ~8s per source.
+    // Go directly to iframe embed on web/mobile (skip the scrape loop).
+    _embedSourceList = SOURCES.slice().filter(Boolean);
+    _embedSourceIdx  = 0;
+    if (_embedSourceList.length) {
+      var first = _embedSourceList[0];
+      showIframeEmbed(_params.type === 'tv'
+        ? first.tvUrl(_params.id, _currentSeason, _currentEpisode)
+        : first.movieUrl(_params.id));
     }
-    _activeSourceIdx = idx;
-    setPlayerStatus(idx === 0 ? 'Loading...' : 'Trying another source...');
-
-    // Scrape the embed page to extract a direct .m3u8/.mp4 URL.
-    // Falls back to iframe embed when scraping yields nothing (most dynamic players).
-    const embedUrl = buildUrl(idx);
-    if (typeof StreamResolver !== 'undefined' && StreamResolver.scrapeEmbed) {
-      StreamResolver.scrapeEmbed(embedUrl)
-        .then(function (result) {
-          if (result && result.url) {
-            playWithUrl(result.url, result.headers);
-          } else {
-            trySource(idx + 1);
-          }
-        })
-        .catch(function () {
-          trySource(idx + 1);
-        });
-    } else {
-      trySource(idx + 1);
-    }
+    return;
   }
 
   var PROXY_BASE = 'https://nexplay-proxy.pielly16.workers.dev';
@@ -1176,6 +1581,14 @@
         video.addEventListener('ended', function() {
           if (_params.playlist === 'watchlist') goNextInPlaylist();
         });
+
+        // Prefetch subtitle languages silently — settings panel will display them when opened
+        if (typeof SubtitleClient !== 'undefined' && typeof webapis === 'undefined') {
+          SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode)
+            .then(function() {})  // just warms the cache
+            .catch(function() {});
+        }
+
         if (_progressInterval) clearInterval(_progressInterval);
         _progressInterval = setInterval(function() {
           if (!video || video.paused) return;
@@ -1221,12 +1634,14 @@
   }
 
   function playWithUrl(url, headers) {
-    _currentStreamUrl = url;  // store original URL for download button
+    _currentStreamUrl = url;
 
-    // Show download button for all non-TV streams (TV hidden via CSS).
-    // HLS streams use segment-fetch download; direct MP4 uses XHR blob download.
-    var dlBtn = document.getElementById('player-dl-btn');
-    if (dlBtn) dlBtn.style.display = '';
+    // Broadcast "now watching" presence (signed-in users only)
+    if (_params && _params.id) _startWatchingHeartbeat(_params.id);
+
+    // Show settings button for all non-TV streams (TV uses quality DD instead).
+    var swrap = document.getElementById('player-settings-wrap');
+    if (swrap) swrap.style.display = '';
 
     console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
@@ -1415,16 +1830,12 @@
           _qualityHeaders = result.headers || null;
           console.log('[Player] stream resolved:', result.url.slice(0, 60));
 
-          // autoDownload: skip playback and go straight to download
+          // autoDownload: skip playback and trigger download through settings panel
           if (_params.autoDownload) {
             _currentStreamUrl = result.url;
+            _qualityHeaders   = result.headers || null;
             setPlayerStatus('Ready to download');
-            var dlBtn2 = document.getElementById('player-dl-btn');
-            if (dlBtn2) dlBtn2.style.display = '';
-            setTimeout(function() {
-              var dlBtn3 = document.getElementById('player-dl-btn');
-              if (dlBtn3) dlBtn3.click();
-            }, 400);
+            setTimeout(function() { _handleDownload(); }, 400);
             return;
           }
 
@@ -1741,23 +2152,38 @@
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z"/><rect x="16" y="6" width="2" height="12"/></svg>
               <span>Next</span></button>` : ''}
           </div>
+          <!-- Quality dropdown — visible on TV (D-pad), hidden on web/mobile (settings panel used instead) -->
           <div id="quality-dd-wrap" class="player-cbar-quality">
             ${TVDropdown.html('quality-dd', [{ value: 'auto', label: 'Auto' }], 'auto')}
           </div>
         </div>
-        <!-- Row 2 (bottom): seek track + time + download button -->
+        <!-- Row 2 (bottom): seek track + time + gear settings button -->
         <div class="player-cbar-row1">
           <div class="player-cbar-track" id="seek-track" data-nav tabindex="0" title="Left/Right to seek">
             <div id="buffer-fill" class="player-cbar-buffer-fill"></div>
             <div id="progress-fill" class="player-cbar-fill"></div>
           </div>
           <span id="player-time" class="player-cbar-time">0:00 / 0:00</span>
-          <button id="player-dl-btn" class="player-dl-btn" style="display:none;">
+          <!-- ⚙ Settings button (web/mobile only) — consolidates quality, subtitles, download -->
+          <div id="player-settings-wrap" class="player-settings-wrap" style="display:none;">
+            <button id="player-settings-btn" class="player-settings-btn" title="Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Legacy single-track download pill (web/mobile) — hidden, kept so download JS refs work -->
+          <button id="player-dl-btn" class="player-dl-btn" style="display:none!important;">
             <span class="dl-fill" id="player-dl-fill"></span>
             <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
               <path d="M12 5v14M5 12l7 7 7-7"/>
             </svg>
             <span class="dl-label">Save</span>
+          </button>
+          <!-- Legacy CC button — hidden, kept so CC JS refs work -->
+          <button id="player-cc-btn" class="player-cc-btn" style="display:none!important;">
+            <span class="cc-label">CC</span>
           </button>
         </div>
         <!-- Shell retained so JS references to player-dl-row don't throw -->
@@ -1795,9 +2221,9 @@
     if (prevBtn) prevBtn.addEventListener('click', function() { goPrevEpisode(); showPlayerUI(); });
     if (nextBtn) nextBtn.addEventListener('click', function() { goNextEpisode(); showPlayerUI(); });
 
-    // Download button (web/mobile only — hidden on TV via CSS)
-    var dlBtn = document.getElementById('player-dl-btn');
-    if (dlBtn) dlBtn.addEventListener('click', function() { _handleDownload(); });
+    // Settings button (web/mobile only — TV uses quality dropdown + no subtitles via AVPlay)
+    var settingsBtn = document.getElementById('player-settings-btn');
+    if (settingsBtn) settingsBtn.addEventListener('click', function(e) { e.stopPropagation(); _toggleSettingsPanel(); });
 
     Nav.reset(modal);
     loadBestSource();
@@ -1877,6 +2303,10 @@
   }
 
   function closePlayer() {
+    _closeSettingsPanel();
+    _stopWatchingHeartbeat();
+    _subActiveLang  = null;
+    _dlQualityIdx   = 0;
     stopAutoHide();
     stopMediaKeys();
     stopAvPlay();

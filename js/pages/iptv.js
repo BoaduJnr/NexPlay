@@ -838,6 +838,7 @@
     }
     // If favourites-only filter is on and we unfavourited, refresh list
     if (_showFavsOnly && !added) { applyFavFilter(true); }
+    if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
   }
 
   function applyFavFilter(show) {

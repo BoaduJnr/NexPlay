@@ -31,6 +31,7 @@ var WatchlistPage = function () {
         e.preventDefault();
         NexPlayDB.toggleWatchlist(id, type, title, poster);
         App.showToast('Removed from Watchlist');
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
         var content = document.getElementById('main-content');
         if (content) render(content);
       } else if (e.keyCode === Config.KEYS.YELLOW) {

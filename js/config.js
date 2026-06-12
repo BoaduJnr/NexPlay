@@ -18,6 +18,15 @@ const Config = {
   // iptv-org public API (no key required)
   IPTV_API: 'https://iptv-org.github.io/api',
 
+  // Subtitle API key — free key from https://store.wyzie.io/redeem
+  // Leave as '' to disable subtitles (app still works without it)
+  SUBTITLE_KEY: 'wyzie-5z58waleuedrwul1xxr5tbufcgl0co8k',
+
+  // Google Sign-In — get Client ID from console.cloud.google.com
+  // Add your Deno Deploy URL as an Authorized JavaScript Origin
+  GOOGLE_CLIENT_ID: '610456713977-0p6gb40a3fjjtbkv8qs8ln08umd1fsqt.apps.googleusercontent.com',
+  DEPLOY_URL: 'https://nexplay.boadujnr.deno.net',
+
   // Image sizes used across the app
   IMG: {
     POSTER_SM: 'w185',

@@ -604,6 +604,7 @@ var StreamResolver = (function() {
         if (_isTV) return null;
         console.log('[StreamResolver] torrent N/A, scraping embeds...');
         return tryScrapeUrls([
+          'https://www.vidsrc.wtf/1/movie/'      + tmdbId,
           'https://vidsrc.me/embed/movie?tmdb='  + tmdbId,
           'https://multiembed.mov/?video_id='    + tmdbId + '&tmdb=1',
         ]);
@@ -630,6 +631,7 @@ var StreamResolver = (function() {
         if (result || _isTV) return result;
         console.log('[StreamResolver] step2 failed, scraping embeds...');
         return tryScrapeUrls([
+          'https://www.vidsrc.wtf/1/tv/'      + tmdbId + '/' + season + '/' + episode,
           'https://vidsrc.xyz/embed/tv?tmdb=' + tmdbId + '&season=' + season + '&episode=' + episode,
           'https://vidsrc.me/embed/tv?tmdb='  + tmdbId + '&season=' + season + '&episode=' + episode,
         ]);
