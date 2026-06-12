@@ -14,7 +14,14 @@ class TMDBClient {
       }
     }
     if (this._cache[url]) return this._cache[url];
-    const res = await fetch(url);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    let res;
+    try {
+      res = await fetch(url, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error('TMDB ' + res.status + ' on ' + endpoint);
     const data = await res.json();
     this._cache[url] = data;

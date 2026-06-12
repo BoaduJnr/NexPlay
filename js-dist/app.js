@@ -159,9 +159,13 @@ var App = function () {
         });
       })();
 
-      // Pre-load genres into the map for HomePage hero
+      // Pre-load genres into the map for HomePage hero (8s timeout so a hanging TMDB call never blocks app start)
       var _temp = _catch(function () {
-        return Promise.resolve(TMDB.genres()).then(function (gData) {
+        return Promise.resolve(Promise.race([TMDB.genres(), new Promise(function (_, reject) {
+          return setTimeout(function () {
+            return reject(new Error('timeout'));
+          }, 8000);
+        })])).then(function (gData) {
           gData.genres.forEach(function (g) {
             genreMap[g.id] = g.name;
           });

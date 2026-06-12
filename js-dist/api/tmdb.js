@@ -1,5 +1,16 @@
 "use strict";
 
+function _finallyRethrows(body, finalizer) {
+  try {
+    var result = body();
+  } catch (e) {
+    return finalizer(true, e);
+  }
+  if (result && result.then) {
+    return result.then(finalizer.bind(null, false), finalizer.bind(null, true));
+  }
+  return finalizer(false, result);
+}
 function _settle(pact, state, value) {
   if (!pact.s) {
     if (value instanceof _Pact) {
@@ -172,6 +183,13 @@ var TMDBClient = /*#__PURE__*/function () {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       try {
         var _this = this;
+        function _temp2() {
+          if (!res.ok) throw new Error('TMDB ' + res.status + ' on ' + endpoint);
+          return Promise.resolve(res.json()).then(function (data) {
+            _this._cache[url] = data;
+            return data;
+          });
+        }
         var url = Config.TMDB_BASE + endpoint + '?api_key=' + Config.TMDB_KEY + '&language=en-US';
         var keys = Object.keys(params);
         for (var i = 0; i < keys.length; i++) {
@@ -182,13 +200,23 @@ var TMDBClient = /*#__PURE__*/function () {
           }
         }
         if (_this._cache[url]) return Promise.resolve(_this._cache[url]);
-        return Promise.resolve(fetch(url)).then(function (res) {
-          if (!res.ok) throw new Error('TMDB ' + res.status + ' on ' + endpoint);
-          return Promise.resolve(res.json()).then(function (data) {
-            _this._cache[url] = data;
-            return data;
+        var ctrl = new AbortController();
+        var timer = setTimeout(function () {
+          return ctrl.abort();
+        }, 10000);
+        var res;
+        var _temp = _finallyRethrows(function () {
+          return Promise.resolve(fetch(url, {
+            signal: ctrl.signal
+          })).then(function (_fetch) {
+            res = _fetch;
           });
+        }, function (_wasThrown, _result) {
+          clearTimeout(timer);
+          if (_wasThrown) throw _result;
+          return _result;
         });
+        return Promise.resolve(_temp && _temp.then ? _temp.then(_temp2) : _temp2(_temp));
       } catch (e) {
         return Promise.reject(e);
       }
@@ -303,7 +331,7 @@ var TMDBClient = /*#__PURE__*/function () {
         var seen = new Set();
         var collections = [];
         var _p = 1;
-        var _temp = _for(function () {
+        var _temp3 = _for(function () {
           return _p <= pages;
         }, function () {
           return _p++;
@@ -326,7 +354,7 @@ var TMDBClient = /*#__PURE__*/function () {
             }
           });
         });
-        return Promise.resolve(_temp && _temp.then ? _temp.then(function () {
+        return Promise.resolve(_temp3 && _temp3.then ? _temp3.then(function () {
           return collections;
         }) : collections);
       } catch (e) {

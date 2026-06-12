@@ -416,9 +416,12 @@ const App = (() => {
       }, { passive: true });
     })();
 
-    // Pre-load genres into the map for HomePage hero
+    // Pre-load genres into the map for HomePage hero (8s timeout so a hanging TMDB call never blocks app start)
     try {
-      const gData = await TMDB.genres();
+      const gData = await Promise.race([
+        TMDB.genres(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+      ]);
       gData.genres.forEach(g => { genreMap[g.id] = g.name; });
     } catch (_) {}
 

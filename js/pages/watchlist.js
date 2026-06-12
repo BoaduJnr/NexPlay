@@ -12,6 +12,9 @@ const WatchlistPage = (() => {
            ${isFirst ? 'data-nav-default' : ''} tabindex="0">
         <div class="card-poster">
           ${poster}
+          <div class="card-badges" id="badges-${item.id}">
+            ${UX.badgesHTML(item.id, item.type)}
+          </div>
           <div class="card-overlay"></div>
           <div class="card-play-icon">
             <svg viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
