@@ -241,7 +241,7 @@ const DetailPage = (() => {
         ? rCount + (rCount === 1 ? ' Reply ▼' : ' Replies ▼')
         : 'Reply';
 
-      return '<div class="rv-item' + (isMine ? ' rv-mine' : '') + '" data-ts="' + ts + '" data-uid="' + _escHtml(r.uid||'') + '">' +
+      return '<div class="rv-item' + (isMine ? ' rv-mine' : '') + '"' + (isTV ? ' data-nav tabindex="0"' : '') + ' data-ts="' + ts + '" data-uid="' + _escHtml(r.uid||'') + '">' +
         '<div class="rv-item-left">' +
           '<div class="rv-av-wrap" data-av-uid="' + _escHtml(r.uid||'') + '">' +
             (r.picture

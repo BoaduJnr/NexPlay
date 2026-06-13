@@ -434,7 +434,9 @@ var GoogleAuth = function () {
     } catch (e) {}
     if (typeof CloudSync !== 'undefined') {
       CloudSync.init();
-      CloudSync.syncDown();
+      CloudSync.syncDown().then(function () {
+        CloudSync.syncUp();
+      }); // push profile to cloud
     }
     _startHeartbeat();
     _registerChatCode(_user);
@@ -675,6 +677,7 @@ var GoogleAuth = function () {
       btnSync.addEventListener('click', function () {
         btnSync.disabled = true;
         btnSync.textContent = 'Syncing…';
+        if (typeof CloudSync !== 'undefined') CloudSync.init(); // reset _synced guard so re-sync works
         var act = _isTV() ? typeof CloudSync !== 'undefined' ? CloudSync.syncDown() : Promise.resolve() : typeof CloudSync !== 'undefined' ? CloudSync.syncUp() : Promise.resolve();
         act.then(function () {
           btnSync.disabled = false;
@@ -731,8 +734,8 @@ var GoogleAuth = function () {
       disconnect();
     });
     if (btnChg) btnChg.addEventListener('click', function () {
-      closePanel();
-      setTimeout(openPanel, 50);
+      disconnect();
+      setTimeout(openPanel, 100);
     });
     if (btnCl) btnCl.addEventListener('click', function () {
       closePanel();

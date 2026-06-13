@@ -813,6 +813,12 @@
     var panel = document.createElement('div');
     panel.id = 'player-settings-panel';
     panel.className = 'player-settings-panel';
+    // Tizen 3.0: set before appendChild so CSS animation never starts
+    if (!document.body.classList.contains('is-web')) {
+      panel.style.webkitAnimation = 'none';
+      panel.style.animation = 'none';
+      panel.style.opacity = '1';
+    }
     wrap.appendChild(panel);
 
     // Close on outside click

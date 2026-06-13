@@ -521,8 +521,8 @@ function editRev(btn){
     +'<div class="stars" id="ef-stars-'+ts+'">'+stars+'</div>'
     +'<textarea id="ef-ta-'+ts+'">'+text.replace(/</g,'&lt;')+'</textarea>'
     +'<div class="row">'
-      +'<button class="sv" onclick="saveRev(\''+mid+'\',\''+encodeURIComponent(uid)+'\','+ts+',this)">Save</button>'
-      +'<button class="rb" onclick="this.closest(\'.ef-row\').remove()">Cancel</button>'
+      +'<button class="sv" onclick="saveRev(&#39;'+mid+'&#39;,&#39;'+encodeURIComponent(uid)+'&#39;,'+ts+',this)">Save</button>'
+      +'<button class="rb" onclick="this.closest(&#39;.ef-row&#39;).remove()">Cancel</button>'
     +'</div>'
   +'</div></td>';
   row.after(efRow);

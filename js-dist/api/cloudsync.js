@@ -32,6 +32,7 @@ var CloudSync = function () {
   // ── Init ──────────────────────────────────────────────
   function init() {
     _uid = _getOrCreateUid();
+    _synced = false; // allow re-sync after every init (e.g. Sync Now button)
     console.log('[CloudSync] Ready — uid:', _uid);
   }
 
@@ -104,32 +105,41 @@ var CloudSync = function () {
           resolve();
           return;
         }
-        var merged = false;
 
-        // Merge favourites — add any cloud items not already in local
-        if (data.favourites && data.favourites.length) {
-          var favAdded = 0;
-          data.favourites.forEach(function (f) {
-            if (!NexPlayDB.isFavourite(f.id, f.type)) {
-              NexPlayDB.toggleFavourite(f.id, f.type, f.title, f.poster || '');
-              favAdded++;
-              merged = true;
-            }
-          });
-          if (favAdded > 0) console.log('[CloudSync] Merged', favAdded, 'new favourites from cloud');
+        // Replace local favourites with cloud data (server is authoritative — prevents ghost items)
+        if (data.favourites !== undefined && data.favourites !== null) {
+          try {
+            var favData = data.favourites.map(function (f) {
+              return {
+                id: String(f.id),
+                type: f.type,
+                title: f.title,
+                poster: f.poster || '',
+                rating: parseFloat(f.rating) || 0,
+                addedAt: f.addedAt || 0
+              };
+            });
+            localStorage.setItem('np_favourites', JSON.stringify(favData));
+            console.log('[CloudSync] Replaced favourites:', favData.length, 'items');
+          } catch (e) {}
         }
 
-        // Merge watchlist — add any cloud items not already in local
-        if (data.watchlist && data.watchlist.length) {
-          var wlAdded = 0;
-          data.watchlist.forEach(function (f) {
-            if (!NexPlayDB.isInWatchlist(f.id, f.type)) {
-              NexPlayDB.toggleWatchlist(f.id, f.type, f.title, f.poster || '');
-              wlAdded++;
-              merged = true;
-            }
-          });
-          if (wlAdded > 0) console.log('[CloudSync] Merged', wlAdded, 'new watchlist items from cloud');
+        // Replace local watchlist with cloud data
+        if (data.watchlist !== undefined && data.watchlist !== null) {
+          try {
+            var wlData = data.watchlist.map(function (f) {
+              return {
+                id: String(f.id),
+                type: f.type,
+                title: f.title,
+                poster: f.poster || '',
+                rating: parseFloat(f.rating) || 0,
+                addedAt: f.addedAt || 0
+              };
+            });
+            localStorage.setItem('np_watchlist', JSON.stringify(wlData));
+            console.log('[CloudSync] Replaced watchlist:', wlData.length, 'items');
+          } catch (e) {}
         }
 
         // Restore profile so TV can show user name/avatar
@@ -138,14 +148,7 @@ var CloudSync = function () {
             localStorage.setItem('np_tv_profile', JSON.stringify(data.profile));
           } catch (e) {}
         }
-
-        // Push merged result back so cloud always has the union of both devices
-        if (merged) {
-          console.log('[CloudSync] Pushing merged data back to cloud');
-          syncUp();
-        } else {
-          console.log('[CloudSync] Already up to date');
-        }
+        console.log('[CloudSync] Sync complete');
         resolve();
       };
       xhr.onerror = function () {

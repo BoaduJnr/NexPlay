@@ -918,9 +918,10 @@ body.movie-avplay-on #avplay-area {
   -webkit-align-items: center; align-items: center;
   -webkit-justify-content: center; justify-content: center;
 }
-/* Quality dropdown — visible on TV only; web/mobile uses the ⚙ settings panel */
+/* Quality dropdown — now hidden everywhere; settings panel handles quality on TV */
 body.is-web    .player-cbar-quality { display: none !important; }
 body.is-mobile .player-cbar-quality { display: none !important; }
+body:not(.is-web):not(.is-mobile) .player-cbar-quality { display: none !important; }
 @media (max-width: 1023px) { .player-cbar-quality { display: none !important; } }
 
 /* Quality sits in normal flow at right — D-pad can reach it */
@@ -4929,6 +4930,7 @@ body.theme-bright .rv-loading, body.theme-bright .rv-empty { color: rgba(10,10,3
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .rv-item:last-child { border-bottom: none; }
+.rv-item.nav-focused { outline: 2px solid rgba(88,166,255,0.55); outline-offset: 4px; border-radius: 10px; }
 body.theme-calm   .rv-item { border-bottom-color: rgba(88,166,255,0.08); }
 body.theme-night  .rv-item { border-bottom-color: rgba(167,139,250,0.08); }
 body.theme-bright .rv-item { border-bottom-color: rgba(10,10,32,0.07); }
@@ -5551,7 +5553,12 @@ body:not(.is-web):not(.is-mobile) .player-settings-panel {
   max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Tizen 3.0: transform animations freeze mid-way — use opacity-only */
+  -webkit-animation: tvSettingsIn 0.12s ease both;
+          animation: tvSettingsIn 0.12s ease both;
 }
+@-webkit-keyframes tvSettingsIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes          tvSettingsIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* Close button */
 .ps-close-btn {
@@ -5618,6 +5625,26 @@ body.theme-bright .ps-tv-opt-btn.active {
 body.theme-bright .ps-tv-opt-btn.nav-focused {
   background: rgba(109,40,217,0.22);
   border-color: rgba(109,40,217,0.60);
+}
+/* Calm theme — blue accent for settings panel focus */
+body.theme-calm .ps-close-btn.nav-focused {
+  background: rgba(88,166,255,0.14);
+  border-color: rgba(88,166,255,0.55);
+}
+body.theme-calm .ps-tv-opt-btn.active {
+  background: rgba(88,166,255,0.16);
+  border-color: rgba(88,166,255,0.45);
+}
+body.theme-calm .ps-tv-opt-btn.nav-focused {
+  background: rgba(88,166,255,0.22);
+  border-color: rgba(88,166,255,0.60);
+}
+body.theme-calm:not(.is-web):not(.is-mobile) .ps-watching-hd.nav-focused {
+  color: rgba(88,166,255,0.90);
+}
+body.theme-calm:not(.is-web):not(.is-mobile) .player-settings-btn.nav-focused {
+  background: rgba(88,166,255,0.16);
+  outline-color: rgba(88,166,255,0.60);
 }
 
 /* TV settings — larger section titles and who's watching header */

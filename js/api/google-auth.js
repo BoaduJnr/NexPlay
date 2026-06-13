@@ -336,7 +336,10 @@ var GoogleAuth = (function () {
     try { localStorage.setItem('np_user', JSON.stringify(_user)); } catch(e) {}
     var uid = 'g_' + _user.sub;
     try { localStorage.setItem('np_sync_uid', uid); } catch(e) {}
-    if (typeof CloudSync !== 'undefined') { CloudSync.init(); CloudSync.syncDown(); }
+    if (typeof CloudSync !== 'undefined') {
+      CloudSync.init();
+      CloudSync.syncDown().then(function() { CloudSync.syncUp(); }); // push profile to cloud
+    }
     _startHeartbeat();
     _registerChatCode(_user);
     _updateUI(); closePanel();
@@ -513,6 +516,7 @@ var GoogleAuth = (function () {
     if (btnSync) {
       btnSync.addEventListener('click', function() {
         btnSync.disabled = true; btnSync.textContent = 'Syncing…';
+        if (typeof CloudSync !== 'undefined') CloudSync.init(); // reset _synced guard so re-sync works
         var act = _isTV()
           ? (typeof CloudSync!=='undefined' ? CloudSync.syncDown() : Promise.resolve())
           : (typeof CloudSync!=='undefined' ? CloudSync.syncUp()   : Promise.resolve());
@@ -562,7 +566,7 @@ var GoogleAuth = (function () {
     var btnCl   = document.getElementById('acct-close-btn');
     if (btnOut)  btnOut.addEventListener('click',  function(){ signOut(); });
     if (btnDisc) btnDisc.addEventListener('click', function(){ disconnect(); });
-    if (btnChg)  btnChg.addEventListener('click',  function(){ closePanel(); setTimeout(openPanel,50); });
+    if (btnChg)  btnChg.addEventListener('click',  function(){ disconnect(); setTimeout(openPanel, 100); });
     if (btnCl)   btnCl.addEventListener('click',   function(){ closePanel(); });
     _panel.addEventListener('click', function(e){ if(e.target===_panel) closePanel(); });
 
