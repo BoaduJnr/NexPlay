@@ -550,22 +550,37 @@ var DetailPage = function () {
       section.style.display = 'none';
       return;
     }
+    var isSignedIn = typeof GoogleAuth !== 'undefined' && GoogleAuth.isSignedIn();
+    var isTV = !document.body.classList.contains('is-web');
+    var isTVConnected = isTV && function () {
+      try {
+        return !!localStorage.getItem('np_tv_profile');
+      } catch (e) {
+        return false;
+      }
+    }();
 
-    // Only show to signed-in users
-    if (typeof GoogleAuth === 'undefined' || !GoogleAuth.isSignedIn()) {
+    // Only show to signed-in web users or connected TV users
+    if (!isSignedIn && !isTVConnected) {
       section.style.display = 'none';
       return;
     }
     section.style.display = '';
-    var user = GoogleAuth.getUser();
     _reviewMovieId = movieId;
     _reviewRating = 0;
+    if (isSignedIn) {
+      var user = GoogleAuth.getUser();
 
-    // Build form HTML
-    var formHtml = '<div class="rv-form">' + '<div class="rv-form-user">' + (user.picture ? '<img src="' + _escHtml(user.picture) + '" class="rv-form-avatar" alt="">' : '<div class="rv-form-initials">' + (user.firstName || '?')[0] + '</div>') + '<span class="rv-form-name">' + _escHtml(user.firstName + (user.lastName ? ' ' + user.lastName : '')) + '</span>' + '</div>' + '<div class="rv-star-row" id="rv-star-select">' + _stars(0) + '</div>' + '<textarea class="rv-textarea" id="rv-text-input" placeholder="Share your thoughts about this movie…" maxlength="500"></textarea>' + '<div class="rv-form-footer">' + '<span class="rv-char-count" id="rv-char-count">0 / 500</span>' + '<button class="rv-submit-btn" id="rv-submit-btn" disabled>Post Review</button>' + '</div>' + '</div>';
-    section.innerHTML = '<div class="rv-section-header">' + '<h3 class="rv-section-title">Reviews</h3>' + '<span class="rv-count" id="rv-count"></span>' + '</div>' + formHtml + '<div id="rv-list" class="rv-list"><div class="rv-loading">Loading reviews…</div></div>';
-    _wireReviewForm(movieId, user);
-    _fetchReviews(movieId, user.sub);
+      // Build write form HTML
+      var formHtml = '<div class="rv-form">' + '<div class="rv-form-user">' + (user.picture ? '<img src="' + _escHtml(user.picture) + '" class="rv-form-avatar" alt="">' : '<div class="rv-form-initials">' + (user.firstName || '?')[0] + '</div>') + '<span class="rv-form-name">' + _escHtml(user.firstName + (user.lastName ? ' ' + user.lastName : '')) + '</span>' + '</div>' + '<div class="rv-star-row" id="rv-star-select">' + _stars(0) + '</div>' + '<textarea class="rv-textarea" id="rv-text-input" placeholder="Share your thoughts about this movie…" maxlength="500"></textarea>' + '<div class="rv-form-footer">' + '<span class="rv-char-count" id="rv-char-count">0 / 500</span>' + '<button class="rv-submit-btn" id="rv-submit-btn" disabled>Post Review</button>' + '</div>' + '</div>';
+      section.innerHTML = '<div class="rv-section-header">' + '<h3 class="rv-section-title">Reviews</h3>' + '<span class="rv-count" id="rv-count"></span>' + '</div>' + formHtml + '<div id="rv-list" class="rv-list"><div class="rv-loading">Loading reviews…</div></div>';
+      _wireReviewForm(movieId, user);
+      _fetchReviews(movieId, user.sub);
+    } else {
+      // TV read-only: no write form, just the list
+      section.innerHTML = '<div class="rv-section-header">' + '<h3 class="rv-section-title">Reviews</h3>' + '<span class="rv-count" id="rv-count"></span>' + '</div>' + '<div id="rv-list" class="rv-list"><div class="rv-loading">Loading reviews…</div></div>';
+      _fetchReviews(movieId, null);
+    }
   }
   function _wireReviewForm(movieId, user) {
     // Star selector
@@ -649,9 +664,10 @@ var DetailPage = function () {
     var list = document.getElementById('rv-list');
     var count = document.getElementById('rv-count');
     if (!list) return;
+    var isTV = !document.body.classList.contains('is-web');
     if (count) count.textContent = reviews.length ? reviews.length + (reviews.length === 1 ? ' review' : ' reviews') : '';
     if (!reviews.length) {
-      list.innerHTML = '<div class="rv-empty">No reviews yet. Be the first!</div>';
+      list.innerHTML = '<div class="rv-empty">' + (isTV ? 'No reviews yet.' : 'No reviews yet. Be the first!') + '</div>';
       return;
     }
 
@@ -690,11 +706,11 @@ var DetailPage = function () {
       var toggleLabel = rCount > 0 ? rCount + (rCount === 1 ? ' Reply ▼' : ' Replies ▼') : 'Reply';
       return '<div class="rv-item' + (isMine ? ' rv-mine' : '') + '" data-ts="' + ts + '" data-uid="' + _escHtml(r.uid || '') + '">' + '<div class="rv-item-left">' + '<div class="rv-av-wrap" data-av-uid="' + _escHtml(r.uid || '') + '">' + (r.picture ? '<img src="' + _escHtml(r.picture) + '" class="rv-avatar" alt="" onerror="this.style.display=\'none\'">' : '<div class="rv-avatar-placeholder">' + (r.name || '?')[0].toUpperCase() + '</div>') + '</div>' + '</div>' + '<div class="rv-item-body">' + '<div class="rv-item-header">' + '<span class="rv-item-name">' + _escHtml(r.name || 'Anonymous') + (isMine ? ' <span class="rv-you">You</span>' : '') + '</span>' + '<div class="rv-item-stars">' + _stars(r.rating || 0) + '</div>' + '<span class="rv-item-date">' + _timeAgo(ts) + '</span>' + '</div>' + '<p class="rv-item-text">' + _escHtml(r.text || '') + '</p>' +
       // Action row
-      '<div class="rv-actions">' + (rCount > 0 ? '<button class="rv-toggle-btn" data-ts="' + ts + '">' + toggleLabel + '</button>' : '') + '<button class="rv-reply-open-btn" data-ts="' + ts + '">Reply</button>' + '</div>' +
+      '<div class="rv-actions">' + (rCount > 0 ? '<button class="rv-toggle-btn"' + (isTV ? ' data-nav tabindex="0"' : '') + ' data-ts="' + ts + '">' + toggleLabel + '</button>' : '') + (!isTV ? '<button class="rv-reply-open-btn" data-ts="' + ts + '">Reply</button>' : '') + '</div>' +
       // Replies list (collapsed)
-      '<div class="rv-replies-wrap" id="rv-replies-' + ts + '">' + (rCount > 0 ? '<div class="rv-replies-list">' + repliesHtml + '</div>' : '') + '</div>' +
-      // Inline reply form (hidden)
-      '<div class="rv-reply-form" id="rv-reply-form-' + ts + '" style="display:none;">' + '<textarea class="rv-reply-ta" placeholder="Write a reply…" maxlength="500"></textarea>' + '<div class="rv-reply-form-footer">' + '<span class="rv-reply-char">0 / 500</span>' + '<div class="rv-reply-form-btns">' + '<button class="rv-reply-cancel" data-ts="' + ts + '">Cancel</button>' + '<button class="rv-reply-submit" data-ts="' + ts + '" disabled>Post Reply</button>' + '</div>' + '</div>' + '</div>' + '</div>' + '</div>';
+      '<div class="rv-replies-wrap" id="rv-replies-' + ts + '">' + (rCount > 0 ? '<div class="rv-replies-list">' + repliesHtml + '</div>' : '') + '</div>' + (
+      // Inline reply form (hidden — web only)
+      !isTV ? '<div class="rv-reply-form" id="rv-reply-form-' + ts + '" style="display:none;">' + '<textarea class="rv-reply-ta" placeholder="Write a reply…" maxlength="500"></textarea>' + '<div class="rv-reply-form-footer">' + '<span class="rv-reply-char">0 / 500</span>' + '<div class="rv-reply-form-btns">' + '<button class="rv-reply-cancel" data-ts="' + ts + '">Cancel</button>' + '<button class="rv-reply-submit" data-ts="' + ts + '" disabled>Post Reply</button>' + '</div>' + '</div>' + '</div>' : '') + '</div>' + '</div>';
     }).join('');
     _wireReviewActions(_reviewMovieId, userSub);
     _fetchPresence(reviews);
@@ -981,7 +997,7 @@ var DetailPage = function () {
     }
 
     // Fav / Watchlist buttons — update once data is available
-    function refreshListBtns(title, poster) {
+    function refreshListBtns(title, poster, rating) {
       var favBtn = document.getElementById('detail-fav');
       var wlBtn = document.getElementById('detail-wl');
       if (!favBtn || !wlBtn || typeof NexPlayDB === 'undefined') return;
@@ -992,21 +1008,21 @@ var DetailPage = function () {
       wlBtn.innerHTML = isWL ? '&#10003; In Watchlist' : '+ Watchlist';
       wlBtn.style.color = isWL ? '#4ade80' : '';
       favBtn.onclick = function () {
-        var added = NexPlayDB.toggleFavourite(id, type, title, poster);
+        var added = NexPlayDB.toggleFavourite(id, type, title, poster, rating);
         App.showToast(added ? 'Added to Favourites' : 'Removed from Favourites');
-        refreshListBtns(title, poster);
+        refreshListBtns(title, poster, rating);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       };
       wlBtn.onclick = function () {
-        var added = NexPlayDB.toggleWatchlist(id, type, title, poster);
+        var added = NexPlayDB.toggleWatchlist(id, type, title, poster, rating);
         App.showToast(added ? 'Added to Watchlist' : 'Removed from Watchlist');
-        refreshListBtns(title, poster);
+        refreshListBtns(title, poster, rating);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       };
     }
 
     // Wire up placeholders immediately so buttons are focusable
-    refreshListBtns('', '');
+    refreshListBtns('', '', 0);
 
     // Load data
     var fetchFn = type === 'tv' ? TMDB.tvDetails(parseInt(id)) : TMDB.details(parseInt(id));
@@ -1036,8 +1052,8 @@ var DetailPage = function () {
       // In-app rating
       _fetchDetailInAppRating(String(id));
 
-      // Refresh list buttons with real title + poster
-      refreshListBtns(title, poster);
+      // Refresh list buttons with real title + poster + rating
+      refreshListBtns(title, poster, d.vote_average || 0);
 
       // Cast
       var credits = d.credits || d.aggregate_credits;

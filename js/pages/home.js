@@ -14,6 +14,7 @@
       <div class="card ${extraClass}" data-nav data-movie-id="${movie.id}"
            data-movie-title="${(movie.title || '').replace(/"/g, '&quot;')}"
            data-movie-poster="${poster}"
+           data-movie-rating="${rating}"
            tabindex="0">
         <div class="card-poster">
           ${poster
@@ -215,15 +216,16 @@
       const movieId = focused.dataset.movieId;
       const title   = focused.dataset.movieTitle || '';
       const poster  = focused.dataset.moviePoster || '';
+      const rating  = focused.dataset.movieRating || '0';
       if (e.keyCode === Config.KEYS.RED) {
         e.preventDefault();
-        const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster);
+        const added = NexPlayDB.toggleFavourite(movieId, 'movie', title, poster, rating);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(movieId);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
-        const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster);
+        const added = NexPlayDB.toggleWatchlist(movieId, 'movie', title, poster, rating);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(movieId);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();

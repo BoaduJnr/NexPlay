@@ -173,7 +173,7 @@ var NexPlayDB = function () {
   }
 
   // ── Favourites ────────────────────────────────────────────────────────
-  function toggleFavourite(id, type, title, poster) {
+  function toggleFavourite(id, type, title, poster, rating) {
     var favs = load(K.FAVOURITES) || [];
     var idx = findItem(favs, id, type);
     if (idx >= 0) {
@@ -186,6 +186,7 @@ var NexPlayDB = function () {
       type: type,
       title: title,
       poster: poster || '',
+      rating: parseFloat(rating) || 0,
       addedAt: Date.now()
     });
     save(K.FAVOURITES, favs);
@@ -199,7 +200,7 @@ var NexPlayDB = function () {
   }
 
   // ── Watchlist ─────────────────────────────────────────────────────────
-  function toggleWatchlist(id, type, title, poster) {
+  function toggleWatchlist(id, type, title, poster, rating) {
     var wl = load(K.WATCHLIST) || [];
     var idx = findItem(wl, id, type);
     if (idx >= 0) {
@@ -212,6 +213,7 @@ var NexPlayDB = function () {
       type: type,
       title: title,
       poster: poster || '',
+      rating: parseFloat(rating) || 0,
       addedAt: Date.now()
     });
     save(K.WATCHLIST, wl);

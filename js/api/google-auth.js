@@ -265,6 +265,40 @@ var GoogleAuth = (function () {
     }));
   }
 
+  function _registerTVChatCode() {
+    var uid = _currentUid();
+    if (!uid || uid.indexOf('u_') === 0) return;
+    var base = _chatApiBase();
+    if (!base && window.location.protocol === 'file:') return;
+    var cached = '';
+    try { cached = localStorage.getItem('np_chat_code') || ''; } catch(e) {}
+    if (cached) { _chatCode = cached; return; }
+    var prof = _tvProfile();
+    if (!prof) return;
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', base + '/api/chat_code', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.timeout = 8000;
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data && data.code) {
+          _chatCode = data.code;
+          try { localStorage.setItem('np_chat_code', data.code); } catch(e) {}
+          var codeEl = document.getElementById('acct-chat-code-val');
+          if (codeEl) codeEl.textContent = data.code;
+        }
+      } catch(e) {}
+    };
+    xhr.onerror = xhr.ontimeout = function() {};
+    xhr.send(JSON.stringify({
+      uid:     uid,
+      name:    (prof.firstName || '') + (prof.lastName ? ' ' + prof.lastName : ''),
+      picture: prof.picture || '',
+    }));
+  }
+
   // Look up a user by their chat code
   function _lookupChatCode(code, cb) {
     var base = _chatApiBase();
@@ -338,7 +372,14 @@ var GoogleAuth = (function () {
   // ── Disconnect (TV) ───────────────────────────────────
   function disconnect() {
     _stopHeartbeat();
-    try { localStorage.removeItem('np_tv_profile'); localStorage.setItem('np_sync_uid','u_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)); } catch(e){}
+    try {
+      var uid = _currentUid();
+      if (uid && uid.indexOf('g_') === 0) localStorage.setItem('np_last_connect_code', uid);
+      localStorage.removeItem('np_tv_profile');
+      localStorage.removeItem('np_chat_code');
+      localStorage.setItem('np_sync_uid', 'u_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8));
+    } catch(e) {}
+    _chatCode = '';
     if (typeof CloudSync !== 'undefined') CloudSync.init();
     _updateUI(); closePanel();
     if (typeof App !== 'undefined') App.showToast('Disconnected');
@@ -354,7 +395,7 @@ var GoogleAuth = (function () {
     if (typeof App !== 'undefined') App.showToast('Connecting…');
     if (typeof CloudSync !== 'undefined') {
       CloudSync.init();
-      CloudSync.syncDown().then(function(){ _updateUI(); if (typeof App !== 'undefined') App.showToast('Connected! Your data has been synced.'); });
+      CloudSync.syncDown().then(function(){ _updateUI(); _registerTVChatCode(); if (typeof App !== 'undefined') App.showToast('Connected! Your data has been synced.'); });
     } else { _updateUI(); }
   }
 
@@ -455,7 +496,12 @@ var GoogleAuth = (function () {
     // TV connect input
     var inp = document.getElementById('acct-code-input');
     if (inp) {
-      inp.addEventListener('keydown', function(e){ e.stopPropagation(); if(e.keyCode===13) _connectTV(inp.value); });
+      inp.addEventListener('keydown', function(e) {
+        // Let D-pad and Back bubble to Nav; stop everything else so typing doesn't trigger hotkeys
+        var navCodes = [38, 40, 37, 39, 10009, 27]; // UP, DOWN, LEFT, RIGHT, BACK, ESC
+        if (navCodes.indexOf(e.keyCode) === -1) e.stopPropagation();
+        if (e.keyCode === 13) _connectTV(inp.value);
+      });
       inp.addEventListener('input', function(e){ e.stopPropagation(); });
       setTimeout(function(){ inp.focus(); }, 80);
     }
@@ -520,7 +566,12 @@ var GoogleAuth = (function () {
     if (btnCl)   btnCl.addEventListener('click',   function(){ closePanel(); });
     _panel.addEventListener('click', function(e){ if(e.target===_panel) closePanel(); });
 
-    setTimeout(function(){ var f=document.getElementById('acct-close-btn'); if(f&&typeof Nav!=='undefined') Nav.focusEl(f); }, 80);
+    setTimeout(function(){
+      var inp2 = document.getElementById('acct-code-input');
+      if (inp2) { if (typeof Nav !== 'undefined') Nav.focusEl(inp2); else inp2.focus(); return; }
+      var f = document.getElementById('acct-close-btn');
+      if (f && typeof Nav !== 'undefined') Nav.focusEl(f);
+    }, 80);
   }
 
   function _copyFallback(text, btn) {
@@ -1121,7 +1172,7 @@ var GoogleAuth = (function () {
       var theme = _currentTheme();
 
       // Profile fields
-      var chatCodeRow = !onTV
+      var chatCodeRow = (!onTV || !!_chatCode)
         ? '<div class="account-field">' +
             '<span class="account-field-label">Chat Code</span>' +
             '<div class="account-field-value-row">' +
@@ -1163,7 +1214,7 @@ var GoogleAuth = (function () {
           '</div>' +
           '<div class="account-field">' +
             '<span class="account-field-label">Online Status</span>' +
-            '<label class="acct-status-toggle" title="When off, others cannot see you are online">' +
+            '<label class="acct-status-toggle" data-nav tabindex="0" title="When off, others cannot see you are online">' +
               '<input type="checkbox" id="acct-status-cb"' + (_statusHidden ? '' : ' checked') + '>' +
               '<span class="acct-toggle-track">' +
                 '<span class="acct-toggle-thumb"></span>' +
@@ -1220,11 +1271,15 @@ var GoogleAuth = (function () {
 
     // ── TV: enter connect code ───────────────────────────
     if (onTV) {
+      var lastCode = '';
+      try { lastCode = localStorage.getItem('np_last_connect_code') || ''; } catch(e) {}
       return '<div class="account-panel">' +
         '<button id="acct-close-btn" class="account-panel-close" data-nav tabindex="0">✕</button>' +
         '<div class="account-panel-title">Connect</div>' +
         '<div class="account-panel-desc">Enter the TV Connect Code from your NexPlay account on web.</div>' +
-        '<input id="acct-code-input" class="account-code-input" type="text" placeholder="e.g. g_103456789012" autocomplete="off" autocorrect="off" autocapitalize="none">' +
+        '<input id="acct-code-input" class="account-code-input" type="text"' +
+          (lastCode ? ' value="'+_escHtml(lastCode)+'"' : '') +
+          ' placeholder="e.g. g_103456789012" autocomplete="off" autocorrect="off" autocapitalize="none" data-nav tabindex="0">' +
         '<button id="acct-connect-btn" class="btn btn-primary account-panel-btn" data-nav tabindex="0">Connect</button>' +
       '</div>';
     }

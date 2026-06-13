@@ -142,11 +142,11 @@ var NexPlayDB = (function() {
   }
 
   // ── Favourites ────────────────────────────────────────────────────────
-  function toggleFavourite(id, type, title, poster) {
+  function toggleFavourite(id, type, title, poster, rating) {
     var favs = load(K.FAVOURITES) || [];
     var idx  = findItem(favs, id, type);
     if (idx >= 0) { favs.splice(idx, 1); save(K.FAVOURITES, favs); return false; }
-    favs.unshift({ id: String(id), type: type, title: title, poster: poster || '', addedAt: Date.now() });
+    favs.unshift({ id: String(id), type: type, title: title, poster: poster || '', rating: parseFloat(rating) || 0, addedAt: Date.now() });
     save(K.FAVOURITES, favs);
     return true;
   }
@@ -160,11 +160,11 @@ var NexPlayDB = (function() {
   }
 
   // ── Watchlist ─────────────────────────────────────────────────────────
-  function toggleWatchlist(id, type, title, poster) {
+  function toggleWatchlist(id, type, title, poster, rating) {
     var wl  = load(K.WATCHLIST) || [];
     var idx = findItem(wl, id, type);
     if (idx >= 0) { wl.splice(idx, 1); save(K.WATCHLIST, wl); return false; }
-    wl.unshift({ id: String(id), type: type, title: title, poster: poster || '', addedAt: Date.now() });
+    wl.unshift({ id: String(id), type: type, title: title, poster: poster || '', rating: parseFloat(rating) || 0, addedAt: Date.now() });
     save(K.WATCHLIST, wl);
     return true;
   }

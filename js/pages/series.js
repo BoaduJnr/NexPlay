@@ -34,6 +34,7 @@
       <div class="card" data-nav data-show-id="${show.id}"
            data-show-title="${(show.name || '').replace(/"/g, '&quot;')}"
            data-show-poster="${poster}"
+           data-show-rating="${rating}"
            tabindex="0">
         <div class="card-poster">
           ${poster
@@ -84,15 +85,16 @@
       const showId = focused.dataset.showId;
       const title  = focused.dataset.showTitle  || '';
       const poster = focused.dataset.showPoster || '';
+      const rating = focused.dataset.showRating || '0';
       if (e.keyCode === Config.KEYS.RED) {
         e.preventDefault();
-        const added = NexPlayDB.toggleFavourite(showId, 'tv', title, poster);
+        const added = NexPlayDB.toggleFavourite(showId, 'tv', title, poster, rating);
         App.showToast(added ? '♥ Added to Favourites' : 'Removed from Favourites');
         updateCardBadge(showId);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
       } else if (e.keyCode === Config.KEYS.BLUE) {
         e.preventDefault();
-        const added = NexPlayDB.toggleWatchlist(showId, 'tv', title, poster);
+        const added = NexPlayDB.toggleWatchlist(showId, 'tv', title, poster, rating);
         App.showToast(added ? '+ Added to Watchlist' : 'Removed from Watchlist');
         updateCardBadge(showId);
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();

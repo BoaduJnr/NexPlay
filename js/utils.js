@@ -82,6 +82,7 @@ var UX = (function() {
     var type   = isShow ? 'tv'                   : 'movie';
     var title  = isShow ? (card.dataset.showTitle  || '') : (card.dataset.movieTitle || '');
     var poster = isShow ? (card.dataset.showPoster || '') : (card.dataset.moviePoster || '');
+    var rating = isShow ? (card.dataset.showRating || '0') : (card.dataset.movieRating || '0');
     var action = btn.dataset.action;
 
     if (action === 'info') {
@@ -92,7 +93,7 @@ var UX = (function() {
     if (typeof NexPlayDB === 'undefined') return;
 
     if (action === 'fav') {
-      var added = NexPlayDB.toggleFavourite(id, type, title, poster);
+      var added = NexPlayDB.toggleFavourite(id, type, title, poster, rating);
       btn.classList.toggle('fav-active', added);
       btn.textContent = added ? '♥' : '♡';
       if (typeof App !== 'undefined') App.showToast(added ? '♥ Added to Favourites' : '♡ Removed from Favourites');
@@ -100,7 +101,7 @@ var UX = (function() {
       if (b) b.innerHTML = badgesHTML(id, type);
       if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
     } else if (action === 'wl') {
-      var addedWL = NexPlayDB.toggleWatchlist(id, type, title, poster);
+      var addedWL = NexPlayDB.toggleWatchlist(id, type, title, poster, rating);
       btn.classList.toggle('wl-active', addedWL);
       if (typeof App !== 'undefined') App.showToast(addedWL ? '+ Added to Watchlist' : 'Removed from Watchlist');
       var b2 = document.getElementById('badges-' + id);

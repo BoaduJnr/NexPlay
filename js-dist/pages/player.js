@@ -190,10 +190,10 @@ var PlayerPage = function () {
       stopAvPlay();
       modal.classList.remove('hidden');
       document.body.classList.add('player-open');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <!-- Quality dropdown \u2014 visible on TV (D-pad), hidden on web/mobile (settings panel used instead) -->\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n          <div id=\"player-subtitle-overlay\" class=\"player-subtitle-overlay\"></div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <!-- Quality dropdown \u2014 visible on TV (D-pad), hidden on web/mobile (settings panel used instead) -->\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
-      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): seek track + time + gear settings button -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"buffer-fill\" class=\"player-cbar-buffer-fill\"></div>\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n          <!-- \u2699 Settings button (web/mobile only) \u2014 consolidates quality, subtitles, download -->\n          <div id=\"player-settings-wrap\" class=\"player-settings-wrap\" style=\"display:none;\">\n            <button id=\"player-settings-btn\" class=\"player-settings-btn\" title=\"Settings\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"14\" height=\"14\">\n                <circle cx=\"12\" cy=\"12\" r=\"3\"/>\n                <path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/>\n              </svg>\n            </button>\n          </div>\n          <!-- Legacy single-track download pill (web/mobile) \u2014 hidden, kept so download JS refs work -->\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" style=\"display:none!important;\">\n            <span class=\"dl-fill\" id=\"player-dl-fill\"></span>\n            <svg class=\"dl-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"12\" height=\"12\">\n              <path d=\"M12 5v14M5 12l7 7 7-7\"/>\n            </svg>\n            <span class=\"dl-label\">Save</span>\n          </button>\n          <!-- Legacy CC button \u2014 hidden, kept so CC JS refs work -->\n          <button id=\"player-cc-btn\" class=\"player-cc-btn\" style=\"display:none!important;\">\n            <span class=\"cc-label\">CC</span>\n          </button>\n        </div>\n        <!-- Shell retained so JS references to player-dl-row don't throw -->\n        <div id=\"player-dl-row\" style=\"display:none;\"></div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
+      }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): seek track + time + gear settings button -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"buffer-fill\" class=\"player-cbar-buffer-fill\"></div>\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n          <!-- \u2699 Settings button (web/mobile only) \u2014 consolidates quality, subtitles, download -->\n          <div id=\"player-settings-wrap\" class=\"player-settings-wrap\" style=\"display:none;\">\n            <button id=\"player-settings-btn\" class=\"player-settings-btn\" data-nav tabindex=\"0\" title=\"Settings\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"14\" height=\"14\">\n                <circle cx=\"12\" cy=\"12\" r=\"3\"/>\n                <path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/>\n              </svg>\n            </button>\n          </div>\n          <!-- Legacy single-track download pill (web/mobile) \u2014 hidden, kept so download JS refs work -->\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" style=\"display:none!important;\">\n            <span class=\"dl-fill\" id=\"player-dl-fill\"></span>\n            <svg class=\"dl-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"12\" height=\"12\">\n              <path d=\"M12 5v14M5 12l7 7 7-7\"/>\n            </svg>\n            <span class=\"dl-label\">Save</span>\n          </button>\n          <!-- Legacy CC button \u2014 hidden, kept so CC JS refs work -->\n          <button id=\"player-cc-btn\" class=\"player-cc-btn\" style=\"display:none!important;\">\n            <span class=\"cc-label\">CC</span>\n          </button>\n        </div>\n        <!-- Shell retained so JS references to player-dl-row don't throw -->\n        <div id=\"player-dl-row\" style=\"display:none;\"></div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
       modal.querySelector('.player-back').addEventListener('click', closePlayer);
       TVDropdown.mount('quality-dd', function (val) {
         var qi = parseInt(val);
@@ -239,7 +239,7 @@ var PlayerPage = function () {
         showPlayerUI();
       });
 
-      // Settings button (web/mobile only — TV uses quality dropdown + no subtitles via AVPlay)
+      // Settings button — also shown on TV (quality, subtitles, who's watching via D-pad)
       var settingsBtn = document.getElementById('player-settings-btn');
       if (settingsBtn) settingsBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -870,6 +870,8 @@ var PlayerPage = function () {
   // ── Seek-bar scrub state ───────────────────────────────
   var _seekMode = false; // true while user is scrubbing the progress bar
   var _seekPreview = 0; // target position (ms) being previewed
+  var _subSyncTimer = null; // interval ID for TV subtitle sync
+  var _subCues = []; // parsed VTT cues [{start,end,text}]
 
   // ── Embed-mode focus toast ─────────────────────────────
   var _embedFocusHandler = null;
@@ -965,6 +967,20 @@ var PlayerPage = function () {
       var time = document.getElementById('player-time');
       if (fill) fill.style.width = pct + '%';
       if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+      // Buffer fill — AVPlay exposes buffered range via streaming property
+      var bufEl = document.getElementById('buffer-fill');
+      if (bufEl && dur > 1) {
+        try {
+          var range = webapis.avplay.getStreamingProperty('GET_BUFFER_RANGE');
+          if (range && range.end) {
+            var bufPct = Math.min(100, range.end / dur * 100);
+            bufEl.style.width = bufPct + '%';
+            var gap = bufPct - parseFloat(pct);
+            bufEl.classList.remove('buf-close', 'buf-critical');
+            if (gap < 3) bufEl.classList.add('buf-critical');else if (gap < 10) bufEl.classList.add('buf-close');
+          }
+        } catch (be) {}
+      }
     } catch (e) {}
   }
   function togglePlayPause() {
@@ -1133,10 +1149,17 @@ var PlayerPage = function () {
         showPlayerUI();
         return;
       }
-      if (k === Config.KEYS.STOP || k === 413) {
+      if (k === Config.KEYS.STOP || k === 413 || k === Config.KEYS.BACK || k === 10009) {
         e.stopPropagation();
         e.preventDefault();
         closePlayer();
+        return;
+      }
+      if (k === Config.KEYS.INFO || k === 457) {
+        e.stopPropagation();
+        e.preventDefault();
+        _toggleWatchingOverlay();
+        showPlayerUI();
         return;
       }
 
@@ -1286,7 +1309,7 @@ var PlayerPage = function () {
         showPlayerUI();
         e.stopPropagation();
         e.preventDefault();
-      } else if (k === 413 || k === Config.KEYS.STOP) {
+      } else if (k === 413 || k === Config.KEYS.STOP || k === 10009 || k === Config.KEYS.BACK) {
         e.stopPropagation();
         e.preventDefault();
         closePlayer();
@@ -1473,23 +1496,59 @@ var PlayerPage = function () {
     if (typeof Config !== 'undefined' && Config.DEPLOY_URL) return Config.DEPLOY_URL;
     return '';
   }
+  function _tvWatchConnected() {
+    try {
+      return !!localStorage.getItem('np_tv_profile');
+    } catch (e) {
+      return false;
+    }
+  }
+  function _tvWatchProfile() {
+    try {
+      var s = localStorage.getItem('np_tv_profile');
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function _tvWatchUid() {
+    try {
+      var u = localStorage.getItem('np_sync_uid');
+      return u && u.indexOf('g_') === 0 ? u : null;
+    } catch (e) {
+      return null;
+    }
+  }
   function _sendWatchingStatus() {
     if (!_watchingMovieId) return;
-    var user = typeof GoogleAuth !== 'undefined' ? GoogleAuth.getUser() : null;
-    if (!user) return;
     var base = _watchingApiBase();
     if (!base && window.location.protocol === 'file:') return;
+    var user = typeof GoogleAuth !== 'undefined' ? GoogleAuth.getUser() : null;
+    var uid, name, picture;
+    if (user) {
+      uid = 'g_' + user.sub;
+      name = (user.firstName || '') + (user.lastName ? ' ' + user.lastName : '');
+      picture = user.picture || '';
+    } else if (_tvWatchConnected()) {
+      var prof = _tvWatchProfile();
+      uid = _tvWatchUid();
+      if (!uid) return;
+      name = prof ? (prof.firstName || '') + (prof.lastName ? ' ' + prof.lastName : '') : 'TV User';
+      picture = prof ? prof.picture || '' : '';
+    } else {
+      return;
+    }
     var hidden = localStorage.getItem('np_status_hidden') === '1';
     var xhr = new XMLHttpRequest();
     xhr.open('POST', base + '/api/watching', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.timeout = 5000;
     xhr.send(JSON.stringify({
-      uid: 'g_' + user.sub,
+      uid: uid,
       movieId: _watchingMovieId,
       movieTitle: _titleCache || '',
-      name: (user.firstName || '') + (user.lastName ? ' ' + user.lastName : ''),
-      picture: user.picture || '',
+      name: name,
+      picture: picture,
       hidden: hidden
     }));
   }
@@ -1509,7 +1568,7 @@ var PlayerPage = function () {
   function _fetchWatchers(movieId, wListEl, wCountEl) {
     if (!movieId || !wListEl) return;
     var user = typeof GoogleAuth !== 'undefined' ? GoogleAuth.getUser() : null;
-    var uid = user ? 'g_' + user.sub : '';
+    var uid = user ? 'g_' + user.sub : _tvWatchUid() || '';
     var base = _watchingApiBase();
     var url = base + '/api/watching?id=' + encodeURIComponent(movieId) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
     var xhr = new XMLHttpRequest();
@@ -1537,9 +1596,107 @@ var PlayerPage = function () {
     };
     xhr.send();
   }
+
+  // ── TV: Who's Watching overlay (INFO key 457) ────────────
+  function _toggleWatchingOverlay() {
+    var existing = document.getElementById('tv-watching-overlay');
+    if (existing) {
+      existing.parentNode.removeChild(existing);
+      return;
+    }
+    if (!_tvWatchConnected() && !(typeof GoogleAuth !== 'undefined' && GoogleAuth.isSignedIn())) return;
+    var movieId = _params && _params.id ? String(_params.id) : null;
+    if (!movieId) return;
+    var ov = document.createElement('div');
+    ov.id = 'tv-watching-overlay';
+    ov.className = 'tv-watching-overlay';
+    ov.innerHTML = '<div class="tv-wo-title">' + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">' + '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' + '<path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' + '</svg>' + ' Who\'s Watching' + '<span class="tv-wo-count" id="tv-wo-count"></span>' + '</div>' + '<div id="tv-wo-list" class="tv-wo-list"><div class="ps-watching-loading">Loading…</div></div>';
+    var modal = document.getElementById('player-modal');
+    if (modal) modal.appendChild(ov);
+    _fetchWatchers(movieId, ov.querySelector('#tv-wo-list'), ov.querySelector('#tv-wo-count'));
+
+    // Auto-dismiss after 6s
+    setTimeout(function () {
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+    }, 6000);
+  }
   function _closeSettingsPanel() {
     var p = document.getElementById('player-settings-panel');
     if (p && p.parentNode) p.parentNode.removeChild(p);
+  }
+
+  // ── TV subtitle overlay (AVPlay-compatible VTT polling) ─────────────────
+  function _vttTimeToMs(ts) {
+    var parts = ts.replace(',', '.').split(':');
+    if (parts.length === 3) return Math.round((parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2])) * 1000);
+    if (parts.length === 2) return Math.round((parseInt(parts[0]) * 60 + parseFloat(parts[1])) * 1000);
+    return 0;
+  }
+  function _parseVTTCues(text) {
+    var cues = [],
+      lines = text.split('\n'),
+      i = 0;
+    while (i < lines.length) {
+      var m = lines[i].trim().match(/(\d{1,2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[.,]\d{3})/);
+      if (m) {
+        var start = _vttTimeToMs(m[1]),
+          end = _vttTimeToMs(m[2]),
+          txtLines = [];
+        i++;
+        while (i < lines.length && lines[i].trim() !== '') {
+          txtLines.push(lines[i].trim().replace(/<[^>]+>/g, ''));
+          i++;
+        }
+        if (txtLines.length) cues.push({
+          start: start,
+          end: end,
+          text: txtLines.join('\n')
+        });
+      } else {
+        i++;
+      }
+    }
+    return cues;
+  }
+  function _applySubtitleTV(sub) {
+    _removeSubtitleTV();
+    if (!sub || !sub.blobUrl) return;
+    fetch(sub.blobUrl).then(function (r) {
+      return r.text();
+    }).then(function (vtt) {
+      _subCues = _parseVTTCues(vtt);
+      _subSyncTimer = setInterval(function () {
+        var el = document.getElementById('player-subtitle-overlay');
+        if (!el) {
+          _removeSubtitleTV();
+          return;
+        }
+        var posMs = 0;
+        try {
+          if (typeof webapis !== 'undefined' && webapis.avplay) posMs = webapis.avplay.getCurrentTime();else {
+            var v = document.getElementById('web-video');
+            if (v) posMs = v.currentTime * 1000;
+          }
+        } catch (e) {}
+        var active = '';
+        for (var ci = 0; ci < _subCues.length; ci++) {
+          if (posMs >= _subCues[ci].start && posMs < _subCues[ci].end) {
+            active = _subCues[ci].text;
+            break;
+          }
+        }
+        el.textContent = active;
+      }, 250);
+    }).catch(function () {});
+  }
+  function _removeSubtitleTV() {
+    if (_subSyncTimer) {
+      clearInterval(_subSyncTimer);
+      _subSyncTimer = null;
+    }
+    _subCues = [];
+    var el = document.getElementById('player-subtitle-overlay');
+    if (el) el.textContent = '';
   }
   function _toggleSettingsPanel() {
     if (document.getElementById('player-settings-panel')) {
@@ -1625,50 +1782,65 @@ var PlayerPage = function () {
   }
   function _renderSettingsPanel(panel) {
     panel.innerHTML = '';
+    var isTV = typeof webapis !== 'undefined' && !!webapis.avplay;
+
+    // ── Close button (TV: exit panel via D-pad) ───────────────
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'ps-close-btn';
+    closeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close';
+    closeBtn.setAttribute('data-nav', '');
+    closeBtn.setAttribute('tabindex', '0');
+    closeBtn.addEventListener('click', function () {
+      _closeSettingsPanel();
+    });
+    panel.appendChild(closeBtn);
 
     // ── Who's Watching ────────────────────────────────────────
     var movieId = _params && _params.id ? _params.id : null;
-    if (movieId && typeof GoogleAuth !== 'undefined' && GoogleAuth.isSignedIn()) {
+    var _isAuthed = typeof GoogleAuth !== 'undefined' && GoogleAuth.isSignedIn() || _tvWatchConnected();
+    if (movieId && _isAuthed) {
       var wSection = document.createElement('div');
       wSection.className = 'ps-section ps-watching-section';
       var wHeader = document.createElement('div');
       wHeader.className = 'ps-section-title ps-watching-hd';
       wHeader.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' + ' Who\'s Watching' + '<span class="ps-watching-count" id="ps-watching-count">…</span>';
-
-      // Toggle dropdown on header click
-      wHeader.style.cursor = 'pointer';
       var wList = document.createElement('div');
       wList.className = 'ps-watching-list';
       wList.id = 'ps-watching-list';
       wList.innerHTML = '<div class="ps-watching-loading">Loading…</div>';
-      var _wOpen = false;
-      wHeader.addEventListener('click', function () {
-        _wOpen = !_wOpen;
-        wList.style.display = _wOpen ? '' : 'none';
-        var arrow = wHeader.querySelector('.ps-watching-arrow');
-        if (arrow) arrow.style.transform = _wOpen ? 'rotate(180deg)' : '';
-      });
-
-      // Append arrow indicator to header
-      var wArrow = document.createElement('svg');
-      wArrow.setAttribute('viewBox', '0 0 24 24');
-      wArrow.setAttribute('width', '12');
-      wArrow.setAttribute('height', '12');
-      wArrow.setAttribute('fill', 'none');
-      wArrow.setAttribute('stroke', 'currentColor');
-      wArrow.setAttribute('stroke-width', '2.5');
-      wArrow.className = 'ps-watching-arrow';
-      wArrow.style.marginLeft = 'auto';
-      wArrow.style.flexShrink = '0';
-      wArrow.style.transition = 'transform 150ms ease';
-      wArrow.innerHTML = '<polyline points="6 9 12 15 18 9"/>';
-      wHeader.appendChild(wArrow);
-      wList.style.display = 'none';
+      if (isTV) {
+        // TV: auto-expand, header navigable
+        wList.style.display = '';
+        wHeader.setAttribute('data-nav', '');
+        wHeader.setAttribute('tabindex', '0');
+      } else {
+        // Web: collapsed, click to expand
+        var _wOpen = false;
+        wHeader.style.cursor = 'pointer';
+        wHeader.addEventListener('click', function () {
+          _wOpen = !_wOpen;
+          wList.style.display = _wOpen ? '' : 'none';
+          var arrow = wHeader.querySelector('.ps-watching-arrow');
+          if (arrow) arrow.style.transform = _wOpen ? 'rotate(180deg)' : '';
+        });
+        var wArrow = document.createElement('svg');
+        wArrow.setAttribute('viewBox', '0 0 24 24');
+        wArrow.setAttribute('width', '12');
+        wArrow.setAttribute('height', '12');
+        wArrow.setAttribute('fill', 'none');
+        wArrow.setAttribute('stroke', 'currentColor');
+        wArrow.setAttribute('stroke-width', '2.5');
+        wArrow.className = 'ps-watching-arrow';
+        wArrow.style.marginLeft = 'auto';
+        wArrow.style.flexShrink = '0';
+        wArrow.style.transition = 'transform 150ms ease';
+        wArrow.innerHTML = '<polyline points="6 9 12 15 18 9"/>';
+        wHeader.appendChild(wArrow);
+        wList.style.display = 'none';
+      }
       wSection.appendChild(wHeader);
       wSection.appendChild(wList);
       panel.appendChild(wSection);
-
-      // Fetch watchers immediately (list hidden until user clicks)
       _fetchWatchers(movieId, wList, document.getElementById('ps-watching-count') || wHeader.querySelector('.ps-watching-count'));
     }
 
@@ -1681,29 +1853,56 @@ var PlayerPage = function () {
       try {
         savedQ = localStorage.getItem('np_pref_quality') || '';
       } catch (e) {}
-      var qOpts = _availableQualities.map(function (q) {
-        return {
-          label: q.label
-        };
-      });
       var qSelIdx = _availableQualities.findIndex(function (q) {
         return q.label === savedQ;
       });
       if (qSelIdx < 0) qSelIdx = 0;
-      var qDD = _makeDropdown(qOpts, qSelIdx, 'Auto', function (opt, i) {
-        var q = _availableQualities[i];
-        if (!q) return;
-        try {
-          localStorage.setItem('np_pref_quality', q.label);
-        } catch (e) {}
-        _resumePos = capturePos();
-        var hdrs = _qualityHeaders && Object.keys(_qualityHeaders).length ? _qualityHeaders : {};
-        stopAvPlay();
-        setPlayerStatus('Switching quality...');
-        playWithUrl(q.url, hdrs);
-        _closeSettingsPanel();
-      });
-      qSection.appendChild(qDD);
+      if (isTV) {
+        var qList = document.createElement('div');
+        qList.className = 'ps-tv-opts';
+        _availableQualities.forEach(function (q, qi) {
+          (function (q, qi) {
+            var btn = document.createElement('button');
+            btn.className = 'ps-tv-opt-btn' + (qi === qSelIdx ? ' active' : '');
+            btn.textContent = q.label;
+            btn.setAttribute('data-nav', '');
+            btn.setAttribute('tabindex', '0');
+            btn.addEventListener('click', function () {
+              try {
+                localStorage.setItem('np_pref_quality', q.label);
+              } catch (e) {}
+              _resumePos = capturePos();
+              var hdrs = _qualityHeaders && Object.keys(_qualityHeaders).length ? _qualityHeaders : {};
+              stopAvPlay();
+              setPlayerStatus('Switching quality...');
+              playWithUrl(q.url, hdrs);
+              _closeSettingsPanel();
+            });
+            qList.appendChild(btn);
+          })(q, qi);
+        });
+        qSection.appendChild(qList);
+      } else {
+        var qOpts = _availableQualities.map(function (q) {
+          return {
+            label: q.label
+          };
+        });
+        var qDD = _makeDropdown(qOpts, qSelIdx, 'Auto', function (opt, i) {
+          var q = _availableQualities[i];
+          if (!q) return;
+          try {
+            localStorage.setItem('np_pref_quality', q.label);
+          } catch (e) {}
+          _resumePos = capturePos();
+          var hdrs = _qualityHeaders && Object.keys(_qualityHeaders).length ? _qualityHeaders : {};
+          stopAvPlay();
+          setPlayerStatus('Switching quality...');
+          playWithUrl(q.url, hdrs);
+          _closeSettingsPanel();
+        });
+        qSection.appendChild(qDD);
+      }
     } else {
       var qPlaceholder = document.createElement('div');
       qPlaceholder.className = 'ps-dd-trigger ps-dd-disabled';
@@ -1716,8 +1915,6 @@ var PlayerPage = function () {
     var sSection = document.createElement('div');
     sSection.className = 'ps-section';
     sSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg> Subtitles</div>';
-
-    // Loading placeholder — replaced once langs arrive
     var sLoading = document.createElement('div');
     sLoading.className = 'ps-dd-trigger ps-dd-disabled';
     sLoading.textContent = 'Loading…';
@@ -1727,43 +1924,95 @@ var PlayerPage = function () {
       SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode).then(function (langs) {
         if (!sSection.parentNode) return; // panel closed while loading
         if (sLoading.parentNode) sSection.removeChild(sLoading);
-        var sOpts = [{
-          label: 'Off',
-          html: '<span class="ps-dd-off">✕</span> Off'
-        }];
-        langs.forEach(function (l) {
-          var flag = l.flagUrl ? '<img class="ps-dd-flag" src="' + l.flagUrl + '" onerror="this.style.display=\'none\'">' : '';
-          sOpts.push({
-            label: l.display || l.language,
-            html: flag + (l.display || l.language),
-            _lang: l
-          });
-        });
-        var sSelIdx = 0;
-        if (_subActiveLang) {
-          var found = sOpts.findIndex(function (o) {
-            return o._lang && o._lang.language === _subActiveLang;
-          });
-          if (found >= 0) sSelIdx = found;
-        }
-        var sDD = _makeDropdown(sOpts, sSelIdx, 'Off', function (opt) {
-          if (!opt._lang) {
-            // Off selected
+        if (isTV) {
+          var sLangList = document.createElement('div');
+          sLangList.className = 'ps-tv-opts';
+          var offBtn = document.createElement('button');
+          offBtn.className = 'ps-tv-opt-btn' + (!_subActiveLang ? ' active' : '');
+          offBtn.textContent = 'Off';
+          offBtn.setAttribute('data-nav', '');
+          offBtn.setAttribute('tabindex', '0');
+          offBtn.addEventListener('click', function () {
             _subActiveLang = null;
-            if (typeof SubtitleClient !== 'undefined') SubtitleClient.removeSubtitle(document.getElementById('web-video'));
-            return;
+            _removeSubtitleTV();
+            sLangList.querySelectorAll('.ps-tv-opt-btn').forEach(function (b) {
+              b.classList.remove('active');
+            });
+            offBtn.classList.add('active');
+          });
+          sLangList.appendChild(offBtn);
+          langs.forEach(function (l) {
+            (function (l) {
+              var btn = document.createElement('button');
+              btn.className = 'ps-tv-opt-btn' + (_subActiveLang === l.language ? ' active' : '');
+              btn.textContent = l.display || l.language;
+              btn.setAttribute('data-nav', '');
+              btn.setAttribute('tabindex', '0');
+              btn.addEventListener('click', function () {
+                var orig = btn.textContent;
+                btn.textContent = '…';
+                SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', l.language, _currentSeason, _currentEpisode).then(function (sub) {
+                  btn.textContent = orig;
+                  if (!sub) {
+                    if (typeof App !== 'undefined') App.showToast('Subtitle unavailable');
+                    return;
+                  }
+                  _subActiveLang = l.language;
+                  _applySubtitleTV(sub);
+                  sLangList.querySelectorAll('.ps-tv-opt-btn').forEach(function (b) {
+                    b.classList.remove('active');
+                  });
+                  btn.classList.add('active');
+                });
+              });
+              sLangList.appendChild(btn);
+            })(l);
+          });
+          if (!langs.length) {
+            var noSubsEl = document.createElement('div');
+            noSubsEl.className = 'ps-dd-trigger ps-dd-disabled';
+            noSubsEl.textContent = 'None available';
+            sLangList.appendChild(noSubsEl);
           }
-          var l = opt._lang;
-          SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', l.language, _currentSeason, _currentEpisode).then(function (sub) {
-            if (!sub) {
-              if (typeof App !== 'undefined') App.showToast('Subtitle unavailable');
+          sSection.appendChild(sLangList);
+        } else {
+          var sOpts = [{
+            label: 'Off',
+            html: '<span class="ps-dd-off">✕</span> Off'
+          }];
+          langs.forEach(function (l) {
+            var flag = l.flagUrl ? '<img class="ps-dd-flag" src="' + l.flagUrl + '" onerror="this.style.display=\'none\'">' : '';
+            sOpts.push({
+              label: l.display || l.language,
+              html: flag + (l.display || l.language),
+              _lang: l
+            });
+          });
+          var sSelIdx = 0;
+          if (_subActiveLang) {
+            var found = sOpts.findIndex(function (o) {
+              return o._lang && o._lang.language === _subActiveLang;
+            });
+            if (found >= 0) sSelIdx = found;
+          }
+          var sDD = _makeDropdown(sOpts, sSelIdx, 'Off', function (opt) {
+            if (!opt._lang) {
+              _subActiveLang = null;
+              if (typeof SubtitleClient !== 'undefined') SubtitleClient.removeSubtitle(document.getElementById('web-video'));
               return;
             }
-            _subActiveLang = l.language;
-            SubtitleClient.applySubtitle(document.getElementById('web-video'), sub);
-          });
-        }, true); // drop-up — subtitle list opens upward (35 items, avoid overflow)
-        sSection.appendChild(sDD);
+            var l = opt._lang;
+            SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', l.language, _currentSeason, _currentEpisode).then(function (sub) {
+              if (!sub) {
+                if (typeof App !== 'undefined') App.showToast('Subtitle unavailable');
+                return;
+              }
+              _subActiveLang = l.language;
+              SubtitleClient.applySubtitle(document.getElementById('web-video'), sub);
+            });
+          }, true);
+          sSection.appendChild(sDD);
+        }
       }).catch(function () {
         if (sLoading.parentNode) sLoading.textContent = 'Unavailable';
       });
@@ -2295,7 +2544,7 @@ var PlayerPage = function () {
   function playWithUrl(url, headers) {
     _currentStreamUrl = url;
 
-    // Broadcast "now watching" presence (signed-in users only)
+    // Broadcast "now watching" presence (signed-in or TV-connected users)
     if (_params && _params.id) _startWatchingHeartbeat(_params.id);
 
     // Show settings button for all non-TV streams (TV uses quality DD instead).
@@ -2640,6 +2889,7 @@ var PlayerPage = function () {
   function closePlayer() {
     _closeSettingsPanel();
     _stopWatchingHeartbeat();
+    _removeSubtitleTV();
     _subActiveLang = null;
     _dlQualityIdx = 0;
     stopAutoHide();

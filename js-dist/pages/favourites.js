@@ -4,7 +4,13 @@ var FavouritesPage = function () {
   var _keyHandler = null;
   function itemCard(item, isFirst) {
     var poster = item.poster ? "<img src=\"".concat(item.poster, "\" alt=\"").concat(item.title, "\" loading=\"lazy\">") : "<div class=\"no-img\">".concat(item.type === 'tv' ? '📺' : '🎬', "</div>");
-    return "\n      <div class=\"card\" data-nav data-item-id=\"".concat(item.id, "\" data-item-type=\"").concat(item.type, "\"\n           data-item-title=\"").concat((item.title || '').replace(/"/g, '&quot;'), "\"\n           data-item-poster=\"").concat(item.poster || '', "\"\n           ").concat(isFirst ? 'data-nav-default' : '', " tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster, "\n          <div class=\"card-badges\" id=\"badges-").concat(item.id, "\">\n            ").concat(UX.badgesHTML(item.id, item.type), "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n        </div>\n      </div>");
+    var rating = item.rating ? item.rating.toFixed(1) : '';
+    var isTV = item.type === 'tv';
+    var typeAttrs = isTV ? "data-show-id=\"".concat(item.id, "\" data-show-title=\"").concat((item.title || '').replace(/"/g, '&quot;'), "\" data-show-poster=\"").concat(item.poster || '', "\" data-show-rating=\"").concat(item.rating || 0, "\"") : "data-movie-id=\"".concat(item.id, "\" data-movie-title=\"").concat((item.title || '').replace(/"/g, '&quot;'), "\" data-movie-poster=\"").concat(item.poster || '', "\" data-movie-rating=\"").concat(item.rating || 0, "\"");
+    var badgesClass = isTV ? 'card-badges card-badges--below' : 'card-badges';
+    var isFav = typeof NexPlayDB !== 'undefined' && NexPlayDB.isFavourite(item.id, item.type);
+    var isWL = typeof NexPlayDB !== 'undefined' && NexPlayDB.isInWatchlist(item.id, item.type);
+    return "\n      <div class=\"card\" data-nav data-item-id=\"".concat(item.id, "\" data-item-type=\"").concat(item.type, "\"\n           data-item-title=\"").concat((item.title || '').replace(/"/g, '&quot;'), "\"\n           data-item-poster=\"").concat(item.poster || '', "\"\n           ").concat(typeAttrs, "\n           ").concat(isFirst ? 'data-nav-default' : '', " tabindex=\"0\">\n        <div class=\"card-poster\">\n          ").concat(poster, "\n          ").concat(rating ? "<div class=\"card-rating\">\u2605 ".concat(rating, "</div>") : '', "\n          <div class=\"").concat(badgesClass, "\" id=\"badges-").concat(item.id, "\">\n            ").concat(UX.badgesHTML(item.id, item.type), "\n          </div>\n          <div class=\"card-overlay\"></div>\n          <div class=\"card-play-icon\">\n            <svg viewBox=\"0 0 24 24\" fill=\"white\" width=\"18\" height=\"18\"><path d=\"M8 5v14l11-7z\"/></svg>\n          </div>\n          <div class=\"card-mobile-actions\">\n            <button class=\"card-action-btn\" data-action=\"info\" title=\"More Info\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"12\" height=\"12\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"/><line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"/></svg></button>\n            <button class=\"card-action-btn").concat(isFav ? ' fav-active' : '', "\" data-action=\"fav\" title=\"Favourite\">").concat(isFav ? '♥' : '♡', "</button>\n            <button class=\"card-action-btn").concat(isWL ? ' wl-active' : '', "\" data-action=\"wl\" title=\"Watchlist\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"11\" height=\"11\"><path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg></button>\n          </div>\n          <div class=\"card-ia-rating card-ia-na\" id=\"ia-").concat(item.id, "\" title=\"No NexPlay ratings yet\">N/A</div>\n          <div class=\"card-prog\" id=\"cprog-").concat(item.id, "\" data-type=\"").concat(item.type, "\"></div>\n        </div>\n      </div>");
   }
   function bindCardClicks(container) {
     container.querySelectorAll('[data-item-id]').forEach(function (el) {
@@ -31,7 +37,6 @@ var FavouritesPage = function () {
         NexPlayDB.toggleFavourite(id, type, title, poster);
         App.showToast('Removed from Favourites');
         if (typeof CloudSync !== 'undefined') CloudSync.syncUp();
-        // Re-render to reflect removal
         var content = document.getElementById('main-content');
         if (content) render(content);
       } else if (e.keyCode === Config.KEYS.YELLOW) {
@@ -56,7 +61,13 @@ var FavouritesPage = function () {
       return itemCard(item, i === 0);
     }).join(''), "\n             </div>"), "\n      </div>");
     Nav.reset(container);
-    if (items.length > 0) bindCardClicks(container);
+    if (items.length > 0) {
+      bindCardClicks(container);
+      UX.fillProgressBars(container);
+      UX.fetchInAppRatings(items.map(function (i) {
+        return String(i.id);
+      }));
+    }
     bindRemoteKeys();
   }
   function onLeave() {

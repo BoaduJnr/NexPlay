@@ -185,6 +185,8 @@ body.theme-bright .iptv-bar-name { color: #0a0a20 !important; }
 body.theme-bright .iptv-bar-meta { color: rgba(10,10,32,0.50) !important; }
 body.theme-bright .channel-name { color: #0a0a20 !important; }
 body.theme-bright .channel-category { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .ch-now-prog { color: rgba(10,10,32,0.55) !important; }
+body.theme-bright .channel-item.active .ch-now-prog { color: rgba(10,10,32,0.75) !important; }
 /* IPTV player area is always dark — placeholder must stay light regardless of theme */
 body.theme-bright .iptv-placeholder { color: rgba(255,255,255,0.65) !important; }
 /* Bright — channel cards & logo */
@@ -225,6 +227,8 @@ body.theme-calm .iptv-bar-name { color: #c9d1d9 !important; }
 body.theme-calm .iptv-bar-meta { color: rgba(201,209,217,0.50) !important; }
 body.theme-calm .channel-name { color: #c9d1d9 !important; }
 body.theme-calm .channel-category { color: rgba(201,209,217,0.45) !important; }
+body.theme-calm .ch-now-prog { color: rgba(201,209,217,0.45) !important; }
+body.theme-calm .channel-item.active .ch-now-prog { color: rgba(201,209,217,0.70) !important; }
 body.theme-calm .iptv-placeholder { color: rgba(255,255,255,0.65) !important; }
 body.theme-calm .channel-item { background: #1c2230 !important; border-color: rgba(88,166,255,0.08) !important; }
 body.theme-calm .channel-item:hover,
@@ -925,9 +929,6 @@ body.is-mobile .player-cbar-quality { display: none !important; }
 }
 
 /* ── Player Settings Panel (⚙ button) ────────────────────────────────── */
-/* Hidden on TV — TV uses quality dropdown + no subtitles via AVPlay       */
-body:not(.is-web):not(.is-mobile) .player-settings-wrap { display: none !important; }
-
 .player-settings-wrap {
   position: relative;
   -webkit-flex-shrink: 0; flex-shrink: 0;
@@ -4024,6 +4025,8 @@ body.theme-night .iptv-bar-meta { color: rgba(232,232,240,0.45) !important; }
 body.theme-night .iptv-filter-label { color: rgba(232,232,240,0.45) !important; }
 body.theme-night .channel-name { color: #e8e8f0 !important; }
 body.theme-night .channel-category { color: rgba(232,232,240,0.40) !important; }
+body.theme-night .ch-now-prog { color: rgba(232,232,240,0.40) !important; }
+body.theme-night .channel-item.active .ch-now-prog { color: rgba(232,232,240,0.65) !important; }
 /* Night — channel cards & logo */
 body.theme-night .channel-item { background: #0d0d18 !important; border-color: rgba(167,139,250,0.06) !important; }
 body.theme-night .channel-item:hover,
@@ -5295,7 +5298,7 @@ body.theme-bright .account-fab:hover {
    ════════════════════════════════════════════════════════ */
 
 .account-panel-wrap {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.62);
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.62);
   display: -webkit-flex; display: flex;
   -webkit-align-items: center; align-items: center;
   -webkit-justify-content: center; justify-content: center;
@@ -5471,3 +5474,175 @@ body.theme-bright .account-code-input { background: rgba(10,10,32,0.06); border-
 body.theme-bright .account-code-input:focus { border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(109,40,217,0.16); }
 body.theme-bright .account-code-input::-webkit-input-placeholder { color: rgba(10,10,32,0.28); }
 body.theme-bright .account-code-input::placeholder              { color: rgba(10,10,32,0.28); }
+
+/* ── TV account panel — larger text & controls ─────────── */
+body:not(.is-web) .account-panel            { width: 500px; }
+body:not(.is-web) .account-panel-title      { font-size: 26px; }
+body:not(.is-web) .account-panel-name       { font-size: 22px; }
+body:not(.is-web) .account-panel-desc       { font-size: 16px; line-height: 1.5; }
+body:not(.is-web) .account-section-title    { font-size: 12px; }
+body:not(.is-web) .account-field-label      { font-size: 14px; min-width: 120px; }
+body:not(.is-web) .account-field-value      { font-size: 15px; }
+body:not(.is-web) .account-field-mono       { font-size: 14px; }
+body:not(.is-web) .account-code-input       { font-size: 17px; height: 56px; }
+body:not(.is-web) .account-settings-btn     { font-size: 15px; height: 44px; }
+body:not(.is-web) .account-panel-btn        { height: 52px !important; font-size: 17px !important; }
+body:not(.is-web) .account-panel-btn-ghost  { font-size: 15px; }
+body:not(.is-web) .account-theme-btn        { height: 36px; font-size: 14px; padding: 0 16px; }
+/* Online status toggle — nav focus ring on TV */
+body:not(.is-web) .acct-status-toggle.nav-focused .acct-toggle-track              { outline: 3px solid rgba(167,139,250,0.70); outline-offset: 3px; border-radius: 100px; }
+body.theme-bright:not(.is-web) .acct-status-toggle.nav-focused .acct-toggle-track { outline-color: rgba(109,40,217,0.55); }
+
+/* ── TV Who's Watching overlay (INFO key) ───────────────── */
+.tv-watching-overlay {
+  position: absolute;
+  top: 80px; right: 40px;
+  background: rgba(15,15,30,0.92);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 16px 20px;
+  min-width: 220px; max-width: 320px;
+  z-index: 120;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-animation: fadeInUp 180ms ease;
+  animation: fadeInUp 180ms ease;
+}
+.tv-wo-title {
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; color: rgba(255,255,255,0.55);
+  margin-bottom: 12px; gap: 6px;
+}
+.tv-wo-count {
+  margin-left: auto;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,0.40);
+  text-transform: none; letter-spacing: 0;
+}
+.tv-wo-list { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 10px; }
+@-webkit-keyframes fadeInUp { from { opacity:0; -webkit-transform:translateY(8px); } to { opacity:1; -webkit-transform:translateY(0); } }
+@keyframes fadeInUp        { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── TV Subtitle Overlay ─────────────────────────────────── */
+.player-subtitle-overlay {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+  max-width: 80%;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.8);
+  white-space: pre-line;
+  pointer-events: none;
+  z-index: 90;
+}
+
+/* ── TV Settings Panel overrides ────────────────────────── */
+body:not(.is-web):not(.is-mobile) .player-settings-panel {
+  width: 380px;
+  padding: 18px 20px 22px;
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Close button */
+.ps-close-btn {
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.65);
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.ps-close-btn.nav-focused {
+  background: rgba(167,139,250,0.18);
+  border-color: rgba(167,139,250,0.55);
+  color: #fff;
+  outline: none;
+}
+body.theme-bright .ps-close-btn.nav-focused {
+  background: rgba(109,40,217,0.14);
+  border-color: rgba(109,40,217,0.50);
+}
+
+/* TV button list for quality / subtitles */
+.ps-tv-opts {
+  display: -webkit-flex; display: flex;
+  -webkit-flex-direction: column; flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ps-tv-opt-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.75);
+  font-size: 14px;
+  text-align: left;
+  padding: 9px 12px;
+  cursor: pointer;
+  -webkit-transition: background 100ms, border-color 100ms;
+  transition: background 100ms, border-color 100ms;
+}
+.ps-tv-opt-btn.active {
+  background: rgba(167,139,250,0.20);
+  border-color: rgba(167,139,250,0.50);
+  color: #fff;
+  font-weight: 600;
+}
+.ps-tv-opt-btn.nav-focused {
+  background: rgba(167,139,250,0.28);
+  border-color: rgba(167,139,250,0.70);
+  color: #fff;
+  outline: none;
+}
+body.theme-bright .ps-tv-opt-btn.active {
+  background: rgba(109,40,217,0.16);
+  border-color: rgba(109,40,217,0.45);
+}
+body.theme-bright .ps-tv-opt-btn.nav-focused {
+  background: rgba(109,40,217,0.22);
+  border-color: rgba(109,40,217,0.60);
+}
+
+/* TV settings — larger section titles and who's watching header */
+body:not(.is-web):not(.is-mobile) .ps-section-title {
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+body:not(.is-web):not(.is-mobile) .ps-watching-hd {
+  font-size: 12px;
+  padding: 8px 0;
+}
+body:not(.is-web):not(.is-mobile) .ps-watching-hd.nav-focused {
+  color: rgba(167,139,250,0.90);
+  outline: none;
+}
+
+/* Settings button size on TV */
+body:not(.is-web):not(.is-mobile) .player-settings-btn {
+  width: 36px;
+  height: 36px;
+}
+body:not(.is-web):not(.is-mobile) .player-settings-btn.nav-focused {
+  background: rgba(167,139,250,0.20);
+  border-radius: 8px;
+  outline: 2px solid rgba(167,139,250,0.60);
+  outline-offset: 2px;
+}

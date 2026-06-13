@@ -15,6 +15,20 @@ const Nav = (() => {
         function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
       );
     }
+    // Account panel open — lock nav inside it
+    const acctPanel = document.getElementById('account-panel-wrap');
+    if (acctPanel) {
+      return Array.from(acctPanel.querySelectorAll(FOCUSABLE)).filter(
+        function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
+      );
+    }
+    // Settings panel open — lock nav inside it
+    const settingsPanel = document.getElementById('player-settings-panel');
+    if (settingsPanel) {
+      return Array.from(settingsPanel.querySelectorAll(FOCUSABLE)).filter(
+        function(el) { return el.offsetParent !== null && !el.hasAttribute('disabled'); }
+      );
+    }
     // Player modal open — lock nav inside modal only (prevents ghost focus on hidden sidebar/content)
     const modal = document.getElementById('player-modal');
     if (modal && !modal.classList.contains('hidden')) {
