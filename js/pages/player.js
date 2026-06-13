@@ -355,7 +355,12 @@
         var focused = document.querySelector('.nav-focused');
         var isBack     = focused && focused.classList.contains('player-back');
         var isCtrl     = focused && (focused.classList.contains('ctrl-btn') ||
-                                     focused.classList.contains('pcb-btn'));
+                                     focused.classList.contains('pcb-btn') ||
+                                     focused.classList.contains('player-settings-btn') ||
+                                     focused.classList.contains('ps-close-btn') ||
+                                     focused.classList.contains('ps-tv-opt-btn') ||
+                                     focused.classList.contains('acct-connect-btn') ||
+                                     focused.tagName === 'BUTTON');
         var isTrigger  = focused && focused.hasAttribute('data-tdd-trigger');
         var isDDOpt    = focused && focused.hasAttribute('data-tdd-opt');
         var isPanel    = focused && (focused.classList.contains('episode-item') ||
@@ -592,6 +597,11 @@
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
           _updateBufferFill(video, pct);
+          if (pos > 10000 && typeof NexPlayDB !== 'undefined') {
+            NexPlayDB.saveProgress(_params.id, _params.type || 'movie',
+              _titleCache, _posterCache, Math.round(pos), Math.round(dur),
+              _currentSeason, _currentEpisode);
+          }
         }, 3000);
       });
     });
@@ -771,26 +781,33 @@
 
   function _applySubtitleTV(sub) {
     _removeSubtitleTV();
-    if (!sub || !sub.blobUrl) return;
+    if (!sub) return;
+
+    function _startCueLoop(vtt) {
+      _subCues = _parseVTTCues(vtt);
+      _subSyncTimer = setInterval(function() {
+        var el = document.getElementById('player-subtitle-overlay');
+        if (!el) { _removeSubtitleTV(); return; }
+        var posMs = 0;
+        try {
+          if (typeof webapis !== 'undefined' && webapis.avplay) posMs = webapis.avplay.getCurrentTime();
+          else { var v = document.getElementById('web-video'); if (v) posMs = v.currentTime * 1000; }
+        } catch(e) {}
+        var active = '';
+        for (var ci = 0; ci < _subCues.length; ci++) {
+          if (posMs >= _subCues[ci].start && posMs < _subCues[ci].end) { active = _subCues[ci].text; break; }
+        }
+        el.textContent = active;
+      }, 250);
+    }
+
+    // Use vttText directly when available (avoids blob: fetch which Tizen 3.0 doesn't support)
+    if (sub.vttText) { _startCueLoop(sub.vttText); return; }
+
+    if (!sub.blobUrl) return;
     fetch(sub.blobUrl)
       .then(function(r) { return r.text(); })
-      .then(function(vtt) {
-        _subCues = _parseVTTCues(vtt);
-        _subSyncTimer = setInterval(function() {
-          var el = document.getElementById('player-subtitle-overlay');
-          if (!el) { _removeSubtitleTV(); return; }
-          var posMs = 0;
-          try {
-            if (typeof webapis !== 'undefined' && webapis.avplay) posMs = webapis.avplay.getCurrentTime();
-            else { var v = document.getElementById('web-video'); if (v) posMs = v.currentTime * 1000; }
-          } catch(e) {}
-          var active = '';
-          for (var ci = 0; ci < _subCues.length; ci++) {
-            if (posMs >= _subCues[ci].start && posMs < _subCues[ci].end) { active = _subCues[ci].text; break; }
-          }
-          el.textContent = active;
-        }, 250);
-      })
+      .then(function(vtt) { _startCueLoop(vtt); })
       .catch(function() {});
   }
 
@@ -1009,7 +1026,33 @@
     // ── Subtitles ─────────────────────────────────────────────
     var sSection = document.createElement('div');
     sSection.className = 'ps-section';
-    sSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg> Subtitles</div>';
+
+    var _sOpen = false;
+    var _sLangListRef = null;
+
+    if (isTV) {
+      var sToggleBtn = document.createElement('button');
+      sToggleBtn.className = 'ps-section-title ps-section-toggle';
+      sToggleBtn.setAttribute('data-nav', '');
+      sToggleBtn.setAttribute('tabindex', '0');
+      sToggleBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg>' +
+        ' Subtitles' +
+        '<svg class="ps-stgl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"' +
+        ' style="margin-left:auto;flex-shrink:0;-webkit-transform:rotate(-90deg);transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>';
+      sToggleBtn.addEventListener('click', function() {
+        _sOpen = !_sOpen;
+        var arrow = sToggleBtn.querySelector('.ps-stgl-arrow');
+        if (arrow) {
+          arrow.style.webkitTransform = _sOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+          arrow.style.transform       = _sOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+        }
+        if (_sLangListRef) _sLangListRef.style.display = _sOpen ? '' : 'none';
+      });
+      sSection.appendChild(sToggleBtn);
+    } else {
+      sSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg> Subtitles</div>';
+    }
 
     var sLoading = document.createElement('div');
     sLoading.className = 'ps-dd-trigger ps-dd-disabled';
@@ -1063,6 +1106,8 @@
               noSubsEl.className = 'ps-dd-trigger ps-dd-disabled'; noSubsEl.textContent = 'None available';
               sLangList.appendChild(noSubsEl);
             }
+            _sLangListRef = sLangList;
+            sLangList.style.display = 'none'; // collapsed until toggle pressed
             sSection.appendChild(sLangList);
           } else {
             var sOpts = [{ label: 'Off', html: '<span class="ps-dd-off">✕</span> Off' }];
@@ -1817,6 +1862,11 @@
           if (fill) fill.style.width = pct + '%';
           if (time) time.textContent = formatTime(pos) + ' / ' + formatTime(dur);
           _updateBufferFill(video, pct);
+          if (pos > 10000 && typeof NexPlayDB !== 'undefined') {
+            NexPlayDB.saveProgress(_params.id, _params.type || 'movie',
+              _titleCache, _posterCache, Math.round(pos), Math.round(dur),
+              _currentSeason, _currentEpisode);
+          }
         }, 3000);
       });
       hls.on(Hls.Events.ERROR, function(ev, data) {

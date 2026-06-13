@@ -59,8 +59,8 @@ const DetailPage = (() => {
     var isTV          = !document.body.classList.contains('is-web');
     var isTVConnected = isTV && (function() { try { return !!localStorage.getItem('np_tv_profile'); } catch(e) { return false; } })();
 
-    // Only show to signed-in web users or connected TV users
-    if (!isSignedIn && !isTVConnected) {
+    // Show to signed-in web users or any TV user (read-only on TV)
+    if (!isSignedIn && !isTV) {
       section.style.display = 'none';
       return;
     }

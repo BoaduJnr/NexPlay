@@ -110,6 +110,7 @@ var SubtitleClient = (function() {
           var blob = new Blob([vtt], { type: 'text/vtt' });
           return {
             blobUrl:  URL.createObjectURL(blob),
+            vttText:  vtt,
             language: best.language,
             display:  best.display || best.language,
             flagUrl:  best.flagUrl || '',

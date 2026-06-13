@@ -4429,6 +4429,43 @@ body.theme-night .acct-tab.active { background: rgba(167,139,250,0.18); color: #
 body.theme-bright .acct-tab        { color: rgba(10,10,32,0.45); }
 body.theme-bright .acct-tab.active { background: rgba(255,255,255,0.80); color: #0a0a20; box-shadow: 0 1px 6px rgba(10,10,32,0.14); }
 
+/* ── Chat unread badge ─────────────────────────────────────────────────────── */
+.acct-chat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #f87171;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 18px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.acct-nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #f87171;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 16px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
 /* ── Chat pane ─────────────────────────────────────────────────────────────── */
 .acct-chat-pane { width: 100%; }
 
@@ -4517,10 +4554,25 @@ body.theme-bright .acct-chat-item-name { color: rgba(10,10,32,0.90); }
 }
 body.theme-bright .acct-chat-item-last { color: rgba(10,10,32,0.42); }
 
+.acct-chat-item-right {
+  display: -webkit-flex; display: flex;
+  -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: flex-end; align-items: flex-end;
+  gap: 4px; flex-shrink: 0;
+}
 .acct-chat-item-time {
-  font-size: 11px; color: rgba(255,255,255,0.28); flex-shrink: 0;
+  font-size: 11px; color: rgba(255,255,255,0.28);
 }
 body.theme-bright .acct-chat-item-time { color: rgba(10,10,32,0.38); }
+.acct-chat-unread-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #f87171;
+  flex-shrink: 0;
+}
+.acct-chat-item-unread .acct-chat-item-name { font-weight: 800; }
+.acct-chat-item-unread .acct-chat-item-last { opacity: 0.75; }
 
 /* ── Thread view ──────────────────────────────────────── */
 .acct-thread-hd {
@@ -5553,12 +5605,11 @@ body:not(.is-web):not(.is-mobile) .player-settings-panel {
   max-height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Tizen 3.0: transform animations freeze mid-way — use opacity-only */
-  -webkit-animation: tvSettingsIn 0.12s ease both;
-          animation: tvSettingsIn 0.12s ease both;
+  /* Tizen 3.0: any animation (even opacity-only) freezes — kill it entirely */
+  -webkit-animation: none !important;
+          animation: none !important;
+  opacity: 1 !important;
 }
-@-webkit-keyframes tvSettingsIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes          tvSettingsIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* Close button */
 .ps-close-btn {
@@ -5647,6 +5698,28 @@ body.theme-calm:not(.is-web):not(.is-mobile) .player-settings-btn.nav-focused {
   outline-color: rgba(88,166,255,0.60);
 }
 
+/* TV subtitle toggle button — resets browser button defaults */
+button.ps-section-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: default;
+}
+body:not(.is-web):not(.is-mobile) button.ps-section-toggle.nav-focused {
+  color: rgba(167,139,250,0.90);
+  outline: none;
+}
+body.theme-calm:not(.is-web):not(.is-mobile) button.ps-section-toggle.nav-focused {
+  color: rgba(88,166,255,0.90);
+}
+body.theme-bright:not(.is-web):not(.is-mobile) button.ps-section-toggle.nav-focused {
+  color: rgba(255,255,255,0.90);
+}
+
 /* TV settings — larger section titles and who's watching header */
 body:not(.is-web):not(.is-mobile) .ps-section-title {
   font-size: 12px;
@@ -5672,4 +5745,49 @@ body:not(.is-web):not(.is-mobile) .player-settings-btn.nav-focused {
   border-radius: 8px;
   outline: 2px solid rgba(167,139,250,0.60);
   outline-offset: 2px;
+}
+
+/* ── Mobile: Account panel + Chat cards ──────────────────────────────────── */
+@media (max-width: 600px) {
+  .account-panel-wrap { padding: 0; -webkit-align-items: flex-end; align-items: flex-end; }
+  .account-panel {
+    width: 100%; max-width: 100%; border-radius: 20px 20px 0 0;
+    max-height: 92vh; padding: 40px 18px 28px;
+  }
+  .account-panel.account-panel-profile { width: 100%; }
+
+  /* Close button — bigger tap target */
+  .account-panel-close { width: 40px; height: 40px; font-size: 20px; }
+
+  /* Tabs */
+  .acct-tab { font-size: 12px; padding: 7px 10px; }
+
+  /* Chat list items — larger touch targets */
+  .acct-chat-item { padding: 12px 8px; min-height: 60px; }
+  .acct-chat-av   { width: 42px; height: 42px; }
+  .acct-chat-av-ph { width: 42px; height: 42px; font-size: 17px; line-height: 42px; }
+  .acct-chat-item-name { font-size: 14px; }
+  .acct-chat-item-last { font-size: 12px; }
+
+  /* New-chat / group join buttons */
+  .acct-chat-new-btn { padding: 10px 14px; font-size: 13px; }
+  .acct-new-choice-btn { padding: 14px 14px; }
+
+  /* Thread messages area — use more vertical space */
+  .acct-thread-msgs { max-height: 46vh; }
+
+  /* Input row — comfortable for thumbs */
+  .acct-thread-input-row { gap: 6px; }
+  .acct-thread-inp  { height: 44px; font-size: 15px; padding: 0 12px; border-radius: 12px; }
+  .acct-thread-send { height: 44px; padding: 0 18px; font-size: 14px; border-radius: 12px; }
+
+  /* Thread header */
+  .acct-thread-hd  { padding: 0 0 10px; }
+  .acct-thread-back { width: 38px; height: 38px; font-size: 18px; }
+
+  /* Message bubbles — narrower cap on wide phones */
+  .acct-msg { max-width: 86%; }
+
+  /* Settings-tab code box */
+  .account-code-input { font-size: 18px; letter-spacing: 6px; }
 }

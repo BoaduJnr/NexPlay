@@ -137,6 +137,7 @@ var SubtitleClient = function () {
         });
         return {
           blobUrl: URL.createObjectURL(blob),
+          vttText: vtt,
           language: best.language,
           display: best.display || best.language,
           flagUrl: best.flagUrl || ''

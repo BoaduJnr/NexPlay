@@ -560,8 +560,8 @@ var DetailPage = function () {
       }
     }();
 
-    // Only show to signed-in web users or connected TV users
-    if (!isSignedIn && !isTVConnected) {
+    // Show to signed-in web users or any TV user (read-only on TV)
+    if (!isSignedIn && !isTV) {
       section.style.display = 'none';
       return;
     }

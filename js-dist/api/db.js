@@ -56,6 +56,7 @@ var NexPlayDB = function () {
       updatedAt: Date.now()
     };
     save(K.PROGRESS, progress);
+    if (typeof CloudSync !== 'undefined') CloudSync.queueSyncUp();
   }
   function getProgress(id, type, season, episode) {
     var progress = load(K.PROGRESS) || {};
@@ -73,6 +74,9 @@ var NexPlayDB = function () {
     }).sort(function (a, b) {
       return b.updatedAt - a.updatedAt;
     }).slice(0, limit || 20);
+  }
+  function getAllProgress() {
+    return load(K.PROGRESS) || {};
   }
 
   // ── Watch history ─────────────────────────────────────────────────────
@@ -93,6 +97,7 @@ var NexPlayDB = function () {
     });
     if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
     save(K.HISTORY, history);
+    if (typeof CloudSync !== 'undefined') CloudSync.queueSyncUp();
   }
   function getHistory(limit) {
     return (load(K.HISTORY) || []).slice(0, limit || 20);
@@ -179,18 +184,19 @@ var NexPlayDB = function () {
     if (idx >= 0) {
       favs.splice(idx, 1);
       save(K.FAVOURITES, favs);
-      return false;
+    } else {
+      favs.unshift({
+        id: String(id),
+        type: type,
+        title: title,
+        poster: poster || '',
+        rating: parseFloat(rating) || 0,
+        addedAt: Date.now()
+      });
+      save(K.FAVOURITES, favs);
     }
-    favs.unshift({
-      id: String(id),
-      type: type,
-      title: title,
-      poster: poster || '',
-      rating: parseFloat(rating) || 0,
-      addedAt: Date.now()
-    });
-    save(K.FAVOURITES, favs);
-    return true;
+    if (typeof CloudSync !== 'undefined') CloudSync.queueSyncUp();
+    return idx < 0;
   }
   function isFavourite(id, type) {
     return findItem(load(K.FAVOURITES) || [], id, type) >= 0;
@@ -206,18 +212,19 @@ var NexPlayDB = function () {
     if (idx >= 0) {
       wl.splice(idx, 1);
       save(K.WATCHLIST, wl);
-      return false;
+    } else {
+      wl.unshift({
+        id: String(id),
+        type: type,
+        title: title,
+        poster: poster || '',
+        rating: parseFloat(rating) || 0,
+        addedAt: Date.now()
+      });
+      save(K.WATCHLIST, wl);
     }
-    wl.unshift({
-      id: String(id),
-      type: type,
-      title: title,
-      poster: poster || '',
-      rating: parseFloat(rating) || 0,
-      addedAt: Date.now()
-    });
-    save(K.WATCHLIST, wl);
-    return true;
+    if (typeof CloudSync !== 'undefined') CloudSync.queueSyncUp();
+    return idx < 0;
   }
   function isInWatchlist(id, type) {
     return findItem(load(K.WATCHLIST) || [], id, type) >= 0;
@@ -228,6 +235,7 @@ var NexPlayDB = function () {
   return {
     saveProgress: saveProgress,
     getProgress: getProgress,
+    getAllProgress: getAllProgress,
     clearProgress: clearProgress,
     getContinueWatching: getContinueWatching,
     addToHistory: addToHistory,

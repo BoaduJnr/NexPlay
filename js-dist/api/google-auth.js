@@ -32,6 +32,7 @@ var GoogleAuth = function () {
   var _chatPollTimer = null;
   var _chatMsgCount = 0;
   var _currentGroup = null; // { id, name } when in a group thread
+  var _chatRefreshTimer = null; // 2-min interval to refresh unread badge
 
   // ── Helpers ───────────────────────────────────────────
   function _isTV() {
@@ -71,10 +72,21 @@ var GoogleAuth = function () {
     } catch (e) {}
   }
   function _sendPresence() {
-    if (!_user) return;
     var base = _presenceBase();
-    if (!base && window.location.protocol === 'file:') return; // no server
-    var uid = 'g_' + _user.sub;
+    if (!base && window.location.protocol === 'file:') return;
+    var uid;
+    if (_user) {
+      uid = 'g_' + _user.sub;
+    } else if (_isTV()) {
+      try {
+        uid = localStorage.getItem('np_sync_uid') || '';
+      } catch (e) {
+        uid = '';
+      }
+      if (!uid || uid.indexOf('g_') !== 0) return; // only send if properly connected with a real Google-linked code
+    } else {
+      return;
+    }
     var xhr = new XMLHttpRequest();
     xhr.open('POST', base + '/api/presence', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -108,6 +120,21 @@ var GoogleAuth = function () {
     if (h === 'localhost' || h === '127.0.0.1' || window.location.protocol === 'https:') return '';
     if (typeof Config !== 'undefined' && Config.DEPLOY_URL) return Config.DEPLOY_URL;
     return '';
+  }
+  function _getChatReads() {
+    try {
+      return JSON.parse(localStorage.getItem('np_chat_reads') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+  function _markChatRead(key) {
+    var reads = _getChatReads();
+    reads[key] = Date.now();
+    try {
+      localStorage.setItem('np_chat_reads', JSON.stringify(reads));
+    } catch (e) {}
+    _updateChatBadge();
   }
   function _loadChatList(cb) {
     var uid = _currentUid();
@@ -436,10 +463,13 @@ var GoogleAuth = function () {
       CloudSync.init();
       CloudSync.syncDown().then(function () {
         CloudSync.syncUp();
+        _fetchAndCacheChatMeta();
       }); // push profile to cloud
     }
     _startHeartbeat();
     _registerChatCode(_user);
+    if (_chatRefreshTimer) clearInterval(_chatRefreshTimer);
+    _chatRefreshTimer = setInterval(_fetchAndCacheChatMeta, 120000);
     _updateUI();
     closePanel();
     if (typeof App !== 'undefined') App.showToast('Signed in as ' + (_user.firstName || _user.email));
@@ -461,6 +491,9 @@ var GoogleAuth = function () {
     if (_user) {
       _startHeartbeat();
       _registerChatCode(_user);
+      _fetchAndCacheChatMeta();
+      if (_chatRefreshTimer) clearInterval(_chatRefreshTimer);
+      _chatRefreshTimer = setInterval(_fetchAndCacheChatMeta, 120000);
     }
     // Restore cached chat code
     try {
@@ -481,6 +514,10 @@ var GoogleAuth = function () {
     } catch (e) {}
     _chatCode = '';
     _stopHeartbeat();
+    if (_chatRefreshTimer) {
+      clearInterval(_chatRefreshTimer);
+      _chatRefreshTimer = null;
+    }
     if (typeof CloudSync !== 'undefined') CloudSync.init();
     _updateUI();
     closePanel();
@@ -523,6 +560,7 @@ var GoogleAuth = function () {
     if (typeof CloudSync !== 'undefined') {
       CloudSync.init();
       CloudSync.syncDown().then(function () {
+        CloudSync.syncUp();
         _updateUI();
         _registerTVChatCode();
         if (typeof App !== 'undefined') App.showToast('Connected! Your data has been synced.');
@@ -541,7 +579,7 @@ var GoogleAuth = function () {
     // Online dot shown on own avatar (always — you're clearly online if you're viewing the app)
     var onlineDot = '<span class="online-dot online-dot-self"></span>';
     if (_user) {
-      var av = _user.picture ? '<span class="av-wrap"><img src="' + _escHtml(_user.picture) + '" class="nav-account-avatar" alt="">' + onlineDot + '</span>' : '<span class="av-wrap nav-account-initials">' + (_user.firstName[0] || '?') + onlineDot + '</span>';
+      var av = _user.picture ? '<span class="av-wrap"><img src="' + _escHtml(_user.picture) + '" class="nav-account-avatar" alt="">' + onlineDot + '<span id="acct-nav-badge" class="acct-nav-badge" style="display:none"></span></span>' : '<span class="av-wrap nav-account-initials">' + (_user.firstName[0] || '?') + onlineDot + '<span id="acct-nav-badge" class="acct-nav-badge" style="display:none"></span></span>';
       if (navInner) navInner.innerHTML = av + '<span class="nav-label">' + _escHtml(_user.firstName || 'Account') + '</span>';
       if (fabEl) {
         fabEl.innerHTML = (_user.picture ? '<img src="' + _escHtml(_user.picture) + '" class="fab-avatar" alt="">' : '<span class="fab-initials">' + (_user.firstName[0] || '?') + '</span>') + '<span class="online-dot online-dot-fab"></span>';
@@ -563,6 +601,45 @@ var GoogleAuth = function () {
         fabEl.title = 'Sign In';
       }
     }
+    if (!_isTV()) _updateChatBadge();
+  }
+
+  // ── Remote status fetch (panel open-time consistency) ─
+  // Reads statusHidden from the sync blob so that if the user toggled their
+  // status on another device, this panel reflects the server-side truth.
+  function _fetchAndApplyRemoteStatus(cb) {
+    var uid = _currentUid();
+    if (!uid) {
+      cb(null);
+      return;
+    }
+    var base = _chatApiBase();
+    if (!base && window.location.protocol === 'file:') {
+      cb(null);
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', base + '/api/sync?uid=' + encodeURIComponent(uid), true);
+    xhr.timeout = 4000;
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (data && typeof data.statusHidden === 'boolean') {
+            cb(data.statusHidden);
+            return;
+          }
+        } catch (e) {}
+      }
+      cb(null);
+    };
+    xhr.onerror = function () {
+      cb(null);
+    };
+    xhr.ontimeout = function () {
+      cb(null);
+    };
+    xhr.send();
   }
 
   // ── Open / close panel ────────────────────────────────
@@ -582,6 +659,9 @@ var GoogleAuth = function () {
     _panel.className = 'account-panel-wrap';
     _panel.innerHTML = _buildPanelHTML();
     document.body.appendChild(_panel);
+
+    // Initialise tab badge immediately from cached meta (before async fetch completes)
+    if (!_isTV()) _updateChatBadge();
 
     // Google renderButton
     var gBtn = document.getElementById('g-btn-container');
@@ -678,7 +758,9 @@ var GoogleAuth = function () {
         btnSync.disabled = true;
         btnSync.textContent = 'Syncing…';
         if (typeof CloudSync !== 'undefined') CloudSync.init(); // reset _synced guard so re-sync works
-        var act = _isTV() ? typeof CloudSync !== 'undefined' ? CloudSync.syncDown() : Promise.resolve() : typeof CloudSync !== 'undefined' ? CloudSync.syncUp() : Promise.resolve();
+        var act = typeof CloudSync === 'undefined' ? Promise.resolve() : _isTV() ? CloudSync.syncDown().then(function () {
+          return CloudSync.syncUp();
+        }) : CloudSync.syncUp();
         act.then(function () {
           btnSync.disabled = false;
           btnSync.innerHTML = _ICON_SYNC + ' Sync Now';
@@ -699,6 +781,16 @@ var GoogleAuth = function () {
       });
     }
 
+    // Background fetch: sync toggle with server-side status so all devices agree
+    _fetchAndApplyRemoteStatus(function (remoteHidden) {
+      if (remoteHidden === null || remoteHidden === _statusHidden) return;
+      _savePrivacy(remoteHidden);
+      var cb2 = document.getElementById('acct-status-cb');
+      var lbl2 = document.getElementById('acct-status-lbl');
+      if (cb2) cb2.checked = !remoteHidden;
+      if (lbl2) lbl2.textContent = remoteHidden ? 'Hidden' : 'Visible';
+    });
+
     // Tab switching
     var tabs = _panel.querySelectorAll('.acct-tab');
     for (var ti = 0; ti < tabs.length; ti++) {
@@ -717,7 +809,10 @@ var GoogleAuth = function () {
           if (settingsPan) settingsPan.style.display = t === 'settings' ? '' : 'none';
           if (chatsPan) chatsPan.style.display = t === 'chats' ? '' : 'none';
           // Load chat list when chats tab opens
-          if (t === 'chats') _renderChatListPane(); // use _chatBody() — don't destroy the inner div
+          if (t === 'chats') {
+            _updateChatBadge();
+            _renderChatListPane();
+          }
         });
       })(tabs[ti]);
     }
@@ -810,6 +905,11 @@ var GoogleAuth = function () {
       var all = dmItems.concat(grpItems).sort(function (a, b) {
         return b._ts - a._ts;
       });
+      var reads = _getChatReads();
+      var legacyRead = 0;
+      try {
+        legacyRead = parseInt(localStorage.getItem('np_chat_last_read') || '0', 10);
+      } catch (e2) {}
       var html = '<div class="acct-chat-list-hd">' + '<span class="acct-chat-list-title">Chats</span>' + '<button class="acct-chat-new-btn" id="acct-chat-new">+ New</button>' + '</div>';
       if (!all.length) {
         html += '<div class="acct-chat-empty">No chats yet.<br>Start a DM or create a group.</div>';
@@ -818,10 +918,12 @@ var GoogleAuth = function () {
         all.forEach(function (item) {
           if (item._type === 'dm') {
             var c = item.data;
-            html += '<div class="acct-chat-item" data-type="dm" data-uid="' + _escHtml(c.otherUid) + '" data-name="' + _escHtml(c.otherName || '') + '" data-pic="' + _escHtml(c.otherPicture || '') + '">' + '<div class="acct-chat-item-av">' + (c.otherPicture ? '<img src="' + _escHtml(c.otherPicture) + '" class="acct-chat-av" onerror="this.style.display=\'none\'">' : '<div class="acct-chat-av-ph">' + (c.otherName || '?')[0].toUpperCase() + '</div>') + '</div>' + '<div class="acct-chat-item-body">' + '<div class="acct-chat-item-name">' + _escHtml(c.otherName || 'Unknown') + '</div>' + '<div class="acct-chat-item-last">' + _escHtml((c.lastMsg || '').slice(0, 40)) + '</div>' + '</div>' + '<div class="acct-chat-item-time">' + _chatTimeAgo(c.lastTs || 0) + '</div>' + '</div>';
+            var unread = (c.lastTs || 0) > (reads[c.otherUid] || legacyRead);
+            html += '<div class="acct-chat-item' + (unread ? ' acct-chat-item-unread' : '') + '" data-type="dm" data-uid="' + _escHtml(c.otherUid) + '" data-name="' + _escHtml(c.otherName || '') + '" data-pic="' + _escHtml(c.otherPicture || '') + '">' + '<div class="acct-chat-item-av">' + (c.otherPicture ? '<img src="' + _escHtml(c.otherPicture) + '" class="acct-chat-av" onerror="this.style.display=\'none\'">' : '<div class="acct-chat-av-ph">' + (c.otherName || '?')[0].toUpperCase() + '</div>') + '</div>' + '<div class="acct-chat-item-body">' + '<div class="acct-chat-item-name">' + _escHtml(c.otherName || 'Unknown') + '</div>' + '<div class="acct-chat-item-last">' + _escHtml((c.lastMsg || '').slice(0, 40)) + '</div>' + '</div>' + '<div class="acct-chat-item-right">' + '<div class="acct-chat-item-time">' + _chatTimeAgo(c.lastTs || 0) + '</div>' + (unread ? '<span class="acct-chat-unread-dot"></span>' : '') + '</div>' + '</div>';
           } else {
             var g = item.data;
-            html += '<div class="acct-chat-item acct-chat-item-group" data-type="group" data-gid="' + _escHtml(g.id) + '" data-gname="' + _escHtml(g.name || '') + '">' + '<div class="acct-chat-item-av">' + '<div class="acct-group-av">👥</div>' + '</div>' + '<div class="acct-chat-item-body">' + '<div class="acct-chat-item-name">' + _escHtml(g.name || 'Group') + ' <span class="acct-group-tag">Group</span></div>' + '<div class="acct-chat-item-last">' + (g.memberCount ? g.memberCount + ' members' : '') + (g.lastMsg ? ' · ' + _escHtml(g.lastMsg.slice(0, 30)) : '') + '</div>' + '</div>' + '<div class="acct-chat-item-time">' + _chatTimeAgo(g.lastTs || 0) + '</div>' + '</div>';
+            var gunread = (g.lastTs || 0) > (reads[g.id] || legacyRead);
+            html += '<div class="acct-chat-item acct-chat-item-group' + (gunread ? ' acct-chat-item-unread' : '') + '" data-type="group" data-gid="' + _escHtml(g.id) + '" data-gname="' + _escHtml(g.name || '') + '">' + '<div class="acct-chat-item-av">' + '<div class="acct-group-av">👥</div>' + '</div>' + '<div class="acct-chat-item-body">' + '<div class="acct-chat-item-name">' + _escHtml(g.name || 'Group') + ' <span class="acct-group-tag">Group</span></div>' + '<div class="acct-chat-item-last">' + (g.memberCount ? g.memberCount + ' members' : '') + (g.lastMsg ? ' · ' + _escHtml(g.lastMsg.slice(0, 30)) : '') + '</div>' + '</div>' + '<div class="acct-chat-item-right">' + '<div class="acct-chat-item-time">' + _chatTimeAgo(g.lastTs || 0) + '</div>' + (gunread ? '<span class="acct-chat-unread-dot"></span>' : '') + '</div>' + '</div>';
           }
         });
         html += '</div>';
@@ -1068,6 +1170,7 @@ var GoogleAuth = function () {
     _loadGroupMsgs(currentGroup.id, function (msgs) {
       if (!el.parentNode) return;
       _chatMsgCount = msgs.length;
+      _markChatRead(currentGroup.id);
       var prevInput = '';
       var prevEl = document.getElementById('acct-thread-inp');
       if (prevEl) prevInput = prevEl.value;
@@ -1143,10 +1246,20 @@ var GoogleAuth = function () {
         _stopChatPoll();
         return;
       }
-      _loadGroupMsgs(_currentGroup.id, function (msgs) {
+      var currentGroup = _currentGroup;
+      _loadGroupMsgs(currentGroup.id, function (msgs) {
         if (msgs.length !== _chatMsgCount) {
           _chatMsgCount = msgs.length;
-          _renderGroupThread();
+          _markChatRead(currentGroup.id);
+          var myUid = _currentUid();
+          var msgsEl = document.getElementById('acct-thread-msgs');
+          if (msgsEl) {
+            msgsEl.innerHTML = msgs.length ? msgs.map(function (m) {
+              var isMe = m.uid === myUid;
+              return '<div class="acct-msg' + (isMe ? ' acct-msg-me' : '') + '">' + (!isMe ? '<div class="acct-group-msg-name">' + _escHtml(m.name || 'Someone') + '</div>' : '') + '<div class="acct-msg-bubble">' + _escHtml(m.text || '') + '</div>' + '<div class="acct-msg-time">' + _chatTimeAgo(m.ts || 0) + '</div>' + '</div>';
+            }).join('') : '<div class="acct-chat-empty">No messages yet. Say hello!</div>';
+            msgsEl.scrollTop = msgsEl.scrollHeight;
+          }
           var dot = document.getElementById('acct-new-msg-dot');
           if (dot) dot.style.display = '';
         }
@@ -1167,7 +1280,7 @@ var GoogleAuth = function () {
     _loadChatThread(chatWith.uid, function (msgs) {
       if (!el.parentNode) return;
       _chatMsgCount = msgs.length; // track for poll comparisons
-
+      _markChatRead(chatWith.uid);
       var headerAvatar = chatWith.picture ? '<img src="' + _escHtml(chatWith.picture) + '" class="acct-thread-av" onerror="this.style.display=\'none\'">' : '<div class="acct-thread-av-ph">' + (chatWith.name || '?')[0].toUpperCase() + '</div>';
       var msgsHtml = msgs.length ? msgs.map(function (m) {
         var isMe = m.from === myUid;
@@ -1346,22 +1459,31 @@ var GoogleAuth = function () {
   function _startChatPoll() {
     _stopChatPoll();
     _chatPollTimer = setInterval(function () {
-      // Stop if panel closed, view changed, or no thread open
       if (!_panel || _chatView !== 'thread' || !_chatWith) {
         _stopChatPoll();
         return;
       }
-      _loadChatThread(_chatWith.uid, function (msgs) {
-        // Only re-render if new messages arrived (avoids flicker)
+      var chatWith = _chatWith;
+      _loadChatThread(chatWith.uid, function (msgs) {
         if (msgs.length !== _chatMsgCount) {
           _chatMsgCount = msgs.length;
-          _renderChatThread();
-          // Show subtle indicator
+          _markChatRead(chatWith.uid);
+          // Update only the messages list — never rebuild the whole thread,
+          // so the input element retains focus while the user is typing.
+          var myUid = _currentUid();
+          var msgsEl = document.getElementById('acct-thread-msgs');
+          if (msgsEl) {
+            msgsEl.innerHTML = msgs.length ? msgs.map(function (m) {
+              var isMe = m.from === myUid;
+              return '<div class="acct-msg' + (isMe ? ' acct-msg-me' : '') + '">' + '<div class="acct-msg-bubble">' + _escHtml(m.text || '') + '</div>' + '<div class="acct-msg-time">' + _chatTimeAgo(m.ts || 0) + '</div>' + '</div>';
+            }).join('') : '<div class="acct-chat-empty">No messages yet. Say hi!</div>';
+            msgsEl.scrollTop = msgsEl.scrollHeight;
+          }
           var dot = document.getElementById('acct-new-msg-dot');
           if (dot) dot.style.display = '';
         }
       });
-    }, 5000); // poll every 5 seconds
+    }, 5000);
   }
   function _stopChatPoll() {
     if (_chatPollTimer) {
@@ -1369,6 +1491,104 @@ var GoogleAuth = function () {
       _chatPollTimer = null;
     }
     _chatMsgCount = 0;
+  }
+
+  // ── Chat metadata fetch (web only) ────────────────────
+  function _fetchAndCacheChatMeta() {
+    if (_isTV()) return;
+    var uid = _currentUid();
+    if (!uid) return;
+    var base = _chatApiBase();
+    var dmsLoaded = false,
+      groupsLoaded = false;
+    var dms = [],
+      groups = [];
+    function _done() {
+      if (!dmsLoaded || !groupsLoaded) return;
+      try {
+        localStorage.setItem('np_chat_meta', JSON.stringify({
+          fetchedAt: Date.now(),
+          dms: dms,
+          groups: groups
+        }));
+      } catch (e) {}
+      _updateChatBadge();
+    }
+    var x1 = new XMLHttpRequest();
+    x1.open('GET', base + '/api/chats?uid=' + encodeURIComponent(uid), true);
+    x1.timeout = 6000;
+    x1.onload = function () {
+      try {
+        dms = JSON.parse(x1.responseText) || [];
+      } catch (e) {}
+      dmsLoaded = true;
+      _done();
+    };
+    x1.onerror = function () {
+      dmsLoaded = true;
+      _done();
+    };
+    x1.ontimeout = function () {
+      dmsLoaded = true;
+      _done();
+    };
+    x1.send();
+    var x2 = new XMLHttpRequest();
+    x2.open('GET', base + '/api/group_list?uid=' + encodeURIComponent(uid), true);
+    x2.timeout = 6000;
+    x2.onload = function () {
+      try {
+        groups = JSON.parse(x2.responseText) || [];
+      } catch (e) {}
+      groupsLoaded = true;
+      _done();
+    };
+    x2.onerror = function () {
+      groupsLoaded = true;
+      _done();
+    };
+    x2.ontimeout = function () {
+      groupsLoaded = true;
+      _done();
+    };
+    x2.send();
+  }
+
+  // Count conversations with messages newer than each conversation's last-read time.
+  function _updateChatBadge() {
+    if (_isTV()) return;
+    var reads = _getChatReads();
+    var legacyRead = 0;
+    try {
+      legacyRead = parseInt(localStorage.getItem('np_chat_last_read') || '0', 10);
+    } catch (e) {}
+    var meta = null;
+    try {
+      meta = JSON.parse(localStorage.getItem('np_chat_meta') || 'null');
+    } catch (e) {}
+    var count = 0,
+      i;
+    if (meta) {
+      var dms = meta.dms || [];
+      for (i = 0; i < dms.length; i++) {
+        if ((dms[i].lastTs || 0) > (reads[dms[i].otherUid] || legacyRead)) count++;
+      }
+      var grps = meta.groups || [];
+      for (i = 0; i < grps.length; i++) {
+        if ((grps[i].lastTs || 0) > (reads[grps[i].id] || legacyRead)) count++;
+      }
+    }
+    var label = count > 99 ? '99+' : count > 0 ? String(count) : '';
+    var tabBadge = document.getElementById('acct-chat-badge');
+    if (tabBadge) {
+      tabBadge.textContent = label;
+      tabBadge.style.display = count > 0 ? '' : 'none';
+    }
+    var navBadge = document.getElementById('acct-nav-badge');
+    if (navBadge) {
+      navBadge.textContent = label;
+      navBadge.style.display = count > 0 ? '' : 'none';
+    }
   }
   function _buildPanelHTML() {
     var onTV = _isTV();
@@ -1396,7 +1616,7 @@ var GoogleAuth = function () {
       var changeBtn = onTV ? '<button id="acct-change-btn" class="account-panel-btn-ghost" data-nav tabindex="0">Change Code</button>' : '';
 
       // ── Tab bar (only on web — TV keeps flat layout) ────
-      var tabBar = !onTV ? '<div class="acct-tabs">' + '<button class="acct-tab' + (_activeTab === 'settings' ? ' active' : '') + '" data-tab="settings">Settings</button>' + '<button class="acct-tab' + (_activeTab === 'chats' ? ' active' : '') + '" data-tab="chats">' + _ICON_CHAT + ' Chats' + '</button>' + '</div>' : '';
+      var tabBar = !onTV ? '<div class="acct-tabs">' + '<button class="acct-tab' + (_activeTab === 'settings' ? ' active' : '') + '" data-tab="settings">Settings</button>' + '<button class="acct-tab' + (_activeTab === 'chats' ? ' active' : '') + '" data-tab="chats">' + _ICON_CHAT + ' Chats' + '<span id="acct-chat-badge" class="acct-chat-badge" style="display:none"></span>' + '</button>' + '</div>' : '';
       var settingsPane = '<div id="acct-pane-settings" style="' + (_activeTab !== 'settings' ? 'display:none;' : '') + '">' + profileSection + settingsSection + primaryBtn + changeBtn + '</div>';
       var chatsPane = !onTV ? '<div id="acct-pane-chats" class="acct-chat-pane" style="' + (_activeTab !== 'chats' ? 'display:none;' : '') + '">' + '<div id="acct-chat-body" class="acct-chat-body">' + '<div class="acct-chat-loading">Loading conversations…</div>' + '</div>' + '</div>' : '';
       return '<div class="account-panel account-panel-profile">' + '<button id="acct-close-btn" class="account-panel-close" data-nav tabindex="0">✕</button>' + '<div class="account-panel-avatar-wrap">' + avatar + '</div>' + '<div class="account-panel-name">' + _escHtml(displayName) + '</div>' + tabBar + settingsPane + chatsPane + '</div>';
