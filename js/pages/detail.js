@@ -545,6 +545,7 @@ const DetailPage = (() => {
             <div id="detail-genres" class="detail-genres-text" style="font-size:14px;margin-bottom:12px;letter-spacing:1px;text-transform:uppercase;"></div>
             <h1 id="detail-title" class="detail-title-text" style="font-size:52px;font-weight:900;margin-bottom:16px;"></h1>
             <div id="detail-meta" class="detail-meta-text" style="font-size:18px;margin-bottom:10px;"></div>
+            <div id="detail-extra-meta" class="detail-extra-meta-text" style="font-size:14px;margin-bottom:12px;opacity:0.65;"></div>
             <div id="detail-ia-rating" class="detail-ia-rating"></div>
             <p id="detail-overview" class="detail-overview-text" style="font-size:20px;line-height:1.7;margin-bottom:36px;max-width:620px;"></p>
             <div class="detail-btns">
@@ -639,7 +640,9 @@ const DetailPage = (() => {
       _detailMovieTitle = title;
       _detailMovieYear  = parseInt(year) || 2020;
       const rating  = d.vote_average ? ('★ ' + d.vote_average.toFixed(1)) : '';
-      const runtime = d.runtime ? TMDB.formatRuntime(d.runtime) : (d.number_of_seasons ? d.number_of_seasons + ' seasons' : '');
+      const seasons  = d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' Season' : ' Seasons') : '';
+      const episodes = d.number_of_episodes ? d.number_of_episodes + ' Episodes' : '';
+      const runtime = d.runtime ? TMDB.formatRuntime(d.runtime) : ([seasons, episodes].filter(Boolean).join(' · ') || '');
       const genres  = (d.genres || []).slice(0, 4).map(function(g) { return g.name; }).join('  |  ');
       const backdrop = d.backdrop_path ? TMDB.backdrop(d.backdrop_path, Config.IMG.BACKDROP_FULL) : '';
       const poster   = d.poster_path   ? TMDB.img(d.poster_path, Config.IMG.POSTER_MD) : '';
@@ -650,9 +653,18 @@ const DetailPage = (() => {
       const overviewEl = document.getElementById('detail-overview');
       const bdImg      = document.getElementById('detail-backdrop-img');
 
+      const countries = (d.production_countries || []).map(function(c) { return c.name; }).join(', ');
+      const languages = (d.spoken_languages || []).map(function(l) { return l.english_name || l.name; }).join(', ');
+      const extraMeta = [
+        countries ? 'Country: ' + countries : '',
+        languages ? 'Language: ' + languages : '',
+      ].filter(Boolean).join('   |   ');
+      const extraMetaEl = document.getElementById('detail-extra-meta');
+
       if (titleEl)    titleEl.textContent    = title;
       if (genresEl)   genresEl.textContent   = genres;
       if (metaEl)     metaEl.textContent     = [year, runtime, rating].filter(Boolean).join('   |   ');
+      if (extraMetaEl) extraMetaEl.textContent = extraMeta;
       if (overviewEl) overviewEl.textContent = d.overview || '';
       if (bdImg && backdrop) bdImg.style.backgroundImage = 'url(' + backdrop + ')';
 

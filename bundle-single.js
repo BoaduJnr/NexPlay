@@ -1057,6 +1057,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         res = withCors(new Response("Bad Request", { status: 400 }));
       } else {
         await kv.set(["presence", uid], { ts: Date.now(), hidden });
+        const syncEntry = await kv.get<Record<string, unknown>>(["sync", uid]);
+        const syncBlob = syncEntry.value ? { ...syncEntry.value, statusHidden: hidden } : { statusHidden: hidden };
+        await kv.set(["sync", uid], syncBlob);
         res = withCors(new Response("OK"));
       }
     } else if (req.method === "GET") {

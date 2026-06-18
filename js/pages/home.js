@@ -126,11 +126,37 @@
 
   function rotateHero() {
     _heroIdx = (_heroIdx + 1) % _heroMovies.length;
-    const backdrop = document.querySelector('.hero-backdrop');
-    if (backdrop && _heroMovies[_heroIdx]) {
-      backdrop.style.backgroundImage = `url('${TMDB.backdrop(_heroMovies[_heroIdx].backdrop_path)}')`;
-      populateHeroDots(_heroMovies.length, _heroIdx);
-    }
+    const movie = _heroMovies[_heroIdx];
+    if (!movie) return;
+    const heroEl = document.getElementById('hero-wrapper');
+    if (!heroEl) return;
+
+    const bd = heroEl.querySelector('.hero-backdrop');
+    if (bd) bd.style.backgroundImage = `url('${TMDB.backdrop(movie.backdrop_path)}')`;
+
+    const titleEl = heroEl.querySelector('.hero-title');
+    if (titleEl) titleEl.textContent = movie.title || movie.name || '';
+
+    const year = (movie.release_date || '').slice(0, 4);
+    const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '';
+    const genres = (movie.genre_ids || []).slice(0, 3)
+      .map(gid => App.genreMap[gid] || '').filter(Boolean).join(' · ');
+    const metaEl = heroEl.querySelector('.hero-meta');
+    if (metaEl) metaEl.innerHTML =
+      `${rating ? `<span class="rating">★ ${rating}</span><span class="dot"></span>` : ''}
+       ${year ? `<span>${year}</span>` : ''}
+       ${genres ? `<span class="dot"></span><span>${genres}</span>` : ''}`;
+
+    const ovEl = heroEl.querySelector('.hero-overview');
+    if (ovEl) ovEl.textContent = movie.overview || '';
+
+    const playBtn = heroEl.querySelector('[data-action="play"]');
+    if (playBtn) playBtn.setAttribute('data-movie-id', movie.id);
+
+    const moreBtn = heroEl.querySelector('[data-more-info]');
+    if (moreBtn) moreBtn.setAttribute('data-more-info', movie.id);
+
+    populateHeroDots(_heroMovies.length, _heroIdx);
   }
 
   // ── Fill rows with real data ────────────────────────────

@@ -65,6 +65,8 @@
   var _seekPreview  = 0;      // target position (ms) being previewed
   var _subSyncTimer = null;   // interval ID for TV subtitle sync
   var _subCues      = [];     // parsed VTT cues [{start,end,text}]
+  var _autoplayEnabled = false; // persisted as np_pref_autoplay
+  var _autoplayTimer   = null;  // setInterval for countdown overlay
 
   // ── Embed-mode focus toast ─────────────────────────────
   var _embedFocusHandler = null;
@@ -279,6 +281,75 @@
         break;
       }
     }
+  }
+
+  function _showAutoplayCountdown(onPlay) {
+    var existing = document.getElementById('autoplay-countdown');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
+    var modal = document.getElementById('player-modal');
+    if (!modal) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'autoplay-countdown';
+    overlay.style.cssText = 'position:absolute;bottom:120px;right:40px;background:rgba(10,10,18,0.92);color:#f0f0f8;padding:18px 24px;border-radius:12px;z-index:900;font-size:15px;min-width:220px;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'margin-bottom:12px;font-weight:600;';
+    lbl.textContent = 'Next episode in 5s…';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.setAttribute('data-nav', ''); cancelBtn.setAttribute('tabindex', '0');
+    cancelBtn.style.cssText = 'width:100%;font-size:13px;padding:6px 12px;';
+    cancelBtn.textContent = 'Cancel';
+    overlay.appendChild(lbl);
+    overlay.appendChild(cancelBtn);
+    modal.appendChild(overlay);
+    Nav.reset(modal);
+    var count = 5;
+    _autoplayTimer = setInterval(function() {
+      count--;
+      if (count <= 0) {
+        clearInterval(_autoplayTimer); _autoplayTimer = null;
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        onPlay();
+      } else {
+        lbl.textContent = 'Next episode in ' + count + 's…';
+      }
+    }, 1000);
+    cancelBtn.addEventListener('click', function() {
+      clearInterval(_autoplayTimer); _autoplayTimer = null;
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    });
+  }
+
+  function _autoplayNext() {
+    if (!_autoplayEnabled || _params.type !== 'tv') return;
+    var list = document.getElementById('episode-list');
+    var items = list ? list.querySelectorAll('[data-ep]') : [];
+    var currentIdx = -1;
+    for (var i = 0; i < items.length; i++) {
+      if (parseInt(items[i].dataset.ep) === _currentEpisode) { currentIdx = i; break; }
+    }
+    if (currentIdx !== -1 && currentIdx + 1 < items.length) {
+      _showAutoplayCountdown(function() { items[currentIdx + 1].click(); });
+      return;
+    }
+    // Last episode of season — advance to next season
+    var seasons = _seriesDetails ? (_seriesDetails.seasons || []).filter(function(s) { return s.season_number > 0; }) : [];
+    var nextSeason = null;
+    for (var j = 0; j < seasons.length; j++) {
+      if (seasons[j].season_number > _currentSeason) { nextSeason = seasons[j]; break; }
+    }
+    if (!nextSeason) return;
+    _showAutoplayCountdown(function() {
+      _currentSeason = nextSeason.season_number;
+      _currentEpisode = 1;
+      loadEpisodes(_currentSeason).then(function() {
+        var list2 = document.getElementById('episode-list');
+        if (!list2) return;
+        var ep1 = list2.querySelector('[data-ep="1"]');
+        if (ep1) ep1.click();
+      });
+    });
   }
 
   function startAutoHide() {
@@ -583,7 +654,8 @@
         }
 
         video.addEventListener('ended', function() {
-          if (_params.playlist === 'watchlist') goNextInPlaylist();
+          if (_params.playlist === 'watchlist') { goNextInPlaylist(); return; }
+          _autoplayNext();
         });
 
         if (_progressInterval) clearInterval(_progressInterval);
@@ -976,15 +1048,34 @@
     // ── Quality ──────────────────────────────────────────────
     var qSection = document.createElement('div');
     qSection.className = 'ps-section';
-    qSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Quality</div>';
 
     if (_availableQualities && _availableQualities.length) {
       var savedQ = ''; try { savedQ = localStorage.getItem('np_pref_quality') || ''; } catch(e) {}
       var qSelIdx = _availableQualities.findIndex(function(q) { return q.label === savedQ; });
       if (qSelIdx < 0) qSelIdx = 0;
       if (isTV) {
+        var _qOpen = false;
+        var qToggleBtn = document.createElement('button');
+        qToggleBtn.className = 'ps-section-title ps-section-toggle';
+        qToggleBtn.setAttribute('data-nav', ''); qToggleBtn.setAttribute('tabindex', '0');
+        qToggleBtn.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' +
+          ' Quality' +
+          '<span class="ps-stgl-cur" style="margin-left:6px;font-size:11px;opacity:0.55;font-weight:400">' + _availableQualities[qSelIdx].label + '</span>' +
+          '<svg class="ps-stgl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"' +
+          ' style="margin-left:auto;flex-shrink:0;-webkit-transform:rotate(-90deg);transform:rotate(-90deg)"><polyline points="6 9 12 15 18 9"/></svg>';
         var qList = document.createElement('div');
         qList.className = 'ps-tv-opts';
+        qList.style.display = 'none';
+        qToggleBtn.addEventListener('click', function() {
+          _qOpen = !_qOpen;
+          var arrow = qToggleBtn.querySelector('.ps-stgl-arrow');
+          if (arrow) {
+            arrow.style.webkitTransform = _qOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+            arrow.style.transform       = _qOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+          }
+          qList.style.display = _qOpen ? '' : 'none';
+        });
         _availableQualities.forEach(function(q, qi) {
           (function(q, qi) {
             var btn = document.createElement('button');
@@ -1001,8 +1092,10 @@
             qList.appendChild(btn);
           })(q, qi);
         });
+        qSection.appendChild(qToggleBtn);
         qSection.appendChild(qList);
       } else {
+        qSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Quality</div>';
         var qOpts = _availableQualities.map(function(q) { return { label: q.label }; });
         var qDD = _makeDropdown(qOpts, qSelIdx, 'Auto', function(opt, i) {
           var q = _availableQualities[i];
@@ -1016,6 +1109,7 @@
         qSection.appendChild(qDD);
       }
     } else {
+      qSection.innerHTML = '<div class="ps-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Quality</div>';
       var qPlaceholder = document.createElement('div');
       qPlaceholder.className = 'ps-dd-trigger ps-dd-disabled';
       qPlaceholder.innerHTML = 'Auto <svg class="ps-dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>';
@@ -1140,6 +1234,32 @@
         .catch(function() {
           if (sLoading.parentNode) sLoading.textContent = 'Unavailable';
         });
+    }
+
+    // ── Autoplay (series only) ───────────────────────────────────
+    if (_params.type === 'tv') {
+      var apSection = document.createElement('div');
+      apSection.className = 'ps-section';
+      var apRow = document.createElement('div');
+      apRow.className = 'ps-section-title';
+      apRow.style.cssText = 'display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+      apRow.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="flex-shrink:0;"><polygon points="5 3 19 12 5 21 5 3"/></svg>' +
+        '<span style="margin-left:6px;-webkit-flex:1;flex:1;">Autoplay</span>';
+      var apBtn = document.createElement('button');
+      apBtn.className = 'ps-tv-opt-btn' + (_autoplayEnabled ? ' active' : '');
+      apBtn.setAttribute('data-nav', ''); apBtn.setAttribute('tabindex', '0');
+      apBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:4px 10px;min-width:42px;flex-shrink:0;';
+      apBtn.textContent = _autoplayEnabled ? 'ON' : 'OFF';
+      apBtn.addEventListener('click', function() {
+        _autoplayEnabled = !_autoplayEnabled;
+        apBtn.textContent = _autoplayEnabled ? 'ON' : 'OFF';
+        apBtn.classList.toggle('active', _autoplayEnabled);
+        try { localStorage.setItem('np_pref_autoplay', _autoplayEnabled ? '1' : '0'); } catch(e) {}
+      });
+      apRow.appendChild(apBtn);
+      apSection.appendChild(apRow);
+      panel.appendChild(apSection);
     }
 
     // ── Download ──────────────────────────────────────────────
@@ -1720,7 +1840,6 @@
       '</div>';
 
     setPlayerStatus('');
-    console.log('[Player] iframe embed:', embedUrl.slice(0, 80));
 
     // Add focus listener — toast when user returns after embed opens a new tab
     _addEmbedFocusToast();
@@ -1783,7 +1902,6 @@
     // Direct mode: browser IP is usually not blocked by CDNs (only CF Worker IPs are).
     // Proxy mode: used as fallback — adds Referer/Origin and rewrites segment URLs.
     var playUrl = streamUrl;
-    console.log('[Player] playWithHlsJs ' + (_isDirect ? 'direct:' : 'via proxy:'), playUrl.slice(0, 80));
     // Real HLS stream — restore controls and remove embed tab listener
     _removeEmbedFocusToast();
     var _pm = document.getElementById('player-modal');
@@ -1817,7 +1935,6 @@
         });
       }
       hls.on(Hls.Events.MANIFEST_PARSED, function() {
-        console.log('[Player] HLS manifest parsed, playing');
         _streamErrorRetries = 0;
         if (typeof NexPlayDB !== 'undefined') {
           NexPlayDB.addToHistory(_params.id, _params.type || 'movie',
@@ -1837,17 +1954,34 @@
         }
         if (hlsSeek > 10000) {
           video.currentTime = hlsSeek / 1000;
-          console.log('[Player] HLS seeking to', Math.round(hlsSeek/1000) + 's');
         }
 
         video.addEventListener('ended', function() {
-          if (_params.playlist === 'watchlist') goNextInPlaylist();
+          if (_params.playlist === 'watchlist') { goNextInPlaylist(); return; }
+          _autoplayNext();
         });
 
-        // Prefetch subtitle languages silently — settings panel will display them when opened
-        if (typeof SubtitleClient !== 'undefined' && typeof webapis === 'undefined') {
+        // Auto-load English subtitles (warms cache and selects English if available)
+        if (typeof SubtitleClient !== 'undefined' && typeof webapis === 'undefined' && !_subActiveLang) {
           SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode)
-            .then(function() {})  // just warms the cache
+            .then(function(langs) {
+              if (_subActiveLang) return;
+              var en = langs.find(function(l) { return l.language === 'en' || l.language === 'eng'; });
+              if (!en) return;
+              SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', en.language, _currentSeason, _currentEpisode)
+                .then(function(sub) {
+                  if (!sub || _subActiveLang) return;
+                  _subActiveLang = en.language;
+                  var video = document.getElementById('web-video');
+                  if (video) SubtitleClient.applySubtitle(video, sub);
+                  var btn = document.getElementById('player-cc-btn');
+                  if (btn) {
+                    btn.classList.add('cc-active');
+                    btn.querySelector('.cc-label').textContent = 'EN';
+                  }
+                })
+                .catch(function() {});
+            })
             .catch(function() {});
         }
 
@@ -1874,14 +2008,12 @@
         if (data.fatal) {
           if (_isDirect) {
             // Direct CDN access failed — retry through the CF Worker proxy
-            console.log('[Player] Direct HLS failed, retrying via proxy');
             var proxied = buildProxyUrl(_currentStreamUrl, _qualityHeaders);
             playWithHlsJs(proxied, _qualityHeaders, false);
           } else {
             // Both direct and proxy failed — try the next stream source (e.g. Vidrock after Videasy CDN fails)
             _streamErrorRetries++;
             if (_streamErrorRetries <= 2) {
-              console.log('[Player] CDN blocked, trying next stream source...');
               setPlayerStatus('Trying another source...');
               loadBestSource();
             } else {
@@ -1910,7 +2042,6 @@
     var swrap = document.getElementById('player-settings-wrap');
     if (swrap) swrap.style.display = '';
 
-    console.log('[Player] playWithUrl:', url.slice(0, 80));
     setPlayerStatus('Loading...');
 
     if (typeof webapis === 'undefined' || !webapis.avplay) {
@@ -1929,7 +2060,6 @@
 
     // TV: AVPlay via proxy
     var playUrl = buildProxyUrl(url, headers);
-    console.log('[Player] AVPlay via proxy:', playUrl.slice(0, 80));
     // Restore controls in case we're retrying after an iframe embed
     _removeEmbedFocusToast();
     var _pm2 = document.getElementById('player-modal');
@@ -1951,7 +2081,8 @@
         onbufferingstart: function() { setPlayerStatus('Buffering...'); },
         onbufferingcomplete: function() { setPlayerStatus(''); updatePlayIcon(true); },
         oncompletion: function() {
-          if (_params.playlist === 'watchlist') goNextInPlaylist();
+          if (_params.playlist === 'watchlist') { goNextInPlaylist(); return; }
+          _autoplayNext();
         },
         onerror: function(e) {
           // Guard: callbacks can fire after the player is closed on Tizen
@@ -1991,7 +2122,6 @@
       webapis.avplay.prepareAsync(
         function() {
           clearTimeout(_avplayTimeout);
-          console.log('[Player] prepareAsync success');
           _streamErrorRetries = 0;
           webapis.avplay.play();
           setPlayerStatus('');
@@ -2016,8 +2146,24 @@
           if (seekTarget > 10000) {
             try {
               webapis.avplay.seekTo(seekTarget);
-              console.log('[Player] Seeking to', Math.round(seekTarget/1000) + 's');
             } catch(e) {}
+          }
+          // Auto-load English subtitles if available and none selected yet
+          if (typeof SubtitleClient !== 'undefined' && !_subActiveLang) {
+            SubtitleClient.getLanguages(_params.id, _params.type || 'movie', _currentSeason, _currentEpisode)
+              .then(function(langs) {
+                if (_subActiveLang) return;
+                var en = langs.find(function(l) { return l.language === 'en' || l.language === 'eng'; });
+                if (!en) return;
+                SubtitleClient.loadLanguage(_params.id, _params.type || 'movie', en.language, _currentSeason, _currentEpisode)
+                  .then(function(sub) {
+                    if (!sub || _subActiveLang) return;
+                    _subActiveLang = en.language;
+                    _applySubtitleTV(sub);
+                  })
+                  .catch(function() {});
+              })
+              .catch(function() {});
           }
           // Update progress bar + auto-save every 3s
           if (_progressInterval) clearInterval(_progressInterval);
@@ -2095,7 +2241,6 @@
         if (result && result.url) {
           _availableQualities = result.qualities || [];
           _qualityHeaders = result.headers || null;
-          console.log('[Player] stream resolved:', result.url.slice(0, 60));
 
           // autoDownload: skip playback and trigger download through settings panel
           if (_params.autoDownload) {
@@ -2115,16 +2260,13 @@
           playWithUrl(_prefQ ? _prefQ.url : result.url, result.headers);
           renderQualityDropdown();
         } else if (result && result.type === 'torrent') {
-          console.log('[Player] torrent source:', result.quality, result.hash && result.hash.slice(0, 8));
           setPlayerStatus('Loading torrent...');
           playWithWebTorrent(result.magnetURI);
         } else {
-          console.log('[Player] no stream, falling back to embeds');
           trySource(0);
         }
       })
       .catch(function(e) {
-        console.log('[Player] loadBestSource failed:', e.message);
         trySource(0);
       });
   }
@@ -2233,6 +2375,13 @@
       });
 
       Nav.reset(document.getElementById('player-modal'));
+      if (typeof webapis !== 'undefined') {
+        setTimeout(function() {
+          var ep   = document.querySelector('#episode-list .episode-item.active') || document.querySelector('#episode-list .episode-item');
+          var play = document.getElementById('ctrl-play');
+          if (ep) Nav.focusEl(ep); else if (play) Nav.focusEl(play);
+        }, 0);
+      }
     } catch (err) {
       list.innerHTML = `<div class="error-msg" style="font-size:13px;">Could not load episodes</div>`;
     }
@@ -2360,6 +2509,7 @@
     _currentEpisode   = parseInt(params.episode || 1);
     _activeSourceIdx  = 0;
     _seriesDetails    = null;
+    try { _autoplayEnabled = localStorage.getItem('np_pref_autoplay') === '1'; } catch(e) {}
     _availableQualities = [];
     _qualityHeaders      = null;
     _resumePos           = 0;
@@ -2494,6 +2644,12 @@
     if (settingsBtn) settingsBtn.addEventListener('click', function(e) { e.stopPropagation(); _toggleSettingsPanel(); });
 
     Nav.reset(modal);
+    if (typeof webapis !== 'undefined') {
+      setTimeout(function() {
+        var play = document.getElementById('ctrl-play');
+        if (play) Nav.focusEl(play);
+      }, 150);
+    }
     loadBestSource();
 
     if (params.id) {
@@ -2564,6 +2720,13 @@
           }
         }
         Nav.reset(modal);
+        if (typeof webapis !== 'undefined') {
+          setTimeout(function() {
+            var ep   = document.querySelector('#episode-list .episode-item.active') || document.querySelector('#episode-list .episode-item');
+            var play = document.getElementById('ctrl-play');
+            if (ep) Nav.focusEl(ep); else if (play) Nav.focusEl(play);
+          }, 150);
+        }
       } catch (err) {
         console.error('Player metadata error:', err);
       }
@@ -2575,6 +2738,9 @@
     _stopWatchingHeartbeat();
     _removeSubtitleTV();
     _subActiveLang  = null;
+    if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
+    var _acd = document.getElementById('autoplay-countdown');
+    if (_acd && _acd.parentNode) _acd.parentNode.removeChild(_acd);
     _dlQualityIdx   = 0;
     stopAutoHide();
     stopMediaKeys();

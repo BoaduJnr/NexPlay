@@ -777,7 +777,8 @@ var GoogleAuth = function () {
         var visible = statusCb.checked;
         _savePrivacy(!visible); // hidden = !visible
         if (statusLbl) statusLbl.textContent = visible ? 'Visible' : 'Hidden';
-        _sendPresence(); // update server immediately
+        _sendPresence(); // update /api/presence immediately
+        if (typeof CloudSync !== 'undefined') CloudSync.syncUp(); // push statusHidden to sync blob so other devices pick it up
       });
     }
 
