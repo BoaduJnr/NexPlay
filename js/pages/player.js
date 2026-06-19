@@ -67,6 +67,7 @@
   var _subCues      = [];     // parsed VTT cues [{start,end,text}]
   var _autoplayEnabled = false; // persisted as np_pref_autoplay
   var _autoplayTimer   = null;  // setInterval for countdown overlay
+  var _fsChangeHandler = null;  // fullscreenchange listener reference
 
   // ── Embed-mode focus toast ─────────────────────────────
   var _embedFocusHandler = null;
@@ -1249,7 +1250,7 @@
       var apBtn = document.createElement('button');
       apBtn.className = 'ps-tv-opt-btn' + (_autoplayEnabled ? ' active' : '');
       apBtn.setAttribute('data-nav', ''); apBtn.setAttribute('tabindex', '0');
-      apBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:4px 10px;min-width:42px;flex-shrink:0;';
+      apBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:4px 10px;min-width:42px;width:auto;flex-shrink:0;';
       apBtn.textContent = _autoplayEnabled ? 'ON' : 'OFF';
       apBtn.addEventListener('click', function() {
         _autoplayEnabled = !_autoplayEnabled;
@@ -2535,6 +2536,14 @@
           </svg>
           Back
         </button>
+        <button class="player-fullscreen-btn" id="player-fullscreen-btn" title="Fullscreen">
+          <svg class="pfs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <svg class="pfs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:none;">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+          </svg>
+        </button>
       </div>
 
       <div style="position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;">
@@ -2643,6 +2652,29 @@
     var settingsBtn = document.getElementById('player-settings-btn');
     if (settingsBtn) settingsBtn.addEventListener('click', function(e) { e.stopPropagation(); _toggleSettingsPanel(); });
 
+    // Fullscreen toggle — mobile only (button hidden on TV via CSS)
+    var fsBtn = document.getElementById('player-fullscreen-btn');
+    if (fsBtn) {
+      _fsChangeHandler = function() {
+        var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        var enterIcon = fsBtn.querySelector('.pfs-enter');
+        var exitIcon  = fsBtn.querySelector('.pfs-exit');
+        if (enterIcon) enterIcon.style.display = isFS ? 'none' : '';
+        if (exitIcon)  exitIcon.style.display  = isFS ? '' : 'none';
+      };
+      fsBtn.addEventListener('click', function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          var req = modal.requestFullscreen || modal.webkitRequestFullscreen;
+          if (req) req.call(modal);
+        } else {
+          var exit = document.exitFullscreen || document.webkitExitFullscreen;
+          if (exit) exit.call(document);
+        }
+      });
+      document.addEventListener('fullscreenchange', _fsChangeHandler);
+      document.addEventListener('webkitfullscreenchange', _fsChangeHandler);
+    }
+
     Nav.reset(modal);
     if (typeof webapis !== 'undefined') {
       setTimeout(function() {
@@ -2734,6 +2766,15 @@
   }
 
   function closePlayer() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+    if (_fsChangeHandler) {
+      document.removeEventListener('fullscreenchange', _fsChangeHandler);
+      document.removeEventListener('webkitfullscreenchange', _fsChangeHandler);
+      _fsChangeHandler = null;
+    }
     _closeSettingsPanel();
     _stopWatchingHeartbeat();
     _removeSubtitleTV();

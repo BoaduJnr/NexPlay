@@ -27,8 +27,9 @@
   let _scanStop   = false;
 
   // Mobile full-screen watching mode
-  var _mobileHideTimer   = null;
-  var _mobileWatchActive = false;
+  var _mobileHideTimer     = null;
+  var _mobileWatchActive   = false;
+  var _iptvFsChangeHandler = null;
 
   function _isMobile() { return window.innerWidth < 1024; }
 
@@ -37,8 +38,9 @@
     _mobileWatchActive = true;
     var page = document.getElementById('iptv-page');
     if (page) page.classList.add('iptv-watching');
-    // Also hide the bottom nav bar so video fills the full screen
     document.body.classList.add('iptv-fullscreen');
+    var fsBtn = document.getElementById('iptv-fullscreen-btn');
+    if (fsBtn) fsBtn.style.display = '';
   }
 
   function exitMobileWatching() {
@@ -46,6 +48,13 @@
     var page = document.getElementById('iptv-page');
     if (page) page.classList.remove('iptv-watching');
     document.body.classList.remove('iptv-fullscreen');
+    var fsBtn = document.getElementById('iptv-fullscreen-btn');
+    if (fsBtn) fsBtn.style.display = 'none';
+    // Exit browser fullscreen if active
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
   }
 
   function scheduleMobileWatching(delayMs) {
@@ -1211,6 +1220,14 @@
               <span class="iptv-idle-hint">← scroll the sidebar to browse</span>
             </div>
           </div>
+          <button class="iptv-fullscreen-btn" id="iptv-fullscreen-btn" title="Fullscreen" style="display:none;">
+            <svg class="pfs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <svg class="pfs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:none;">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+          </button>
           <div class="iptv-channel-bar" id="iptv-channel-bar">
             <span class="iptv-idle-text">No channel selected</span>
           </div>
@@ -1292,11 +1309,40 @@
       refreshChannels(),
     ]);
 
+    // Fullscreen button (mobile only)
+    var iptvFsBtn = document.getElementById('iptv-fullscreen-btn');
+    if (iptvFsBtn) {
+      _iptvFsChangeHandler = function() {
+        var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        var enterIcon = iptvFsBtn.querySelector('.pfs-enter');
+        var exitIcon  = iptvFsBtn.querySelector('.pfs-exit');
+        if (enterIcon) enterIcon.style.display = isFS ? 'none' : '';
+        if (exitIcon)  exitIcon.style.display  = isFS ? '' : 'none';
+      };
+      iptvFsBtn.addEventListener('click', function() {
+        var iptv = document.getElementById('iptv-page');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          var req = iptv && (iptv.requestFullscreen || iptv.webkitRequestFullscreen);
+          if (req) req.call(iptv);
+        } else {
+          var exitF = document.exitFullscreen || document.webkitExitFullscreen;
+          if (exitF) exitF.call(document);
+        }
+      });
+      document.addEventListener('fullscreenchange', _iptvFsChangeHandler);
+      document.addEventListener('webkitfullscreenchange', _iptvFsChangeHandler);
+    }
+
     // Re-establish focus after dropdowns are rebuilt (outerHTML replacement detaches old elements)
     Nav.reset(container);
   }
 
   function onLeave() {
+    if (_iptvFsChangeHandler) {
+      document.removeEventListener('fullscreenchange', _iptvFsChangeHandler);
+      document.removeEventListener('webkitfullscreenchange', _iptvFsChangeHandler);
+      _iptvFsChangeHandler = null;
+    }
     stopKeyListener();
     if (_hls) { try { _hls.destroy(); } catch (e) {} _hls = null; }
     stopAvPlay();

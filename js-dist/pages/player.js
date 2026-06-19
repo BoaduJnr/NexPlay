@@ -193,7 +193,7 @@ var PlayerPage = function () {
       stopAvPlay();
       modal.classList.remove('hidden');
       document.body.classList.add('player-open');
-      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n          <div id=\"player-subtitle-overlay\" class=\"player-subtitle-overlay\"></div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <!-- Quality dropdown \u2014 visible on TV (D-pad), hidden on web/mobile (settings panel used instead) -->\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
+      modal.innerHTML = "\n      <div class=\"player-header\" style=\"margin-right:".concat(rightPad, "px;\">\n        <button class=\"player-back btn btn-secondary\" data-nav tabindex=\"0\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"16\" height=\"16\">\n            <path d=\"M19 12H5M12 5l-7 7 7 7\"/>\n          </svg>\n          Back\n        </button>\n        <button class=\"player-fullscreen-btn\" id=\"player-fullscreen-btn\" title=\"Fullscreen\">\n          <svg class=\"pfs-enter\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"18\" height=\"18\">\n            <path d=\"M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3\"/>\n          </svg>\n          <svg class=\"pfs-exit\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"18\" height=\"18\" style=\"display:none;\">\n            <path d=\"M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3\"/>\n          </svg>\n        </button>\n      </div>\n\n      <div style=\"position:relative;display:-webkit-flex;display:flex;-webkit-flex-direction:row;flex-direction:row;-webkit-flex:1;flex:1;overflow:hidden;background:transparent;\">\n        <div id=\"avplay-area\" style=\"-webkit-flex:1;flex:1;min-width:0;background:transparent;position:relative;\">\n          <div id=\"player-status\" class=\"player-status-overlay\">Loading...</div>\n          <div id=\"player-subtitle-overlay\" class=\"player-subtitle-overlay\"></div>\n        </div>\n        ").concat(!isMobile ? isTV ? "<div id=\"episode-panel\" class=\"episode-panel\"></div>" : "<div id=\"similar-slot\"></div>" : '', "\n      </div>\n\n      ").concat(isMobile && isTV ? "<div id=\"episode-panel\" class=\"episode-panel episode-panel-mobile\"\n             style=\"width:100%;height:160px;min-height:160px;max-height:160px;flex-shrink:0;flex-direction:column;border-left:none;border-top:1px solid rgba(255,255,255,0.08);\"></div>" : '', "\n\n      <div class=\"player-cbar\" id=\"player-cbar\" style=\"right:").concat(rightPad, "px;\">\n        <!-- Row 1 (top): controls centered + quality far right -->\n        <div class=\"player-cbar-row2\">\n          <div class=\"player-cbar-btns\">\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-prev\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 6h2v12H6zm3.5 6l8.5 6V6z\"/></svg>\n              <span>Prev</span></button>" : '', "\n            <button class=\"pcb-btn\" id=\"ctrl-rw\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z\"/></svg>\n              <span>-10s</span></button>\n            <button class=\"pcb-btn pcb-play\" id=\"ctrl-play\" data-nav tabindex=\"0\">\n              <svg id=\"ctrl-play-icon\" viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"26\" height=\"26\"><path d=\"M8 5v14l11-7z\"/></svg>\n            </button>\n            <button class=\"pcb-btn\" id=\"ctrl-ff\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z\"/></svg>\n              <span>+30s</span></button>\n            ").concat(isTV ? "<button class=\"pcb-btn\" id=\"ctrl-next\" data-nav tabindex=\"0\">\n              <svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6 18l8.5-6L6 6v12zm2.5-6l8.5 6V6l-8.5 6z\"/><rect x=\"16\" y=\"6\" width=\"2\" height=\"12\"/></svg>\n              <span>Next</span></button>" : '', "\n          </div>\n          <!-- Quality dropdown \u2014 visible on TV (D-pad), hidden on web/mobile (settings panel used instead) -->\n          <div id=\"quality-dd-wrap\" class=\"player-cbar-quality\">\n            ").concat(TVDropdown.html('quality-dd', [{
         value: 'auto',
         label: 'Auto'
       }], 'auto'), "\n          </div>\n        </div>\n        <!-- Row 2 (bottom): seek track + time + gear settings button -->\n        <div class=\"player-cbar-row1\">\n          <div class=\"player-cbar-track\" id=\"seek-track\" data-nav tabindex=\"0\" title=\"Left/Right to seek\">\n            <div id=\"buffer-fill\" class=\"player-cbar-buffer-fill\"></div>\n            <div id=\"progress-fill\" class=\"player-cbar-fill\"></div>\n          </div>\n          <span id=\"player-time\" class=\"player-cbar-time\">0:00 / 0:00</span>\n          <!-- \u2699 Settings button (web/mobile only) \u2014 consolidates quality, subtitles, download -->\n          <div id=\"player-settings-wrap\" class=\"player-settings-wrap\" style=\"display:none;\">\n            <button id=\"player-settings-btn\" class=\"player-settings-btn\" data-nav tabindex=\"0\" title=\"Settings\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"14\" height=\"14\">\n                <circle cx=\"12\" cy=\"12\" r=\"3\"/>\n                <path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/>\n              </svg>\n            </button>\n          </div>\n          <!-- Legacy single-track download pill (web/mobile) \u2014 hidden, kept so download JS refs work -->\n          <button id=\"player-dl-btn\" class=\"player-dl-btn\" style=\"display:none!important;\">\n            <span class=\"dl-fill\" id=\"player-dl-fill\"></span>\n            <svg class=\"dl-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"12\" height=\"12\">\n              <path d=\"M12 5v14M5 12l7 7 7-7\"/>\n            </svg>\n            <span class=\"dl-label\">Save</span>\n          </button>\n          <!-- Legacy CC button \u2014 hidden, kept so CC JS refs work -->\n          <button id=\"player-cc-btn\" class=\"player-cc-btn\" style=\"display:none!important;\">\n            <span class=\"cc-label\">CC</span>\n          </button>\n        </div>\n        <!-- Shell retained so JS references to player-dl-row don't throw -->\n        <div id=\"player-dl-row\" style=\"display:none;\"></div>\n      </div>\n\n      <div class=\"player-info-bar\" style=\"right:").concat(rightPad, "px;\">\n        <div style=\"-webkit-flex:1;flex:1;min-width:0;\">\n          <div class=\"player-title\" id=\"player-title\">Loading...</div>\n          <div class=\"player-meta\" id=\"player-meta\"></div>\n        </div>\n      </div>");
@@ -248,6 +248,29 @@ var PlayerPage = function () {
         e.stopPropagation();
         _toggleSettingsPanel();
       });
+
+      // Fullscreen toggle — mobile only (button hidden on TV via CSS)
+      var fsBtn = document.getElementById('player-fullscreen-btn');
+      if (fsBtn) {
+        _fsChangeHandler = function _fsChangeHandler() {
+          var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+          var enterIcon = fsBtn.querySelector('.pfs-enter');
+          var exitIcon = fsBtn.querySelector('.pfs-exit');
+          if (enterIcon) enterIcon.style.display = isFS ? 'none' : '';
+          if (exitIcon) exitIcon.style.display = isFS ? '' : 'none';
+        };
+        fsBtn.addEventListener('click', function () {
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            var req = modal.requestFullscreen || modal.webkitRequestFullscreen;
+            if (req) req.call(modal);
+          } else {
+            var exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) exit.call(document);
+          }
+        });
+        document.addEventListener('fullscreenchange', _fsChangeHandler);
+        document.addEventListener('webkitfullscreenchange', _fsChangeHandler);
+      }
       Nav.reset(modal);
       if (typeof webapis !== 'undefined') {
         setTimeout(function () {
@@ -897,6 +920,7 @@ var PlayerPage = function () {
   var _subCues = []; // parsed VTT cues [{start,end,text}]
   var _autoplayEnabled = false; // persisted as np_pref_autoplay
   var _autoplayTimer = null; // setInterval for countdown overlay
+  var _fsChangeHandler = null; // fullscreenchange listener reference
 
   // ── Embed-mode focus toast ─────────────────────────────
   var _embedFocusHandler = null;
@@ -2201,7 +2225,7 @@ var PlayerPage = function () {
       apBtn.className = 'ps-tv-opt-btn' + (_autoplayEnabled ? ' active' : '');
       apBtn.setAttribute('data-nav', '');
       apBtn.setAttribute('tabindex', '0');
-      apBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:4px 10px;min-width:42px;flex-shrink:0;';
+      apBtn.style.cssText = 'margin-left:auto;font-size:11px;padding:4px 10px;min-width:42px;width:auto;flex-shrink:0;';
       apBtn.textContent = _autoplayEnabled ? 'ON' : 'OFF';
       apBtn.addEventListener('click', function () {
         _autoplayEnabled = !_autoplayEnabled;
@@ -3113,6 +3137,15 @@ var PlayerPage = function () {
     });
   }
   function closePlayer() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+    if (_fsChangeHandler) {
+      document.removeEventListener('fullscreenchange', _fsChangeHandler);
+      document.removeEventListener('webkitfullscreenchange', _fsChangeHandler);
+      _fsChangeHandler = null;
+    }
     _closeSettingsPanel();
     _stopWatchingHeartbeat();
     _removeSubtitleTV();

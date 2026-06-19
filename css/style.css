@@ -4344,6 +4344,40 @@ body.theme-bright .card.nav-focused {
   .key-hint-bar { display: none !important; }
 }
 
+/* ── Mobile: home icon-hint bar as compact pill row ─────────────────── */
+@media (max-width: 1023px) {
+  .home-icon-hints {
+    padding: 6px 16px 12px !important;
+    -webkit-flex-wrap: nowrap !important;
+    flex-wrap: nowrap !important;
+    -webkit-justify-content: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 8px;
+  }
+  .home-icon-hints .home-hint-item {
+    -webkit-flex: 1;
+    flex: 1;
+    -webkit-justify-content: center;
+    justify-content: center;
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 20px;
+    padding: 8px 4px;
+    gap: 5px;
+  }
+  .home-icon-hints .home-hint-label {
+    font-size: 11px !important;
+  }
+  body.theme-bright .home-icon-hints .home-hint-item {
+    background: rgba(10,10,32,0.06) !important;
+    border-color: rgba(10,10,32,0.12) !important;
+  }
+  /* Reduce card height ratio on mobile so cards aren't taller than the viewport */
+  .card-row .card-poster { height: calc(62vw * 1.3) !important; }
+}
+
 /* Extra-small phones */
 @media (max-width: 480px) {
   .hero { height: 220px !important; }
@@ -5790,4 +5824,65 @@ body:not(.is-web):not(.is-mobile) .player-settings-btn.nav-focused {
 
   /* Settings-tab code box */
   .account-code-input { font-size: 18px; letter-spacing: 6px; }
+}
+
+/* ── Fullscreen toggle buttons (mobile only) ─────────── */
+.player-fullscreen-btn,
+.iptv-fullscreen-btn {
+  display: none; /* hidden by default; shown on mobile via media query */
+}
+@media (max-width: 1023px) {
+  .player-fullscreen-btn {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 50;
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .iptv-fullscreen-btn {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 50;
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .player-fullscreen-btn:active,
+  .iptv-fullscreen-btn:active {
+    background: rgba(167,139,250,0.40);
+    border-color: rgba(167,139,250,0.60);
+  }
+  .iptv-player {
+    position: relative;
+  }
+  .player-header {
+    position: relative;
+  }
 }

@@ -181,7 +181,7 @@ var IPTVPage = function () {
         length: 8
       }, function () {
         return "\n              <div class=\"channel-item\">\n                <div class=\"channel-logo skeleton\" style=\"width:44px;height:44px;\"></div>\n                <div style=\"flex:1;\">\n                  <div class=\"skeleton\" style=\"height:13px;width:75%;border-radius:3px;margin-bottom:6px;\"></div>\n                  <div class=\"skeleton\" style=\"height:10px;width:45%;border-radius:3px;\"></div>\n                </div>\n              </div>";
-      }).join(''), "\n          </div>\n        </div>\n\n        <!-- Right: player -->\n        <div class=\"iptv-player\">\n          <div class=\"iptv-player-area\" id=\"iptv-player-area\">\n            <div class=\"iptv-placeholder iptv-placeholder--idle\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" class=\"iptv-idle-icon\">\n                <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n                <path d=\"M8 19v2M16 19v2M2 10h20\"/>\n              </svg>\n              <p>Pick a channel from the list</p>\n              <span class=\"iptv-idle-hint\">\u2190 scroll the sidebar to browse</span>\n            </div>\n          </div>\n          <div class=\"iptv-channel-bar\" id=\"iptv-channel-bar\">\n            <span class=\"iptv-idle-text\">No channel selected</span>\n          </div>\n        </div>\n\n      </div>");
+      }).join(''), "\n          </div>\n        </div>\n\n        <!-- Right: player -->\n        <div class=\"iptv-player\">\n          <div class=\"iptv-player-area\" id=\"iptv-player-area\">\n            <div class=\"iptv-placeholder iptv-placeholder--idle\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" class=\"iptv-idle-icon\">\n                <rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/>\n                <path d=\"M8 19v2M16 19v2M2 10h20\"/>\n              </svg>\n              <p>Pick a channel from the list</p>\n              <span class=\"iptv-idle-hint\">\u2190 scroll the sidebar to browse</span>\n            </div>\n          </div>\n          <button class=\"iptv-fullscreen-btn\" id=\"iptv-fullscreen-btn\" title=\"Fullscreen\" style=\"display:none;\">\n            <svg class=\"pfs-enter\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"18\" height=\"18\">\n              <path d=\"M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3\"/>\n            </svg>\n            <svg class=\"pfs-exit\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"18\" height=\"18\" style=\"display:none;\">\n              <path d=\"M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3\"/>\n            </svg>\n          </button>\n          <div class=\"iptv-channel-bar\" id=\"iptv-channel-bar\">\n            <span class=\"iptv-idle-text\">No channel selected</span>\n          </div>\n        </div>\n\n      </div>");
       Nav.reset(container);
 
       // Start key listener immediately so RED works on channel cards without playing first
@@ -265,6 +265,30 @@ var IPTVPage = function () {
 
       // Load meta + channels in parallel
       return Promise.resolve(Promise.all([buildCountryOptions(), buildCategoryOptions(), refreshChannels()])).then(function () {
+        // Fullscreen button (mobile only)
+        var iptvFsBtn = document.getElementById('iptv-fullscreen-btn');
+        if (iptvFsBtn) {
+          _iptvFsChangeHandler = function _iptvFsChangeHandler() {
+            var isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            var enterIcon = iptvFsBtn.querySelector('.pfs-enter');
+            var exitIcon = iptvFsBtn.querySelector('.pfs-exit');
+            if (enterIcon) enterIcon.style.display = isFS ? 'none' : '';
+            if (exitIcon) exitIcon.style.display = isFS ? '' : 'none';
+          };
+          iptvFsBtn.addEventListener('click', function () {
+            var iptv = document.getElementById('iptv-page');
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+              var req = iptv && (iptv.requestFullscreen || iptv.webkitRequestFullscreen);
+              if (req) req.call(iptv);
+            } else {
+              var exitF = document.exitFullscreen || document.webkitExitFullscreen;
+              if (exitF) exitF.call(document);
+            }
+          });
+          document.addEventListener('fullscreenchange', _iptvFsChangeHandler);
+          document.addEventListener('webkitfullscreenchange', _iptvFsChangeHandler);
+        }
+
         // Re-establish focus after dropdowns are rebuilt (outerHTML replacement detaches old elements)
         Nav.reset(container);
       });
@@ -624,6 +648,7 @@ var IPTVPage = function () {
   // Mobile full-screen watching mode
   var _mobileHideTimer = null;
   var _mobileWatchActive = false;
+  var _iptvFsChangeHandler = null;
   function _isMobile() {
     return window.innerWidth < 1024;
   }
@@ -632,14 +657,22 @@ var IPTVPage = function () {
     _mobileWatchActive = true;
     var page = document.getElementById('iptv-page');
     if (page) page.classList.add('iptv-watching');
-    // Also hide the bottom nav bar so video fills the full screen
     document.body.classList.add('iptv-fullscreen');
+    var fsBtn = document.getElementById('iptv-fullscreen-btn');
+    if (fsBtn) fsBtn.style.display = '';
   }
   function exitMobileWatching() {
     _mobileWatchActive = false;
     var page = document.getElementById('iptv-page');
     if (page) page.classList.remove('iptv-watching');
     document.body.classList.remove('iptv-fullscreen');
+    var fsBtn = document.getElementById('iptv-fullscreen-btn');
+    if (fsBtn) fsBtn.style.display = 'none';
+    // Exit browser fullscreen if active
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
   }
   function scheduleMobileWatching(delayMs) {
     if (!_isMobile()) return;
@@ -1475,6 +1508,11 @@ var IPTVPage = function () {
     }, 1200);
   }
   function onLeave() {
+    if (_iptvFsChangeHandler) {
+      document.removeEventListener('fullscreenchange', _iptvFsChangeHandler);
+      document.removeEventListener('webkitfullscreenchange', _iptvFsChangeHandler);
+      _iptvFsChangeHandler = null;
+    }
     stopKeyListener();
     if (_hls) {
       try {
